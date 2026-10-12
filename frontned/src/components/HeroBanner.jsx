@@ -1,174 +1,138 @@
-import { useEffect, useState } from "react";
-import API from "../services/api";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Clock3,
+} from "lucide-react";
+import { heroBannerData as bannerData } from "../data/AllData"; // Path apne folder ke mutabiq adjust kar lein
 
-const HeroBanner = () => {
-  const [articles, setArticles] = useState([]);
+export default function HeroBanner() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    const fetchFeaturedArticles = async () => {
-      try {
-        const response = await API.get("/articles/featured");
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % bannerData.length);
+    }, 5000);
 
-        setArticles(response.data.articles || []);
-      } catch (error) {
-        console.error("Featured articles fetch failed:", error);
-      }
-    };
-
-    fetchFeaturedArticles();
+    return () => clearInterval(timer);
   }, []);
 
-  if (articles.length === 0) {
-    return (
-      <section className="px-4 py-5 md:px-8">
-        <div className="flex h-[430px] items-center justify-center rounded-xl bg-slate-900 text-white">
-          Loading...
-        </div>
-      </section>
-    );
-  }
+  const currentItem = bannerData[currentIndex];
 
-  const article = articles[currentIndex];
-
-  const previousSlide = () => {
+  const handlePrev = () => {
     setCurrentIndex(
-      currentIndex === 0
-        ? articles.length - 1
-        : currentIndex - 1
+      (prev) => (prev - 1 + bannerData.length) % bannerData.length
     );
   };
 
-  const nextSlide = () => {
-    setCurrentIndex(
-      currentIndex === articles.length - 1
-        ? 0
-        : currentIndex + 1
-    );
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % bannerData.length);
   };
 
   return (
-    <section className="w-full bg-white px-4 py-4 md:px-8">
+    <section className="bg-[#fffdf8] px-3 py-3 sm:px-5 sm:py-4 lg:px-8">
+      <div className="relative mx-auto max-w-[1500px] overflow-hidden rounded-[22px] bg-[#101827] shadow-lg">
 
-      <div className="relative h-[430px] w-full overflow-hidden rounded-xl bg-slate-950">
-
-        {/* BACKGROUND IMAGE - BACKEND SE AAYEGI */}
+        {/* Background Image */}
         <img
-          src={article.image}
-          alt={article.title}
-          className="absolute inset-0 h-full w-full object-cover"
+          key={currentItem.id}
+          src={currentItem.image}
+          alt={currentItem.title}
+          className="absolute inset-0 h-full w-full object-cover object-center"
         />
 
-        {/* DARK OVERLAY */}
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-950/10" />
+        {/* Image Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0b1220]/95 via-[#101827]/80 to-[#101827]/35" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0b1220]/50 via-transparent to-black/10" />
 
-        {/* CONTENT */}
-        <div className="relative z-10 flex h-full w-full items-center">
+        {/* Main Content */}
+        <div
+          key={`content-${currentItem.id}`}
+          className="relative flex min-h-[340px] items-center px-5 py-8 sm:min-h-[355px] sm:px-9 sm:py-9 lg:min-h-[370px] lg:px-12 lg:py-10"
+        >
+          <div className="w-full max-w-[690px]">
 
-          <div className="w-full px-7 py-8 md:w-[58%] md:px-11">
+            {/* Category */}
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-amber-300/30 bg-amber-400/15 px-3 py-1.5 text-[11px] font-semibold text-amber-300 backdrop-blur-sm">
+              <Sparkles size={13} />
+              {currentItem.category}
+            </div>
 
-            {/* FEATURED BADGE */}
-            <span className="mb-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg">
-              {article.category || "Featured"}
-            </span>
-
-            {/* TITLE */}
-            <h1 className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-4xl md:text-[42px]">
-              {article.title}
+            {/* Heading */}
+            <h1 className="max-w-[650px] text-[25px] font-bold leading-[1.2] tracking-tight text-white sm:text-[30px] lg:text-[36px]">
+              {currentItem.title}
             </h1>
 
-            {/* DESCRIPTION */}
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-200 md:text-[17px]">
-              {article.description}
+            {/* Description */}
+            <p className="mt-3 max-w-[590px] text-[13px] leading-5 text-slate-200 sm:text-sm sm:leading-6">
+              {currentItem.excerpt}
             </p>
 
-            {/* AUTHOR */}
-            <div className="mt-5 flex items-center gap-3">
+            {/* Author Details */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-300/40 bg-white/10 text-sm font-bold text-amber-300">
+                  {currentItem.author.charAt(0)}
+                </div>
 
-              {article.authorImage && (
-                <img
-                  src={article.authorImage}
-                  alt={article.author}
-                  className="h-11 w-11 rounded-full border-2 border-white object-cover"
-                />
-              )}
-
-              <div>
-                <p className="text-sm font-semibold text-white">
-                  {article.author}
-                </p>
-
-                <div className="mt-1 flex items-center gap-2 text-xs text-slate-300">
-                  <span>{article.publishedDate}</span>
-                  <span>•</span>
-                  <span>{article.readTime}</span>
+                <div>
+                  <p className="text-xs font-semibold text-white sm:text-sm">
+                    {currentItem.author}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-300">
+                    {currentItem.date}
+                  </p>
                 </div>
               </div>
 
+              <div className="flex items-center gap-1.5 text-xs text-amber-300">
+                <Clock3 size={14} />
+                {currentItem.readTime}
+              </div>
             </div>
 
-            {/* BUTTON */}
-            <button
-              type="button"
-              className="mt-6 inline-flex items-center gap-4 rounded-lg border border-white px-5 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-white hover:text-slate-900"
-            >
-              Read Full Article
-
-              <span className="text-lg">
-                →
-              </span>
-            </button>
+            {/* Biography Button */}
+            <div className="mt-5">
+              <Link
+                to="/Biography"
+                className="group inline-flex items-center gap-2 rounded-lg bg-[#c5a264] px-5 py-2.5 text-sm font-semibold text-[#172033] transition duration-300 hover:-translate-y-0.5 hover:bg-[#dfbf82]"
+              >
+                Biography
+                <ArrowRight
+                  size={16}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </Link>
+            </div>
 
           </div>
         </div>
 
-        {/* SLIDER CONTROLS */}
-        {articles.length > 1 && (
-          <div className="absolute bottom-5 right-6 z-20 flex items-center gap-3">
+        {/* Navigation Buttons */}
+        <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2 sm:bottom-5 sm:right-6">
+          <button
+            type="button"
+            onClick={handlePrev}
+            aria-label="Previous slide"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur-sm transition hover:border-amber-300 hover:bg-[#c5a264] hover:text-[#101827] sm:h-10 sm:w-10"
+          >
+            <ChevronLeft size={19} />
+          </button>
 
-            {/* PREVIOUS */}
-            <button
-              type="button"
-              onClick={previousSlide}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-black/20 text-xl text-white backdrop-blur-sm transition hover:bg-white hover:text-slate-900"
-            >
-              ←
-            </button>
-
-            {/* DOTS */}
-            <div className="flex items-center gap-2">
-
-              {articles.map((_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setCurrentIndex(index)}
-                  className={`h-2.5 w-2.5 rounded-full transition-all ${
-                    index === currentIndex
-                      ? "bg-white"
-                      : "bg-white/50"
-                  }`}
-                />
-              ))}
-
-            </div>
-
-            {/* NEXT */}
-            <button
-              type="button"
-              onClick={nextSlide}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-black/20 text-xl text-white backdrop-blur-sm transition hover:bg-white hover:text-slate-900"
-            >
-              →
-            </button>
-
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Next slide"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur-sm transition hover:border-amber-300 hover:bg-[#c5a264] hover:text-[#101827] sm:h-10 sm:w-10"
+          >
+            <ChevronRight size={19} />
+          </button>
+        </div>
 
       </div>
-
     </section>
   );
-};
-
-export default HeroBanner;
+}
