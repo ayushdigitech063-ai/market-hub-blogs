@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 
-const API = "http://localhost:5000/api";
+const API = "https://market-hub-blogs-backend.onrender.com/api";
 
 export default function ArticleReadPage() {
   const { slug } = useParams();

@@ -57,7 +57,7 @@ export default function RelatedProfiles({ profile }) {
   useEffect(() => {
     if (!profile) return;
 
-    fetch("http://localhost:5000/api/biographies")
+    fetch("https://market-hub-blogs-backend.onrender.com/api/biographies")
       .then((res) => res.json())
       .then((data) => {
         // Never show the current person, even if the same name was added twice

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const AUTHORS_URL = "http://localhost:5000/api/blog-authors";
+const AUTHORS_URL = "https://market-hub-blogs-backend.onrender.com/api/blog-authors";
 
 /* Authors ek baar fetch honge, baaki cards cache se lenge */
 let authorsPromise = null;

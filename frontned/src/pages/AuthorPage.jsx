@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import BlogArticleCard from "../components/BlogArticleCard";
 import { Globe, ArrowLeft, BookOpen, UserRound } from "lucide-react";
 
-const API = "http://localhost:5000/api";
+const API = "https://market-hub-blogs-backend.onrender.com/api";
 
 const socialIcons = {
   twitter: (

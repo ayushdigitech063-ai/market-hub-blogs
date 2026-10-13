@@ -17,8 +17,8 @@ export default function ArticleDetail() {
 
     // Current article aur saare articles ek sath fetch karo
     Promise.all([
-      fetch(`http://localhost:5000/api/articles/${id}`).then((res) => res.json()),
-      fetch(`http://localhost:5000/api/articles`).then((res) => res.json()),
+      fetch(`https://market-hub-blogs-backend.onrender.com/api/articles/${id}`).then((res) => res.json()),
+      fetch(`https://market-hub-blogs-backend.onrender.com/api/articles`).then((res) => res.json()),
     ])
       .then(([articleData, allArticles]) => {
         setArticle(articleData);

@@ -1,4 +1,4 @@
-const BASE = "http://localhost:5000/api/brands"; // apna backend port daalo
+const BASE = "https://market-hub-blogs-backend.onrender.com/api/brands"; // apna backend port daalo
 
 export const fetchFeatured = async () => {
   const res = await fetch(`${BASE}/featured`);

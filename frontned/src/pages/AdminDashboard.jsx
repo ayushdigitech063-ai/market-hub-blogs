@@ -5,7 +5,7 @@ import {
   Mail, Lock, KeyRound, User, ArrowRight, Database, Plus, UploadCloud, Loader2,
 } from "lucide-react";
 
-const API = "http://localhost:5000/api";
+const API = "https://market-hub-blogs-backend.onrender.com/api";
 
 
 const TOKEN_KEY = "admin_token";

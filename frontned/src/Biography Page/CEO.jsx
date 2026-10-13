@@ -219,7 +219,7 @@ export default function CEO() {
   const [biographies, setBiographies] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/biographies")
+    fetch("https://market-hub-blogs-backend.onrender.com/api/biographies")
       .then((res) => res.json())
       .then((data) => setBiographies(data))
       .catch((err) => console.error("Error fetching biographies:", err));

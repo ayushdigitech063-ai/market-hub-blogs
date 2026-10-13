@@ -25,7 +25,7 @@ export default function BiographyDetails() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/biographies")
+    fetch("https://market-hub-blogs-backend.onrender.com/api/biographies")
       .then((res) => res.json())
       .then((data) => {
         const found = data.find(
