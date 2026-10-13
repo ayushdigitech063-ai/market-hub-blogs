@@ -149,8 +149,8 @@ export default function ArticleDetail() {
   // =====================================================
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:5000/api/articles').then((r) => r.json()),
-      fetch('http://localhost:5000/api/companies').then((r) => r.json()),
+      fetch('https://market-hub-blogs-backend.onrender.com/api/articles').then((r) => r.json()),
+      fetch('https://market-hub-blogs-backend.onrender.com/api/companies').then((r) => r.json()),
     ])
       .then(([articlesList, companiesList]) => {
         setArticles(articlesList);

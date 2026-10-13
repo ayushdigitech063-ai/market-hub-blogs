@@ -1,4 +1,4 @@
-const BASE = "http://localhost:5000/api/sliding-companies";
+const BASE = "https://market-hub-blogs-backend.onrender.com/api/sliding-companies";
 
 export const fetchSlidingCompanies = async () => {
   const res = await fetch(BASE);

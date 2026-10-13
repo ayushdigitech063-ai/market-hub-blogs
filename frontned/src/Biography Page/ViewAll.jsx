@@ -16,7 +16,7 @@ export default function ViewAll() {
 
   // Fetch all profiles and keep only those that belong to this route
   useEffect(() => {
-    fetch("http://localhost:5000/api/biographies")
+    fetch("https://market-hub-blogs-backend.onrender.com/api/biographies")
       .then((res) => res.json())
       .then((data) => {
         // Known routes (ceo / sportsperson / entrepreneur / actor ...) use the

@@ -27,8 +27,8 @@ export default function CompanyDetail() {
   // Company aur articles dono backend se
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:5000/api/companies').then((res) => res.json()),
-      fetch('http://localhost:5000/api/articles').then((res) => res.json()),
+      fetch('https://market-hub-blogs-backend.onrender.com/api/companies').then((res) => res.json()),
+      fetch('https://market-hub-blogs-backend.onrender.com/api/articles').then((res) => res.json()),
     ])
       .then(([companiesList, articlesList]) => {
         setCompany(companiesList.find((c) => c.slug === slug));

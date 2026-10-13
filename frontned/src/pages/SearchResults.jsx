@@ -11,7 +11,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
-const API = "http://localhost:5000/api";
+const API = "https://market-hub-blogs-backend.onrender.com/api";
 
 const SOURCES = [
   {

@@ -74,7 +74,7 @@ export default function Companies() {
   const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/companies')
+    fetch('https://market-hub-blogs-backend.onrender.com/api/companies')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch companies');
         return res.json();

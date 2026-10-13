@@ -1,4 +1,4 @@
-const BASE = "http://localhost:5000/api/latest-articles";
+const BASE = "https://market-hub-blogs-backend.onrender.com//latest-articles";
 
 export const fetchLatestArticles = async (limit) => {
   const res = await fetch(limit ? `${BASE}?limit=${limit}` : BASE);
