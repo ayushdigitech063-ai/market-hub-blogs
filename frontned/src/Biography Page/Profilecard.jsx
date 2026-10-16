@@ -16,10 +16,9 @@ const renderSocialIcon = (platform) => {
 };
 
 export default function ProfileCard({ item }) {
-  // Agar item hi nahi hai toh blank return kar do taaki crash na ho
   if (!item) return null;
 
-  // Safe optional chaining to prevent reading undefined properties
+
   const rawSocials = item?.socials || {};
   const socialLinks = {
     twitter: rawSocials.twitter || item?.twitter,
@@ -67,7 +66,7 @@ export default function ProfileCard({ item }) {
       </Link>
 
       <div className="p-6 pt-0">
-        {/* Social Media Icons Section */}
+
         {hasSocials && (
           <div className="mb-4 flex items-center gap-2.5 border-t border-stone-100 pt-4">
             {Object.entries(socialLinks).map(([platform, url]) => {

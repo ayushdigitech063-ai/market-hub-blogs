@@ -7,7 +7,7 @@ export default function SlidingCompanies() {
   const [active, setActive] = useState(0);
   const [companies, setCompanies] = useState([]);
 
-  // Simple Modal State
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -19,7 +19,7 @@ export default function SlidingCompanies() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Backend se company data fetch karo
+
   useEffect(() => {
     fetchSlidingCompanies()
       .then((data) => {
@@ -30,7 +30,7 @@ export default function SlidingCompanies() {
       );
   }, []);
 
-  // Slider ko selected card par le jao
+
   const goToSlide = (index) => {
     const slider = sliderRef.current;
     const card = slider?.querySelector(".company-card");
@@ -48,7 +48,7 @@ export default function SlidingCompanies() {
     setActive(index);
   };
 
-  // Previous / Next
+
   const move = (direction) => {
     if (companies.length === 0) return;
 
@@ -64,7 +64,7 @@ export default function SlidingCompanies() {
     goToSlide(nextIndex);
   };
 
-  // Automatic slider
+
   useEffect(() => {
     if (companies.length < 2 || isModalOpen) return;
 
@@ -90,7 +90,7 @@ export default function SlidingCompanies() {
     return () => clearInterval(timer);
   }, [companies.length, isModalOpen]);
 
-  // Handle Input Change
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -102,7 +102,7 @@ export default function SlidingCompanies() {
     }));
   };
 
-  // Handle Form Submit
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setErrorMsg("");
@@ -127,13 +127,12 @@ export default function SlidingCompanies() {
   return (
     <section className="relative w-full bg-gradient-to-b from-sky-50 via-white to-blue-50 py-14 sm:py-16 lg:py-20">
 
-      {/* Background decoration */}
+
       <div className="pointer-events-none absolute -left-24 top-16 h-64 w-64 rounded-full bg-sky-200/30 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-teal-200/20 blur-3xl" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-        {/* Section Heading */}
         <div className="mb-9 flex flex-col gap-6 md:mb-11 md:flex-row md:items-end md:justify-between">
 
           <div className="max-w-2xl">
@@ -152,7 +151,7 @@ export default function SlidingCompanies() {
                 </span>
               </h2>
 
-              {/* Simple Add Button */}
+
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
@@ -168,7 +167,7 @@ export default function SlidingCompanies() {
             </p>
           </div>
 
-          {/* Slider Controls */}
+
           <div className="flex items-center justify-between gap-4 md:justify-end">
             <p className="text-sm font-medium text-slate-500">
               <span className="font-bold text-blue-700">
@@ -200,7 +199,6 @@ export default function SlidingCompanies() {
           </div>
         </div>
 
-        {/* Company Cards Slider Wrapper */}
         <div className="relative w-full overflow-hidden pt-3 pb-6">
           <div
             ref={sliderRef}
@@ -216,7 +214,7 @@ export default function SlidingCompanies() {
                 key={company._id}
                 className="company-card group flex w-[85%] flex-shrink-0 snap-start flex-col rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1.5 hover:border-sky-300 hover:shadow-[0_18px_40px_rgba(37,99,235,0.12)] sm:w-[46%] lg:w-[calc(33.333%-16px)]"
               >
-                {/* Company Logo */}
+      
                 <div className="relative mb-5 flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-5">
                   <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-full bg-sky-100/60" />
 
@@ -234,7 +232,7 @@ export default function SlidingCompanies() {
                   )}
                 </div>
 
-                {/* Company Details */}
+
                 <div className="flex flex-1 flex-col">
                   <span className="mb-2 inline-flex w-fit items-center rounded-md bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700">
                     Company Profile
@@ -249,7 +247,6 @@ export default function SlidingCompanies() {
                       "Explore company information, products, services and latest updates."}
                   </p>
 
-                  {/* Card Footer */}
                   <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-4 mt-5">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 sm:text-xs">
                       {company.tagline || "Explore Company"}
@@ -265,7 +262,7 @@ export default function SlidingCompanies() {
           </div>
         </div>
 
-        {/* Bottom Note */}
+       
         <div className="mt-10 flex flex-col items-center justify-center gap-2 border-t border-slate-200/80 pt-6 text-center sm:flex-row sm:gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-teal-700">
             &#10003;
@@ -277,7 +274,7 @@ export default function SlidingCompanies() {
         </div>
       </div>
 
-      {/* SIMPLE POPUP MODAL */}
+
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
@@ -294,7 +291,7 @@ export default function SlidingCompanies() {
               </button>
             </div>
 
-            {/* Form */}
+  
             <form onSubmit={handleSubmit} className="space-y-3.5 pt-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Company Name *</label>

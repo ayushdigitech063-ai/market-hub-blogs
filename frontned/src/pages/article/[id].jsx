@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ArticleCard from '../../components/ArticleCard';
+import ArticleBody from '../../components/ArticleBody';
 
 export default function ArticleDetail() {
   const { id } = useParams();
@@ -10,12 +11,10 @@ export default function ArticleDetail() {
   const [relatedArticles, setRelatedArticles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Jab bhi id change ho, page top par scroll ho aur backend se data fetch ho
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setLoading(true);
 
-    // Current article aur saare articles ek sath fetch karo
     Promise.all([
       fetch(`https://market-hub-blogs-backend.onrender.com/api/articles/${id}`).then((res) => res.json()),
       fetch(`https://market-hub-blogs-backend.onrender.com/api/articles`).then((res) => res.json()),
@@ -52,7 +51,7 @@ export default function ArticleDetail() {
     );
   }
 
-  // Left aur Right scroll karne ke functions
+
   const scrollLeft = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: -350, behavior: 'smooth' });
@@ -92,16 +91,23 @@ export default function ArticleDetail() {
         <img src={article.image} alt={article.title} className="w-full h-full object-cover" />
       </div>
 
-      <div className="prose max-w-none text-gray-700 leading-relaxed text-base space-y-4 mb-16">
-        <p className="font-semibold text-lg text-gray-950">{article.description || (article.content && article.content[0])}</p>
-        {Array.isArray(article.content) ? (
-          article.content.slice(1).map((para, index) => <p key={index}>{para}</p>)
-        ) : (
-          <p>{article.content}</p>
-        )}
-      </div>
+      {article.contentHtml ? (
 
-      {/* Related Articles Section with Left/Right Scroll Buttons */}
+        <div className="prose max-w-none text-gray-700 leading-relaxed text-base mb-16">
+          <ArticleBody post={article} />
+        </div>
+      ) : (
+        <div className="prose max-w-none text-gray-700 leading-relaxed text-base space-y-4 mb-16">
+          <p className="font-semibold text-lg text-gray-950">{article.description || (article.content && article.content[0])}</p>
+          {Array.isArray(article.content) ? (
+            article.content.slice(1).map((para, index) => <p key={index}>{para}</p>)
+          ) : (
+            <p>{article.content}</p>
+          )}
+        </div>
+      )}
+
+
       <div className="border-t border-gray-200 pt-10">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-black text-gray-900">Related Articles</h3>
@@ -123,7 +129,7 @@ export default function ArticleDetail() {
           </div>
         </div>
 
-        {/* Scrollable Container for All Cards */}
+
         <div 
           ref={scrollRef} 
           className="flex space-x-6 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"

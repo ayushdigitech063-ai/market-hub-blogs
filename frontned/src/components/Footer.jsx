@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, MapPin, Globe2 } from "lucide-react";
-import footerBg from "../../public/footer.png"; // Public folder ke liye '/footer.png' bhi use kar sakte hain
+import footerBg from "../../public/footer.png"; 
 
 const quickLinks = [
   { label: "Home", to: "/" },
@@ -70,10 +70,10 @@ export default function Footer() {
     >
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8 lg:px-10">
 
-        {/* Footer Columns */}
+ 
         <div className="grid grid-cols-1 gap-7 py-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8 lg:py-10">
 
-          {/* Brand */}
+
           <div>
             <Link
               to="/"
@@ -103,7 +103,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
+
           <div>
             <h3 className="text-sm font-bold tracking-wide text-amber-200">
               Quick Links
@@ -129,7 +129,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Explore Topics */}
+  
           <div>
             <h3 className="text-sm font-bold tracking-wide text-amber-200">
               Explore Topics
@@ -149,7 +149,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* About Us */}
+   
           <div>
             <h3 className="text-sm font-bold tracking-wide text-amber-200">
               About Us
@@ -180,7 +180,7 @@ export default function Footer() {
 
         </div>
 
-        {/* Copyright */}
+
         <div className="flex flex-col gap-2 border-t border-amber-400/20 py-4 text-[11px] leading-5 text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-center sm:text-left">
             © {year} Market Digital Insights. All rights reserved.

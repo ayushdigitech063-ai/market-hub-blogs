@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 
 import ArticleCard from '../components/ArticleCard';
+import SeoHead from '../components/SeoHead';
+import ArticleBody from '../components/ArticleBody';
 
 // =====================================================
 // **bold** ko <strong> me convert karta hai
@@ -23,15 +25,36 @@ const renderInline = (text) => {
 
 // =====================================================
 // ARTICLE COMPANY MATCH
-// Article me company field ho to wahi, warna id range
+// 1) Article ka Company Slug  2) Article ki Category  3) Start/End ID range
 // =====================================================
-const belongsTo = (item, c) =>
-  item.company
-    ? item.company === c.slug
-    : item.id >= c.startId && item.id <= c.endId;
+const toSlug = (s) =>
+  String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const slugMatches = (value, c) => {
+  const key = toSlug(value);
+  const slug = String(c.slug || '').toLowerCase();
+  return !!key && (key === slug || slug.startsWith(`${key}-`));
+};
+
+const belongsTo = (item, c) => {
+  // Article me Company Slug bhara ho to wahi final hai
+  if (String(item.company || '').trim()) return slugMatches(item.company, c);
+  // Warna category company ke naam/slug se match ho (jaise category "Microsoft")
+  if (slugMatches(item.category, c)) return true;
+  // Last me purani Start/End Article ID range
+  return item.id >= c.startId && item.id <= c.endId;
+};
+
+// Draft articles public site par nahi dikhte
+// (purane articles me status nahi hota, wo published maane jaate hain)
+const isLive = (item) => item.status !== 'draft';
 
 // =====================================================
-// CONTENT RENDERER
+// CONTENT RENDERER (purane articles ke liye)
 // Headings / Lists / Paragraphs
 // =====================================================
 function ArticleContent({ content }) {
@@ -184,9 +207,9 @@ export default function ArticleDetail() {
   );
 
   // =====================================================
-  // ARTICLE NOT FOUND
+  // ARTICLE NOT FOUND (draft bhi "not found" hai)
   // =====================================================
-  if (!article) {
+  if (!article || !isLive(article)) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
@@ -227,10 +250,10 @@ export default function ArticleDetail() {
 
   // =====================================================
   // ALL OTHER ARTICLES
-  // Current article ko remove karta hai
+  // Current article aur drafts ko remove karta hai
   // =====================================================
   const others = articles.filter(
-    (item) => String(item.id) !== String(article.id)
+    (item) => String(item.id) !== String(article.id) && isLive(item)
   );
 
   // =====================================================
@@ -279,6 +302,9 @@ export default function ArticleDetail() {
   // =====================================================
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
+      {/* title, meta, canonical, OG, Twitter, JSON-LD (Article + FAQ schema) */}
+      <SeoHead post={article} />
+
       <Link
         to="/"
         className="text-sm font-semibold text-gray-500 hover:text-red-600 transition mb-6 inline-block"
@@ -315,22 +341,30 @@ export default function ArticleDetail() {
       <div className="rounded-3xl overflow-hidden shadow-lg mb-8 max-h-[450px]">
         <img
           src={article.image}
-          alt={article.title}
+          alt={article.imageAlt || article.title}
           className="w-full h-full object-cover"
         />
       </div>
 
       <div className="text-gray-700 leading-relaxed text-base space-y-4 mb-16">
-        {(article.excerpt || article.description) && (
-          <p className="font-semibold text-lg text-gray-900">
-            {article.excerpt || article.description}
-          </p>
-        )}
+        {article.contentHtml ? (
+          // Naya article: HTML content + Table of Contents + FAQ accordion
+          <ArticleBody post={article} />
+        ) : (
+          // Purana article (contentHtml nahi hai): pehle jaisa hi dikhega
+          <>
+            {(article.excerpt || article.description) && (
+              <p className="font-semibold text-lg text-gray-900">
+                {article.excerpt || article.description}
+              </p>
+            )}
 
-        {article.content && (
-          <ArticleContent
-            content={article.content}
-          />
+            {article.content && (
+              <ArticleContent
+                content={article.content}
+              />
+            )}
+          </>
         )}
       </div>
 

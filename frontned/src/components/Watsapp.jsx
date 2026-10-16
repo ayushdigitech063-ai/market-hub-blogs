@@ -1,8 +1,8 @@
 import React from 'react';
 
 const Watsapp = () => {
-  const phoneNumber = '917733012890'; // Country code (91) ke saath number
-  const message = 'Hello! I need some assistance.'; // Optional pre-filled message
+  const phoneNumber = '917733012890'; 
+  const message = 'Hello! I need some assistance.'; 
 
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
@@ -14,7 +14,7 @@ const Watsapp = () => {
       aria-label="Chat on WhatsApp"
       className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 bg-green-500 rounded-full shadow-lg hover:bg-green-600 transition-all duration-300 hover:scale-110 group"
     >
-      {/* WhatsApp SVG Icon */}
+
       <svg
         className="w-8 h-8 fill-current text-white"
         xmlns="http://www.w3.org/2000/svg"

@@ -5,6 +5,9 @@ import { Building2, ArrowRight, Sparkles, TrendingUp, Globe2 } from 'lucide-reac
 const HERO_IMAGE =
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUBi4f2-W_fsawEy1mqYQCZN7A0On8Pg0_RO3Sn-q0uQ&s=10";
 
+// Dashboard description ke peeche hidden data save karta hai, card par wo nahi dikhana
+const cleanDesc = (s) => String(s || '').replace(/<!--COMPANY_PACK:[\s\S]*?-->/, '').trim();
+
 const FEATURE_SLIDES = [
   {
     image:
@@ -261,81 +264,118 @@ export default function Companies() {
         </div>
       </section>
 
-      {/* KEEP THE EXISTING COMPANY DATA BELOW */}
-      <section id="companies-list" className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-14 sm:px-6 lg:px-8 lg:pb-20">
-        <div className="mb-8 flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end">
-          <div className="flex items-start gap-3">
-            <span className="mt-1 h-10 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-[#D8AD54] to-[#A87922]" />
-            <div>
-              <h2 className="font-serif text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                Featured Companies
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                Kisi bhi company par click karke uske exclusive articles dekhein.
-              </p>
-            </div>
-          </div>
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            <Building2 className="h-4 w-4 text-[#A87922]" />
-            Company directory
-          </div>
+    
+{/* Featured Companies Section */}
+<section
+  id="companies-list"
+  className="relative mx-auto max-w-7xl scroll-mt-20 overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-slate-50 to-cyan-50/70 px-4 py-8 pb-14 sm:px-6 sm:py-10 lg:px-8 lg:pb-20"
+>
+  {/* Background Decorations */}
+  <div className="pointer-events-none absolute -right-20 top-0 h-64 w-64 rounded-full bg-sky-200/30 blur-3xl" />
+  <div className="pointer-events-none absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-teal-100/40 blur-3xl" />
+
+  <div className="relative z-10">
+    {/* Section Header */}
+    <div className="mb-8 flex flex-col justify-between gap-4 border-b border-sky-200/70 pb-5 sm:flex-row sm:items-end">
+      <div className="flex items-start gap-3">
+        <span className="mt-1 h-10 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-sky-500 to-teal-500" />
+
+        <div>
+          <h2 className="font-serif text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Featured Companies
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Explore leading brands, discover their stories, and read
+            exclusive company insights.
+          </p>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="py-16 text-center">
-            <div className="inline-flex items-center gap-2 text-sm font-medium text-[#A87922]">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#D8AD54] border-t-transparent" />
-              Loading companies...
+      <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <Building2 className="h-4 w-4 text-teal-600" />
+        Company Directory
+      </div>
+    </div>
+
+    {/* Loading State */}
+    {loading ? (
+      <div className="py-16 text-center">
+        <div className="inline-flex items-center gap-2 text-sm font-medium text-teal-700">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+          Loading companies...
+        </div>
+      </div>
+    ) : companiesData.length === 0 ? (
+      /* Empty State */
+      <div className="rounded-2xl border border-dashed border-sky-200 bg-white/80 px-6 py-14 text-center shadow-sm">
+        <Building2 className="mx-auto h-9 w-9 text-sky-500" />
+
+        <h3 className="mt-4 font-serif text-xl font-bold text-slate-800">
+          No Companies Available
+        </h3>
+
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+          Company profiles will appear here when they become available.
+          Please check back soon for the latest updates.
+        </p>
+      </div>
+    ) : (
+      /* Company Cards */
+      <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {companiesData.map((company) => (
+          <Link
+            key={company.slug}
+            to={`/company/${company.slug}`}
+            className="group relative flex h-[350px] flex-col justify-end overflow-hidden rounded-2xl border border-sky-200/70 bg-slate-900 shadow-md shadow-slate-900/5 transition-all duration-500 hover:-translate-y-1.5 hover:border-teal-400 hover:shadow-xl hover:shadow-sky-900/15"
+          >
+            {/* Company Image */}
+            <img
+              src={company.imageURL}
+              alt={company.name}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+            />
+
+            {/* Navy + Blue Image Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#091827]/95 via-[#102D46]/65 to-[#0F4560]/10 transition-colors duration-500 group-hover:via-[#102D46]/75" />
+
+            {/* Company Profile Badge */}
+            <div className="absolute left-4 top-4 z-10">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/50 bg-white/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-800 shadow-sm backdrop-blur-md">
+                <Building2 className="h-3.5 w-3.5 text-teal-600" />
+                Company Profile
+              </span>
             </div>
-          </div>
-        ) : companiesData.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
-            <Building2 className="mx-auto h-9 w-9 text-slate-400" />
-            <h3 className="mt-4 font-serif text-xl font-bold text-slate-800">No companies to display yet</h3>
-            <p className="mt-2 text-sm text-slate-500">Company entries will appear here once they are available from the API.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {companiesData.map((company) => (
-              <Link
-                key={company.slug}
-                to={`/company/${company.slug}`}
-                className="group relative flex h-[350px] flex-col justify-end overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-500 hover:-translate-y-1.5 hover:border-[#D8AD54] hover:shadow-xl hover:shadow-slate-900/10"
-              >
-                <img
-                  src={company.imageURL}
-                  alt={company.name}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0D1725]/95 via-[#0D1725]/60 to-[#0D1725]/5 transition-opacity duration-300 group-hover:via-[#0D1725]/70" />
 
-                <div className="absolute left-4 top-4 z-10">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-800 shadow-sm backdrop-blur-md">
-                    <Building2 className="h-3.5 w-3.5 text-[#A87922]" />
-                    Company profile
-                  </span>
-                </div>
+            {/* Card Content */}
+            <div className="relative z-10 flex h-full flex-col justify-end p-5 sm:p-6">
+              <h3 className="font-serif text-xl font-bold leading-snug tracking-tight text-white transition-colors duration-300 group-hover:text-cyan-200">
+                {company.name}
+              </h3>
 
-                <div className="relative z-10 flex h-full flex-col justify-end p-5 sm:p-6">
-                  <h3 className="font-serif text-xl font-bold tracking-tight text-white transition-colors group-hover:text-[#F4D78E]">
-                    {company.name}
-                  </h3>
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-200">
-                    {company.description}
-                  </p>
-                  <div className="mt-5 flex items-center justify-between border-t border-white/20 pt-4">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-white">View articles</span>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F0D58C] text-slate-950 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-white">
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+              <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-200">
+                {cleanDesc(company.description)}
+              </p>
+
+              {/* Card Footer */}
+              <div className="mt-5 flex items-center justify-between border-t border-white/20 pt-4">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-white">
+                  View Articles
+                </span>
+
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-slate-950 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-white group-hover:shadow-lg">
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    )}
+  </div>
+</section>
+
     </main>
   );
 }

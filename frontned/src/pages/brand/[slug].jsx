@@ -1,8 +1,35 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import BrandCard from "../../components/BrandCard";
+import SeoHead from "../../components/SeoHead";
+import ArticleBody from "../../components/ArticleBody";
 import { fetchBrand } from "../../api/brandApi";
+
+
+const isLive = (x) => x && x.status !== "draft";
+
+
+const FAQ_START = "<!--BIO_FAQ_START-->";
+const META_RE = /<!--BIO_META:([\s\S]*?)-->/;
+const FAQ_JSON_RE = /<!--BIO_FAQ_JSON:([\s\S]*?)-->/;
+
+const unpackBlog = (blog) => {
+  const raw = String(blog || "");
+  const start = raw.indexOf(FAQ_START);
+  const html = (start === -1 ? raw : raw.slice(0, start)).replace(META_RE, "").trim();
+  let meta = {};
+  let faqs = [];
+  const mm = META_RE.exec(raw);
+  if (mm) {
+    try { meta = JSON.parse(decodeURIComponent(mm[1])); } catch { meta = {}; }
+  }
+  const fm = FAQ_JSON_RE.exec(raw);
+  if (fm) {
+    try { faqs = JSON.parse(decodeURIComponent(fm[1])); } catch { faqs = []; }
+  }
+  return { html, faqs, meta, isHtml: /<\w+[^>]*>/.test(html) };
+};
 
 export default function BrandDetail() {
   const { slug } = useParams();
@@ -22,17 +49,52 @@ export default function BrandDetail() {
     fetchBrand(slug)
       .then((data) => {
         setItem(data.item);
-        setRelatedItems(data.related || []);
+        setRelatedItems((data.related || []).filter(isLive));
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [slug]);
 
+
+  const view = useMemo(() => {
+    if (!item) return null;
+    const { html, faqs, meta, isHtml } = unpackBlog(item.blog || item.articleContent);
+    return {
+      ...item,
+      blog: html,
+      contentHtml: item.contentHtml || (isHtml ? html : ""),
+      faqs: item.faqs?.length ? item.faqs : faqs,
+      faqEnabled: item.faqEnabled || faqs.length > 0,
+      showToc: item.showToc ?? meta.showToc ?? true,
+      status: item.status ?? meta.status,
+      imageAlt: item.imageAlt ?? meta.imageAlt,
+      focusKeyword: item.focusKeyword ?? meta.focusKeyword,
+      secondaryKeywords: item.secondaryKeywords ?? meta.secondaryKeywords,
+      tags: item.tags ?? meta.tags,
+      publishDate: item.publishDate ?? meta.publishDate,
+      readTime: item.readTime ?? meta.readTime,
+      seo: item.seo ?? meta.seo,
+    };
+  }, [item]);
+
+  const seoPost = useMemo(
+    () =>
+      view
+        ? {
+            ...view,
+            title: view.name || view.articleTitle || view.title,
+            excerpt: view.description || view.shortDescription,
+            image: view.imageUrl,
+          }
+        : null,
+    [view]
+  );
+
   const scroll = (amount) => {
     scrollRef.current?.scrollBy({ left: amount, behavior: "smooth" });
   };
 
-  // ---------- LOADING ----------
+
   if (loading) {
     return (
       <main className="min-h-screen bg-white flex items-center justify-center">
@@ -44,8 +106,8 @@ export default function BrandDetail() {
     );
   }
 
-  // ---------- NOT FOUND ----------
-  if (notFound || !item) {
+
+  if (notFound || !view || !isLive(view)) {
     return (
       <main className="min-h-screen bg-white flex items-center justify-center px-5">
         <div className="text-center max-w-md p-8 rounded-2xl border border-stone-200 shadow-sm bg-stone-50">
@@ -73,17 +135,20 @@ export default function BrandDetail() {
     );
   }
 
-  // ---------- DATA ----------
-  const brand = item.brand || "Brand";
-  const title = item.name || item.articleTitle || item.title;
-  const description = item.description || item.shortDescription;
-  const blog = item.blog || item.articleContent;
+
+  const brand = view.brand || "Brand";
+  const title = view.name || view.articleTitle || view.title;
+  const description = view.description || view.shortDescription;
+  const blog = view.blog;
 
   return (
     <main className="min-h-screen bg-white text-stone-700">
+
+      <SeoHead post={seoPost} />
+
       <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 lg:py-12">
 
-        {/* BACK LINK */}
+
         <Link
           to="/"
           className="group mb-6 inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-stone-500 transition-colors hover:text-amber-600"
@@ -92,7 +157,6 @@ export default function BrandDetail() {
           Back to Home
         </Link>
 
-        {/* HEADER */}
         <header className="mb-8">
           <div className="mb-3 flex items-center gap-2.5">
             <span className="rounded-full bg-amber-100 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-800 shadow-xs">
@@ -100,7 +164,7 @@ export default function BrandDetail() {
             </span>
             <span className="text-stone-300">/</span>
             <span className="text-xs font-medium text-stone-500">
-              {item.category}
+              {view.category}
             </span>
           </div>
 
@@ -109,23 +173,23 @@ export default function BrandDetail() {
           </h1>
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-stone-500 font-light">
-            <span className="font-semibold text-stone-800">{item.category}</span>
-            {item.subCategory && (
+            <span className="font-semibold text-stone-800">{view.category}</span>
+            {view.subCategory && (
               <>
                 <span className="text-stone-300">•</span>
-                <span>{item.subCategory}</span>
+                <span>{view.subCategory}</span>
               </>
             )}
-            {item.date && (
+            {view.date && (
               <>
                 <span className="text-stone-300">•</span>
-                <span>{item.date}</span>
+                <span>{view.date}</span>
               </>
             )}
-            {item.readTime && (
+            {view.readTime && (
               <>
                 <span className="text-stone-300">•</span>
-                <span className="text-amber-600 font-medium">{item.readTime}</span>
+                <span className="text-amber-600 font-medium">{view.readTime}</span>
               </>
             )}
           </div>
@@ -133,21 +197,20 @@ export default function BrandDetail() {
           <div className="mt-6 h-px bg-stone-200/80" />
         </header>
 
-        {/* IMAGE CONTAINER */}
-        {item.imageUrl && (
+  
+        {view.imageUrl && (
           <div className="relative mb-10 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-50 shadow-md">
             <div className="absolute left-0 top-0 z-10 h-1.5 w-32 bg-amber-500" />
             <div className="flex h-[260px] sm:h-[380px] lg:h-[420px] items-center justify-center p-6">
               <img
-                src={item.imageUrl}
-                alt={title}
+                src={view.imageUrl}
+                alt={view.imageAlt || title}
                 className="h-full w-full object-contain drop-shadow-lg"
               />
             </div>
           </div>
         )}
 
-        {/* DESCRIPTION / OVERVIEW */}
         {description && (
           <section className="mb-8">
             <div className="border-l-4 border-amber-500 pl-4 sm:pl-6">
@@ -161,8 +224,8 @@ export default function BrandDetail() {
           </section>
         )}
 
-        {/* BLOG / ARTICLE CONTENT */}
-        {blog && (
+   
+        {(view.contentHtml || blog) && (
           <article className="mb-12">
             <div className="mb-6">
               <span className="text-[11px] font-bold uppercase tracking-widest text-amber-700">
@@ -174,14 +237,22 @@ export default function BrandDetail() {
               <div className="mt-2 h-1 w-12 bg-amber-500 rounded-full" />
             </div>
 
-            <div className="prose prose-stone max-w-none text-sm sm:text-base leading-relaxed text-stone-700 space-y-4 whitespace-pre-line font-light">
-              {blog}
-            </div>
+            {view.contentHtml ? (
+
+              <div className="text-stone-700">
+                <ArticleBody post={view} />
+              </div>
+            ) : (
+ 
+              <div className="prose prose-stone max-w-none text-sm sm:text-base leading-relaxed text-stone-700 space-y-4 whitespace-pre-line font-light">
+                {blog}
+              </div>
+            )}
           </article>
         )}
 
-        {/* FEATURES */}
-        {item.features?.length > 0 && (
+
+        {view.features?.length > 0 && (
           <section className="mb-12">
             <div className="mb-6">
               <span className="text-[11px] font-bold uppercase tracking-widest text-amber-700">
@@ -193,7 +264,7 @@ export default function BrandDetail() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {item.features.map((feature, index) => (
+              {view.features.map((feature, index) => (
                 <div
                   key={index}
                   className="flex items-start gap-3 rounded-xl border border-stone-200/80 bg-stone-50/60 px-4 py-3.5 transition-all hover:border-amber-500/40 hover:bg-white shadow-xs"
@@ -210,7 +281,7 @@ export default function BrandDetail() {
           </section>
         )}
 
-        {/* RELATED PRODUCTS / ARTICLES */}
+
         {relatedItems.length > 0 && (
           <section className="border-t border-stone-200 pt-10 mt-12">
             <div className="mb-6 flex items-end justify-between gap-4">
@@ -223,7 +294,7 @@ export default function BrandDetail() {
                 </h2>
               </div>
 
-              {/* Slider Controls */}
+
               <div className="flex gap-2">
                 <button
                   onClick={() => scroll(-300)}
@@ -242,7 +313,7 @@ export default function BrandDetail() {
               </div>
             </div>
 
-            {/* Scrollable Row */}
+
             <div
               ref={scrollRef}
               className="flex gap-5 overflow-x-auto pb-4 pt-1 no-scrollbar"

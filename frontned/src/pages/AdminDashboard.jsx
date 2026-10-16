@@ -57,7 +57,7 @@ const emptyLatestArticle = {
 };
 
 
-// Fixed dropdown options for Biographies (keep in sync with src/data/biographyFilters.js)
+
 const BIO_CATEGORY_OPTIONS = [
   { value: "Business", label: "Business (includes CEOs)" },
   { value: "Sports", label: "Sports" },
@@ -91,7 +91,7 @@ const bioFields = [
   { name: "shortBio", label: "Short Bio", type: "textarea", rows: 2, span2: true, placeholder: "Write a brief overview..." },
   { name: "description", label: "Full Blog Content / Description", type: "textarea", rows: 6, span2: true, placeholder: "Write full detailed biography or blog content here..." },
 ];
-// Filter dropdowns shown above the Biographies list
+
 const bioFilters = [
   { key: "category", label: "Category", get: (i) => i.category, options: BIO_CATEGORY_OPTIONS },
   { key: "type", label: "Type", get: (i) => i.type, options: BIO_TYPE_OPTIONS },
@@ -101,20 +101,20 @@ const slidingCompanyFields = [
   { name: "name", label: "Company Name", placeholder: "e.g. Google", required: true },
   { name: "slug", label: "Unique ID (Slug)", placeholder: "e.g. google", required: true, lockOnEdit: true },
   { name: "imageURL", type: "image", label: "Logo / Image", placeholder: "Paste direct image link", span2: true },
-  { name: "tagline", label: "Card Tag (neeche wala text)", placeholder: "VERIFIED PARTNER" },
+  { name: "tagline", label: "Card Tag ", placeholder: "VERIFIED PARTNER" },
   { name: "website", label: "Website URL", placeholder: "https://example.com" },
-  { name: "description", label: "Card Description", type: "textarea", rows: 2, span2: true, placeholder: "Card par dikhne wali short line" },
+  { name: "description", label: "Card Description", type: "textarea", rows: 2, span2: true, placeholder: "Short line shown on the card" },
   { name: "blog", label: "Full Page Content", type: "textarea", rows: 10, span2: true,
-    placeholder: "Detail page contant", hint: "Naya paragraph = khali line chhodo." },
+    placeholder: "Detail page contant", hint: "New paragraph = leave a blank line." },
   { name: "features", label: "Key Highlights", type: "textarea", rows: 5, span2: true,
-    placeholder: "Cloud services\nAI tools", hint: "Har point nayi line me." },
+    placeholder: "Cloud services\nAI tools", hint: "Each Points  in  New  Line." },
 ];
 const articleFields = [
-  { name: "id", label: "Article ID (unique number)", type: "number", lockOnEdit: true, placeholder: "Khali chhodo to next ID auto lag jayegi" },
+  { name: "id", label: "Article ID (unique number)", type: "number", lockOnEdit: true, placeholder: "Leave empty to auto-assign the next ID" },
   { name: "slug", label: "Slug", placeholder: "e.g. microsoft-azure-cloud", required: true },
-  { name: "title", label: "Title", placeholder: "Article ka title", required: true, span2: true },
+  { name: "title", label: "Title", placeholder: "Article title", required: true, span2: true },
   { name: "company", label: "Company Slug (optional)", placeholder: "e.g. microsoft, jpmorgan",
-    hint: "Ye likhoge to article usi company ke page par dikhega." },
+   },
   { name: "category", label: "Category", placeholder: "e.g. Microsoft, SEO", required: true },
   { name: "author", label: "Author", placeholder: "e.g. Admin", required: true },
   { name: "date", label: "Date", placeholder: "e.g. October 7, 2026" },
@@ -122,44 +122,44 @@ const articleFields = [
   { name: "image", type: "image", label: "Image", placeholder: "Paste direct image link here", span2: true },
   { name: "excerpt", label: "Excerpt (short summary)", type: "textarea", rows: 2, span2: true, placeholder: "Article ki ek-do line ki summary" },
   { name: "content", label: "Content", type: "textarea", rows: 10, span2: true,
-    placeholder: "Article ka poora content yahan likho...",
+    placeholder: "Write the full article content here...",
     hint: "Naya paragraph = khali line chhodo  •  Heading = ### Heading  •  List = - point  •  Bold = **text**" },
 ];
 const companyFields = [
   { name: "name", label: "Company Name", placeholder: "e.g. Microsoft", required: true },
   { name: "slug", label: "Slug (URL)", placeholder: "e.g. microsoft", required: true, lockOnEdit: true },
-  { name: "imageURL", type: "image", label: "Image", placeholder: "Company card ki image ka link", required: true, span2: true },
+  { name: "imageURL", type: "image", label: "Image", placeholder: "Link to the company card image", required: true, span2: true },
   { name: "startId", label: "Start Article ID", type: "number", placeholder: "e.g. 101", required: true },
   { name: "endId", label: "End Article ID", type: "number", placeholder: "e.g. 110", required: true },
-  { name: "description", label: "Description", type: "textarea", rows: 3, span2: true, required: true, placeholder: "Company ke baare me short description" },
+  { name: "description", label: "Description", type: "textarea", rows: 3, span2: true, required: true, placeholder: "Short description about the company" },
 ];
 const blogAuthorFields = [
   { name: "id", label: "Author ID", placeholder: "e.g. sudha-murty", required: true, lockOnEdit: true,
-    hint: "Chhote akshar, bina space ke. Articles me yahi ID author ke naam se judti hai." },
+    hint: "Lowercase, no spaces. Articles are linked to the author through this ID." },
   { name: "name", label: "Author Name", placeholder: "e.g. Sudha Murty", required: true },
   { name: "role", label: "Role", placeholder: "e.g. Author, Philanthropist & Educator" },
   { name: "company", label: "Organization", placeholder: "e.g. Independent Author" },
   { name: "image", type: "image", label: "Profile Picture", placeholder: "Paste direct image link here", span2: true },
-  { name: "about", label: "About the Author", type: "textarea", rows: 4, span2: true, placeholder: "Author ke baare me likho..." },
+  { name: "about", label: "About the Author", type: "textarea", rows: 4, span2: true, placeholder: "Write about the author..." },
   { name: "education", label: "Education / Background", placeholder: "e.g. MBA, IIM Calcutta", span2: true },
   { name: "expertise", label: "Expertise", placeholder: "Indian Mythology, Storytelling, Philosophy", span2: true,
-    hint: "Comma (,) laga kar alag-alag likho." },
+    hint: "Separate items with commas (,)." },
   { name: "twitter", label: "Twitter / X URL", placeholder: "https://x.com/username" },
   { name: "linkedin", label: "LinkedIn URL", placeholder: "https://linkedin.com/in/username" },
   { name: "instagram", label: "Instagram URL", placeholder: "https://instagram.com/username" },
   { name: "youtube", label: "YouTube URL", placeholder: "https://youtube.com/@channel" },
 ];
 const latestArticleFields = [
-  { name: "title", label: "Title", placeholder: "Article ka title", required: true, span2: true },
+  { name: "title", label: "Title", placeholder: "Article  title", required: true, span2: true },
   { name: "slug", label: "Unique ID (Slug)", placeholder: "e.g. what-is-seo", required: true, lockOnEdit: true,
-    hint: "Chhote akshar, bina space ke. Link /latest-article/<slug> banega." },
+    hint: "Lowercase, no spaces. The link will be /latest-article/<slug>." },
   { name: "category", label: "Category", placeholder: "e.g. SEO, AI Search", required: true },
   { name: "author", label: "Author", placeholder: "e.g. Admin" },
   { name: "date", label: "Date", placeholder: "e.g. October 8, 2026" },
   { name: "readTime", label: "Read Time", placeholder: "e.g. 6 min read" },
-  { name: "order", label: "Order", type: "number", placeholder: "e.g. 1", hint: "Chota number pehle dikhega." },
-  { name: "active", label: "Home par dikhana hai?", type: "select",
-    options: [{ value: "true", label: "Haan" }, { value: "false", label: "Nahi" }] },
+  { name: "order", label: "Order", type: "number", placeholder: "e.g. 1", hint: "Smaller numbers appear first." },
+  { name: "active", label: "Show on Home?", type: "select",
+    options: [{ value: "true", label: "Yes" }, { value: "false", label: "No" }] },
   { name: "image", type: "image", label: "Image", placeholder: "Paste direct image link", span2: true },
   { name: "excerpt", label: "Short Summary", type: "textarea", rows: 2, span2: true },
   { name: "content", label: "Full Article Content", type: "textarea", rows: 10, span2: true,
@@ -168,31 +168,31 @@ const latestArticleFields = [
 const brandFields = [
   { name: "name", label: "Product / Article Title", placeholder: "e.g. Vivo X200 Pro", required: true, span2: true },
   { name: "slug", label: "Slug (URL)", placeholder: "e.g. vivo-x200-pro", required: true, lockOnEdit: true,
-    hint: "Chhote akshar, bina space ke. Page ka link /brand/<slug> banta hai." },
+    hint: "Lowercase, no spaces. The page link will be /brand/<slug>." },
   { name: "brand", label: "Brand", placeholder: "e.g. Jio, Vivo, Apple", required: true },
   { name: "category", label: "Category", placeholder: "e.g. Smartphones, Laptops", required: true },
   { name: "subCategory", label: "Sub Category", placeholder: "e.g. Flagship Phone" },
   { name: "imageUrl", type: "image", label: "Image", placeholder: "Paste direct image link here", span2: true },
-  { name: "featured", label: "Home page par dikhana hai?", type: "select",
-    options: [{ value: "true", label: "Haan, Featured me dikhao" }, { value: "false", label: "Nahi" }] },
+  { name: "featured", label: "Show on Home page?", type: "select",
+    options: [{ value: "true", label: "Yes, show in Featured" }, { value: "false", label: "No" }] },
   { name: "order", label: "Order (card position)", type: "number", placeholder: "e.g. 1", hint: "Chota number pehle dikhega." },
-  { name: "description", label: "Short Description (card + overview)", type: "textarea", rows: 2, span2: true, placeholder: "Card par dikhne wali chhoti summary" },
+  { name: "description", label: "Short Description (card + overview)", type: "textarea", rows: 2, span2: true, placeholder: "Short summary shown on the card" },
   { name: "blog", label: "Full Blog Content", type: "textarea", rows: 10, span2: true,
-    placeholder: "Poora blog yahan likho...", hint: "Naya paragraph = khali line chhodo." },
+    placeholder: "Write the full blog here...", hint: "Naya paragraph = khali line chhodo." },
   { name: "features", label: "Key Features", type: "textarea", rows: 5, span2: true,
-    placeholder: "4G connectivity\n1000 mAh battery\nPhysical keypad", hint: "Har feature nayi line me likho." },
+    placeholder: "4G connectivity\n1000 mAh battery\nPhysical keypad", hint: "Write each feature on a new line" },
 ];
 const buildBlogArticleFields = (authorOptions) => [
-  { name: "id", label: "Article ID", placeholder: "Khali chhodo to auto lag jayegi (art-078...)", lockOnEdit: true },
+  { name: "id", label: "Article ID", placeholder: "Leave empty to auto-assign (art-078...)", lockOnEdit: true },
   { name: "slug", label: "Slug", placeholder: "e.g. sudha-murty-life-lessons", required: true, lockOnEdit: true,
-    hint: "Chhote akshar, bina space ke. Ye article ke URL me aata hai." },
-  { name: "title", label: "Title", placeholder: "Article ka title", required: true, span2: true },
-  { name: "authorId", label: "Author", type: "select", options: authorOptions, placeholder: "Author chuno", required: true },
+    hint: "Lowercase, no spaces. This appears in the article URL." },
+  { name: "title", label: "Title", placeholder: "Article title", required: true, span2: true },
+  { name: "authorId", label: "Author", type: "select", options: authorOptions, placeholder: "Select an author", required: true },
   { name: "category", label: "Category", placeholder: "e.g. Biography, Books & Literature", required: true },
   { name: "date", label: "Date", placeholder: "e.g. Oct 8, 2026" },
   { name: "readTime", label: "Read Time", placeholder: "e.g. 8 min read" },
   { name: "image", type: "image", label: "Image", placeholder: "Paste direct image link here", span2: true },
-  { name: "excerpt", label: "Excerpt (short summary)", type: "textarea", rows: 2, span2: true, placeholder: "Article ki ek-do line ki summary" },
+  { name: "excerpt", label: "Excerpt (short summary)", type: "textarea", rows: 2, span2: true, placeholder: "	A one or two line summary of the article" },
   { name: "content", label: "Content", type: "textarea", rows: 10, span2: true,
     placeholder: "Please Write The Full Aritcle contents", hint: "please do Write a spcae line between every paragraph" },
 ];
@@ -244,7 +244,7 @@ const inputClass =
 
 const MAX_IMAGE_MB = 5;
 
-// Image field: device se choose / drag-drop karke upload (multer backend), ya link paste karo
+
 function ImageField({ field, value, onChange }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -256,24 +256,24 @@ function ImageField({ field, value, onChange }) {
   const upload = async (file) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Sirf image file chuno (JPG, PNG, WEBP, GIF).");
+      setError("Please choose an image file only (JPG, PNG, WEBP, GIF).");
       return;
     }
     if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
-      setError(`Image ${MAX_IMAGE_MB}MB se choti honi chahiye.`);
+      setError(`Image must be smaller than ${MAX_IMAGE_MB}MB.`);
       return;
     }
     setError("");
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append("image", file); // backend me upload.single("image")
+      fd.append("image", file); 
       const res = await authFetch(`${API}/upload`, { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) setError(data.error || "Upload fail ho gaya.");
+      if (!res.ok) setError(data.error || "	Upload failed.");
       else setValue(data.url);
     } catch (err) {
-      setError("Server se connect nahi ho paya.");
+      setError("Could not connect to the server.");
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -307,7 +307,7 @@ function ImageField({ field, value, onChange }) {
 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-slate-700">
-            {uploading ? "Upload ho rahi hai..." : value ? "Image set hai" : "Image yahan drag & drop karo"}
+            {uploading ? "Uploading..." : value ? "	Image is set" : "	Drag & drop an image here"}
           </p>
           <p className="text-[11px] text-slate-400">JPG, PNG, WEBP, GIF • max {MAX_IMAGE_MB}MB</p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -328,15 +328,15 @@ function ImageField({ field, value, onChange }) {
         <input ref={inputRef} type="file" accept="image/*" onChange={(e) => upload(e.target.files?.[0])} className="hidden" />
       </div>
 
-      {/* link paste karna ho to */}
+    
       <input type="text" name={field.name} value={value} onChange={onChange} required={field.required}
-        placeholder="Ya image ka link yahan paste karo" className={inputClass} />
+        placeholder="paste an image link here" className={inputClass} />
       {error && <p className="text-[11px] font-medium text-rose-600">{error}</p>}
     </div>
   );
 }
 
-// Unique values from existing data (case-insensitive, so "Ceo" and "ceo" count as one)
+
 const uniqueOptions = (values) => {
   const seen = new Map();
   values.forEach((v) => {
@@ -348,7 +348,7 @@ const uniqueOptions = (values) => {
 
 const NEW_VALUE = "__new__";
 
-// Dropdown of values already in use, plus an "Add new" option
+
 function ComboField({ field, value, onChange }) {
   const options = field.options || [];
   const [custom, setCustom] = useState(false);
@@ -412,7 +412,7 @@ function Field({ field, value, onChange, editing }) {
           required={field.required} disabled={disabled} placeholder={field.placeholder} className={inputClass} />
       )}
       {field.hint && <p className="mt-1 text-[11px] text-slate-400">{field.hint}</p>}
-      {disabled && <p className="mt-1 text-[11px] text-slate-400">Edit me ye field change nahi hoti.</p>}
+      {disabled && <p className="mt-1 text-[11px] text-slate-400">This field cannot be changed while editing.</p>}
     </div>
   );
 }
@@ -443,9 +443,7 @@ function PageHeader({ meta, count }) {
   );
 }
 
-// =====================================================
-// OVERVIEW (main dashboard)
-// =====================================================
+
 const OVERVIEW_ITEMS = [
   { key: "biographies", label: "Biographies", group: "Website Content", Icon: UserRound, tone: "from-orange-500 to-orange-400" },
   { key: "articles", label: "Articles", group: "Website Content", Icon: Newspaper, tone: "from-amber-500 to-amber-400" },
@@ -489,7 +487,7 @@ function Overview({ counts, admin, goTo }) {
 
   return (
     <div className="space-y-6">
-      {/* HERO (light) */}
+
       <div className="relative overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50/70 to-white p-5 sm:p-7">
         <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-orange-200/30" />
         <div className="pointer-events-none absolute -bottom-16 right-28 h-36 w-36 rounded-full bg-amber-200/30" />
@@ -502,9 +500,7 @@ function Overview({ counts, admin, goTo }) {
             <h1 className="mt-3 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
               Welcome back, {admin?.name || "Admin"}
             </h1>
-            <p className="mt-1 text-xs text-slate-500 sm:text-[13px]">
-              Aapki website ke saare content ka ek nazar me overview.
-            </p>
+           
           </div>
 
           <div className="flex gap-2.5">
@@ -525,11 +521,11 @@ function Overview({ counts, admin, goTo }) {
         </div>
       </div>
 
-      {/* STAT CARDS */}
+
       <div>
         <div className="mb-3">
           <h2 className="text-base font-bold text-slate-900">Content Overview</h2>
-          <p className="text-xs text-slate-500">Kisi bhi card par click karke us section me jao</p>
+          <p className="text-xs text-slate-500">Click any card to go to that section</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -563,10 +559,10 @@ function Overview({ counts, admin, goTo }) {
         </div>
       </div>
 
-      {/* DISTRIBUTION */}
+
       <div className="rounded-xl border border-orange-100 bg-white p-5 sm:p-6">
         <h2 className="text-base font-bold text-slate-900">Content Distribution</h2>
-        <p className="mb-5 text-xs text-slate-500">Kaunsa section kitna bhara hua hai</p>
+        <p className="mb-5 text-xs text-slate-500">How much content each section has</p>
 
         <div className="grid items-center gap-8 lg:grid-cols-[180px_1fr]">
           <div className="mx-auto">
@@ -630,7 +626,7 @@ function AuthScreen({ mode, onAuth }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Kuch galat ho gaya.");
+        setError(data.error || "Something went wrong.");
       } else {
         localStorage.setItem(TOKEN_KEY, data.token);
         if (isRegister) window.location.assign("/admin");
@@ -653,7 +649,7 @@ function AuthScreen({ mode, onAuth }) {
           </span>
           <h1 className="mt-4 text-2xl font-bold">{isRegister ? "Create Admin Account" : "Admin Login"}</h1>
           <p className="mt-1 text-sm text-white/90">
-            {isRegister ? "Naya admin account banao" : "Apne account me login karo"}
+            {isRegister ? "Create a new admin account" : "Log in to your account"}
           </p>
         </div>
 
@@ -810,16 +806,16 @@ function CrudSection({
     }
   };
 
-  // Options for the list filter dropdowns (built from existing data)
+
   const filterOptions = useMemo(
     () => (filters || []).map((f) => ({
       ...f,
-      // Fixed options if given, otherwise the values already used in the data
+
       options: f.options || uniqueOptions(items.map(f.get)).map((v) => ({ value: v, label: v })),
     })),
     [items, filters]
   );
-  // Options for the form's "combo" fields (Category / Type)
+
   const fieldsWithOptions = useMemo(
     () => fields.map((f) =>
       f.type === "combo" ? { ...f, options: uniqueOptions(items.map((i) => i[f.name])) } : f
@@ -840,16 +836,16 @@ function CrudSection({
       const r = getRow(i);
       return `${r.title} ${r.subtitle}`.toLowerCase().includes(q);
     });
-    // eslint-disable-next-line
+
   }, [items, search, filterValues]);
 
   return (
     <div className="space-y-5">
-      {/* ADD BUTTON (form popup tabhi khulega jab ispe click karoge) */}
+
       <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-orange-100 bg-white px-5 py-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">New {singular} add karna hai?</h2>
-          <p className="text-xs text-slate-500">Button par click karo, form popup me khulega.</p>
+          <h2 className="text-sm font-bold text-slate-900"> Do you want to add this</h2>
+  
         </div>
         <button type="button" onClick={openCreate}
           className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-600">
@@ -857,7 +853,7 @@ function CrudSection({
         </button>
       </div>
 
-      {/* MODAL FORM */}
+
       {showForm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-[2px]"
           role="dialog" aria-modal="true">
@@ -893,7 +889,7 @@ function CrudSection({
         </div>
       )}
 
-      {/* LIST */}
+
       <div className="rounded-xl border border-orange-100 bg-white p-5 md:p-6">
         <div className="mb-5 flex flex-col gap-3 border-b border-orange-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-bold text-slate-900">Manage Existing ({items.length})</h2>
@@ -904,7 +900,6 @@ function CrudSection({
           </div>
         </div>
 
-        {/* FILTER DROPDOWNS */}
         {filterOptions.length > 0 && (
           <div className="mb-5 flex flex-wrap items-end gap-3">
             {filterOptions.map((f) => (
@@ -1067,7 +1062,7 @@ function Dashboard({ admin, onLogout }) {
       <GlobalStyle />
       <Toast toast={toast} />
 
-      {/* MOBILE TOP BAR */}
+   
       <div className="sticky top-0 z-40 flex items-center justify-between border-b border-orange-200 bg-white px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-amber-400 text-white">
@@ -1092,7 +1087,7 @@ function Dashboard({ admin, onLogout }) {
         <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* SIDEBAR */}
+
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-orange-200 bg-white transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0 ${
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
@@ -1158,9 +1153,9 @@ function Dashboard({ admin, onLogout }) {
         </div>
       </aside>
 
-      {/* MAIN */}
+
       <main className="min-w-0 flex-1">
-        {/* DESKTOP TOP BAR (logout yahan hai) */}
+
         <div className="sticky top-0 z-30 hidden items-center justify-end border-b border-orange-200 bg-white/90 px-10 py-3 backdrop-blur lg:flex">
           <button onClick={onLogout}
             className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-rose-50 px-3.5 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">
@@ -1169,12 +1164,11 @@ function Dashboard({ admin, onLogout }) {
         </div>
 
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
-          {/* OVERVIEW */}
+
           <div className={tab === "overview" ? "" : "hidden"}>
             <Overview counts={counts} admin={admin} goTo={goTo} />
           </div>
 
-          {/* BIOGRAPHIES */}
           <div className={tab === "biographies" ? "" : "hidden"}>
             <PageHeader meta={META.biographies} count={counts.biographies} />
             <CrudSection
@@ -1199,7 +1193,7 @@ function Dashboard({ admin, onLogout }) {
             />
           </div>
 
-          {/* ARTICLES */}
+
           <div className={tab === "articles" ? "" : "hidden"}>
             <PageHeader meta={META.articles} count={counts.articles} />
             <CrudSection
@@ -1226,7 +1220,6 @@ function Dashboard({ admin, onLogout }) {
             />
           </div>
 
-          {/* COMPANIES */}
           <div className={tab === "companies" ? "" : "hidden"}>
             <PageHeader meta={META.companies} count={counts.companies} />
             <CrudSection
@@ -1250,7 +1243,7 @@ function Dashboard({ admin, onLogout }) {
             />
           </div>
 
-          {/* AUTHORS */}
+ 
           <div className={tab === "authors" ? "" : "hidden"}>
             <PageHeader meta={META.authors} count={counts.authors} />
             <CrudSection
@@ -1304,7 +1297,7 @@ function Dashboard({ admin, onLogout }) {
             />
           </div>
 
-          {/* AUTHOR ARTICLES */}
+  
           <div className={tab === "blogArticles" ? "" : "hidden"}>
             <PageHeader meta={META.blogArticles} count={counts.blogArticles} />
             <BlogArticlesSection
@@ -1314,7 +1307,7 @@ function Dashboard({ admin, onLogout }) {
             />
           </div>
 
-          {/* BRANDS */}
+      
           <div className={tab === "brands" ? "" : "hidden"}>
             <PageHeader meta={META.brands} count={counts.brands} />
             <CrudSection
@@ -1367,7 +1360,7 @@ function Dashboard({ admin, onLogout }) {
             />
           </div>
 
-          {/* LATEST ARTICLES */}
+
           <div className={tab === "latestArticles" ? "" : "hidden"}>
             <PageHeader meta={META.latestArticles} count={counts.latestArticles} />
             <CrudSection
@@ -1418,7 +1411,6 @@ function Dashboard({ admin, onLogout }) {
             />
           </div>
 
-          {/* SLIDING COMPANIES */}
           <div className={tab === "slidingCompanies" ? "" : "hidden"}>
             <PageHeader meta={META.slidingCompanies} count={counts.slidingCompanies} />
             <CrudSection
@@ -1472,9 +1464,7 @@ function Dashboard({ admin, onLogout }) {
   );
 }
 
-// =====================================================
-// ADMIN GATE: login nahi hai to AuthScreen, warna Dashboard
-// =====================================================
+
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState(null);
   const [checking, setChecking] = useState(true);

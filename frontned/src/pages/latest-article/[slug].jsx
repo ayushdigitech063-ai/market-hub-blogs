@@ -1,58 +1,102 @@
-import React, { useEffect,useRef, useState } from "react";
-
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, User, CalendarDays } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  User,
+  CalendarDays,
+} from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 
 import ArticleCard from "../../components/ArticleCard";
+import SeoHead from "../../components/SeoHead";
+import ArticleBody from "../../components/ArticleBody";
 import {
   fetchLatestArticle,
   fetchLatestArticles,
 } from "../../api/latestArticleApi";
 
-// **bold** support
-const renderInline = (text) =>
-  text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? (
-      <strong key={i} className="font-bold text-stone-950">
-        {part.slice(2, -2)}
-      </strong>
-    ) : (
-      <React.Fragment key={i}>{part}</React.Fragment>
-    )
-  );
 
-// Content: khali line = paragraph, "### " = heading, "- " = list
+const isLive = (article) =>
+  article && article.status !== "draft";
+
+const PACK_RE = /<!--COMPANY_PACK:([\s\S]*?)-->/;
+const readPack = (content) => {
+  const m = PACK_RE.exec(String(content || ""));
+  if (!m) return {};
+  try {
+    return JSON.parse(decodeURIComponent(m[1]));
+  } catch {
+    return {};
+  }
+};
+
+
+const renderInline = (text = "") =>
+  String(text)
+    .split(/(\*\*[^*]+\*\*)/g)
+    .map((part, index) =>
+      part.startsWith("**") && part.endsWith("**") ? (
+        <strong
+          key={index}
+          className="font-bold text-stone-950"
+        >
+          {part.slice(2, -2)}
+        </strong>
+      ) : (
+        <React.Fragment key={index}>
+          {part}
+        </React.Fragment>
+      )
+    );
+
+
 const renderContent = (content = "") =>
-  content
+  String(content)
     .split(/\n\s*\n/)
-    .map((b) => b.trim())
+    .map((block) => block.trim())
     .filter(Boolean)
-    .map((block, i) => {
+    .map((block, index) => {
       if (block.startsWith("### ")) {
         return (
           <h2
-            key={i}
-            className="mt-10 mb-4 font-serif text-2xl font-bold text-stone-950 sm:text-3xl"
+            key={index}
+            className="mb-4 mt-10 font-serif text-2xl font-bold leading-tight text-stone-950 sm:text-3xl"
           >
             {block.replace(/^###\s+/, "")}
           </h2>
         );
       }
-      const lines = block.split("\n").map((l) => l.trim());
-      if (lines.every((l) => l.startsWith("- "))) {
+
+      const lines = block
+        .split("\n")
+        .map((line) => line.trim());
+
+      if (lines.every((line) => line.startsWith("- "))) {
         return (
-          <ul key={i} className="my-5 space-y-2">
-            {lines.map((l, j) => (
-              <li key={j} className="flex items-start gap-3">
-                <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-700" />
-                <span>{renderInline(l.slice(2))}</span>
+          <ul
+            key={index}
+            className="my-6 space-y-3"
+          >
+            {lines.map((line, lineIndex) => (
+              <li
+                key={lineIndex}
+                className="flex items-start gap-3 leading-7"
+              >
+                <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-700" />
+                <span>{renderInline(line.slice(2))}</span>
               </li>
             ))}
           </ul>
         );
       }
+
       return (
-        <p key={i} className="my-5 whitespace-pre-line">
+        <p
+          key={index}
+          className="my-5 whitespace-pre-line"
+        >
           {renderInline(block)}
         </p>
       );
@@ -60,181 +104,319 @@ const renderContent = (content = "") =>
 
 export default function LatestArticleDetail() {
   const { slug } = useParams();
-  const [item, setItem] = useState(null);
+
+  const [itemRaw, setItem] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
-const [author, setAuthor] = useState(null);
-const sliderRef = useRef(null);
 
-const scrollSlider = (dir) => {
-  const el = sliderRef.current;
-  if (!el) return;
-  el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
-};
+  const sliderRef = useRef(null);
+
+  const scrollSlider = (direction) => {
+    const element = sliderRef.current;
+    if (!element) return;
+
+    element.scrollBy({
+      left: direction * element.clientWidth,
+      behavior: "smooth",
+    });
+  };
+
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setLoading(true);
+    let cancelled = false;
 
-    Promise.all([fetchLatestArticle(slug), fetchLatestArticles()])
-      .then(([current, all]) => {
-        setItem(current);
-        const others = (Array.isArray(all) ? all : []).filter(
-          (a) => a.slug !== current.slug
-        );
-        // same category pehle, phir baaki
-        others.sort(
-          (a, b) =>
-            Number(b.category === current.category) -
-            Number(a.category === current.category)
-        );
-        setRelated(others.slice(0, 3)); // 3 ki jagah 4/5 chahiye to yahan badlo
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    setLoading(true);
+    setItem(null);
+    setRelated([]);
+
+
+    fetchLatestArticle(slug)
+      .then((article) => {
+        if (cancelled) return;
+
+        setItem(article || null);
       })
-      .catch(() => {
+      .catch((error) => {
+        if (cancelled) return;
+
+        console.error(
+          "Latest article detail error:",
+          error
+        );
+
         setItem(null);
-        setRelated([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+
+    fetchLatestArticles()
+      .then((articles) => {
+        if (cancelled || !Array.isArray(articles)) return;
+
+        setRelated(
+          articles.filter(
+            (article) =>
+              isLive(article) && article.slug !== slug
+          )
+        );
+      })
+      .catch((error) => {
+        if (cancelled) return;
+
+        console.error(
+          "Related articles error:",
+          error
+        );
+
+        setRelated([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
+
+  
+  const item = useMemo(() => {
+    if (!itemRaw) return null;
+    const pack = readPack(itemRaw.content);
+    const meta = pack.meta || {};
+    const faqs = pack.faqs || [];
+    return {
+      ...itemRaw,
+      content: String(itemRaw.content || "").replace(PACK_RE, "").trim(),
+      contentHtml: pack.html || itemRaw.contentHtml || "",
+      faqs: faqs.length ? faqs : itemRaw.faqs || [],
+      faqEnabled: faqs.length > 0 || !!itemRaw.faqEnabled,
+      showToc: itemRaw.showToc ?? meta.showToc ?? true,
+      status: itemRaw.status ?? meta.status,
+      imageAlt: itemRaw.imageAlt ?? meta.imageAlt,
+      focusKeyword: itemRaw.focusKeyword ?? meta.focusKeyword,
+      secondaryKeywords: itemRaw.secondaryKeywords ?? meta.secondaryKeywords,
+      tags: itemRaw.tags ?? meta.tags,
+      publishDate: itemRaw.publishDate ?? meta.publishDate,
+      seo: itemRaw.seo ?? meta.seo,
+    };
+  }, [itemRaw]);
+
+
+  const sortedRelated = [...related].sort((a, b) => {
+    if (item?.category && a.category === item.category &&
+        b.category !== item.category) {
+      return -1;
+    }
+
+    if (item?.category && b.category === item.category &&
+        a.category !== item.category) {
+      return 1;
+    }
+
+    return 0;
+  });
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#FFF8F0]">
-        <p className="text-sm font-medium text-stone-500">Loading...</p>
+      <main className="flex min-h-[60vh] items-center justify-center bg-[#FFF8F0] px-4">
+        <p className="text-sm font-medium text-stone-500">
+          Loading article...
+        </p>
       </main>
     );
   }
 
-  if (!item) {
+  if (!item || !isLive(item)) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FFF8F0] px-5 text-center">
+      <main className="flex min-h-[65vh] flex-col items-center justify-center gap-4 bg-[#FFF8F0] px-5 text-center">
         <h2 className="font-serif text-3xl font-bold text-stone-950">
           Article Not Found
         </h2>
-        <p className="text-sm text-stone-500">
-          Ye article exist nahi karta ya hata diya gaya hai.
+
+        <p className="max-w-md text-sm leading-6 text-stone-500">
+          Ye article exist nahi karta, draft hai, ya abhi
+          available nahi hai.
         </p>
+
         <Link
           to="/"
-          className="rounded-xl bg-emerald-950 px-6 py-3 text-sm font-semibold text-[#FFF8F0] transition hover:bg-emerald-800"
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-950 px-6 py-3 text-sm font-semibold text-[#FFF8F0] transition hover:bg-emerald-800"
         >
+          <ArrowLeft className="h-4 w-4" />
           Go Back Home
         </Link>
       </main>
     );
   }
 
+  const hasHtmlContent =
+    typeof item.contentHtml === "string" &&
+    item.contentHtml.trim().length > 0;
+
   return (
-    <main className="min-h-screen bg-[#FFF8F0] text-stone-700 selection:bg-emerald-200 selection:text-stone-950">
-      {/* ================= ARTICLE ================= */}
-      <div className="mx-auto max-w-3xl px-5 pb-10 pt-10 sm:px-6">
-        <Link
-          to="/"
-          className="group mb-8 inline-flex items-center gap-2 text-sm font-medium text-stone-500 transition-colors hover:text-emerald-800"
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          Back to Home
-        </Link>
+    <main className="min-h-screen overflow-x-hidden bg-[#FFF8F0] text-stone-700 selection:bg-emerald-200 selection:text-stone-950">
+    
+      <SeoHead post={item} />
 
-        <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-800">
-          {item.category}
-        </span>
+      <section className="w-full px-4 pb-14 pt-7 sm:px-6 sm:pt-10 lg:px-8">
+        <div className="mx-auto w-full max-w-5xl">
+          <Link
+            to="/"
+            className="group mb-7 inline-flex items-center gap-2 text-sm font-medium text-stone-500 transition-colors hover:text-emerald-800"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Back to Home
+          </Link>
 
-        <h1 className="mt-4 font-serif text-3xl font-bold leading-[1.2] tracking-tight text-stone-950 sm:text-4xl lg:text-[44px]">
-          {item.title}
-        </h1>
+          <header className="max-w-4xl">
+            {item.category && (
+              <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-800 sm:text-xs">
+                {item.category}
+              </span>
+            )}
 
-        <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-stone-500">
-          <span className="inline-flex items-center gap-1.5">
-            <User className="h-4 w-4 text-emerald-700" />
-            <span className="font-semibold text-stone-800">{item.author}</span>
-          </span>
-          {item.date && (
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarDays className="h-4 w-4 text-emerald-700" />
-              {item.date}
-            </span>
+            <h1 className="mt-4 break-words font-serif text-3xl font-bold leading-tight tracking-tight text-stone-950 sm:text-4xl lg:text-5xl">
+              {item.title}
+            </h1>
+
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-xs text-stone-500 sm:text-sm">
+              {item.author && (
+                <span className="inline-flex items-center gap-2">
+                  <User className="h-4 w-4 shrink-0 text-emerald-700" />
+                  <span className="font-semibold text-stone-800">
+                    {item.author}
+                  </span>
+                </span>
+              )}
+
+              {item.date && (
+                <span className="inline-flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 shrink-0 text-emerald-700" />
+                  {item.date}
+                </span>
+              )}
+
+              {item.readTime && (
+                <span className="inline-flex items-center gap-2">
+                  <Clock className="h-4 w-4 shrink-0 text-emerald-700" />
+                  {item.readTime}
+                </span>
+              )}
+            </div>
+          </header>
+
+          <div className="my-7 h-px w-full bg-stone-200 sm:my-9" />
+
+          {item.image && (
+            <figure className="mb-8 overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-2 shadow-sm sm:mb-10 sm:rounded-3xl sm:p-3">
+              <img
+                src={item.image}
+                alt={item.imageAlt || item.title || "Article image"}
+                className="mx-auto block max-h-[520px] w-full rounded-xl object-contain sm:rounded-2xl"
+                loading="eager"
+              />
+            </figure>
           )}
-          {item.readTime && (
-            <span className="inline-flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-emerald-700" />
-              {item.readTime}
-            </span>
+
+          {item.excerpt && (
+            <p className="mb-8 rounded-r-xl border-l-4 border-emerald-700 bg-emerald-50/80 px-5 py-4 font-serif text-base leading-7 text-stone-800 sm:px-7 sm:py-5 sm:text-lg sm:leading-8">
+              {item.excerpt}
+            </p>
+          )}
+
+          {hasHtmlContent ? (
+            <div className="latest-article-body w-full min-w-0 text-base leading-8 text-stone-700 sm:text-[17px]">
+              <ArticleBody post={item} />
+            </div>
+          ) : (
+            <article className="latest-article-body w-full min-w-0 text-base leading-8 text-stone-700 sm:text-[17px]">
+              {renderContent(item.content)}
+            </article>
           )}
         </div>
+      </section>
 
-        <div className="my-8 h-px bg-stone-200" />
+     
+{sortedRelated.length > 0 && (
+  <section className="relative overflow-hidden border-t border-violet-100 bg-[#F4F1FF] py-12 sm:py-16 lg:py-20">
 
-        {item.image && (
-          <div className="mb-10 overflow-hidden rounded-3xl border border-emerald-950/5 bg-white p-3 shadow-sm">
-            <img
-              src={item.image}
-              alt={item.title}
-              className="max-h-[460px] w-full rounded-2xl object-cover"
-            />
+    <div className="pointer-events-none absolute -left-24 top-10 h-64 w-64 rounded-full bg-purple-200/40 blur-3xl" />
+    <div className="pointer-events-none absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-pink-200/40 blur-3xl" />
+
+    <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+
+      <div className="mb-7 flex items-end justify-between gap-4 border-b border-violet-200 pb-5 sm:mb-9">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.2em] text-violet-700 shadow-sm sm:text-xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-500" />
+            Keep Exploring
+          </span>
+
+          <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#211447] sm:text-4xl">
+            Related Articles
+            <span className="ml-2 text-violet-600">.</span>
+          </h2>
+
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+            Discover more insights, ideas and guides selected for you.
+          </p>
+        </div>
+
+        {sortedRelated.length > 1 && (
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => scrollSlider(-1)}
+              aria-label="Previous articles"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-violet-200 bg-white text-violet-800 shadow-sm transition-all duration-300 hover:-translate-x-0.5 hover:border-violet-700 hover:bg-violet-700 hover:text-white sm:h-12 sm:w-12"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => scrollSlider(1)}
+              aria-label="Next articles"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-700 text-white shadow-md shadow-violet-200 transition-all duration-300 hover:translate-x-0.5 hover:bg-[#211447] sm:h-12 sm:w-12"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
         )}
-
-        {item.excerpt && (
-          <p className="mb-10 rounded-r-2xl border-l-4 border-emerald-700 bg-emerald-50/70 px-6 py-5 font-serif text-lg font-medium leading-8 text-stone-800">
-            {item.excerpt}
-          </p>
-        )}
-
-        <article className="text-[17px] leading-8 text-stone-700">
-          {renderContent(item.content)}
-        </article>
       </div>
 
-      {/* ================= RELATED ARTICLES ================= */}
-      {related.length > 0 && (
-  <section className="border-t border-stone-200 bg-[#FDF2E9]/70 py-14">
-    <div className="mx-auto max-w-6xl px-4 sm:px-6">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">
-        Keep Reading
-      </p>
-
-      <div className="mt-2 mb-8 flex items-end justify-between border-b border-stone-200 pb-3">
-        <h2 className="font-serif text-2xl font-bold tracking-tight text-stone-950 sm:text-3xl">
-          Related Articles
-        </h2>
-
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => scrollSlider(-1)}
-            aria-label="Scroll left"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 transition hover:border-emerald-800 hover:bg-emerald-800 hover:text-white"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollSlider(1)}
-            aria-label="Scroll right"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 transition hover:border-emerald-800 hover:bg-emerald-800 hover:text-white"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
 
       <div
         ref={sliderRef}
-        className="flex snap-x snap-mandatory gap-6 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-6"
       >
-        {related.map((a) => (
+        {sortedRelated.slice(0, 6).map((article) => (
           <div
-            key={a._id}
-            className="w-[85%] shrink-0 snap-start sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+            key={article._id || article.slug}
+            className="w-[88%] shrink-0 snap-start overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-[0_8px_30px_rgba(49,25,100,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_18px_45px_rgba(49,25,100,0.12)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
           >
-            <ArticleCard article={a} basePath="/latest-article" />
+            <ArticleCard
+              article={article}
+              basePath="/latest-article"
+            />
           </div>
         ))}
       </div>
+
+
+      <div className="mt-3 flex items-center justify-center gap-2">
+        <span className="h-1 w-8 rounded-full bg-violet-700" />
+        <span className="h-1 w-2 rounded-full bg-fuchsia-400" />
+        <span className="h-1 w-2 rounded-full bg-violet-200" />
+      </div>
     </div>
   </section>
-)}
-  
+
+      )}
     </main>
   );
 }

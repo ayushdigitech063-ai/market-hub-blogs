@@ -2,10 +2,23 @@ import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getTypeInfo } from "../data/biographyTypes";
 import { getSection, sectionFromRoute, words } from "../data/biographyFilters";
-import { getSocialLinks } from "../data/Biographysocials.js";
+import { SOCIAL_ICONS, getSocialLinks } from "../data/Biographysocials.js";
 
 const hasAll = (haystack, needles) =>
   needles.length > 0 && needles.every((n) => haystack.includes(n));
+
+const SHOW_KEYS = ["twitter", "instagram", "linkedin"];
+const ICONS = SOCIAL_ICONS.filter(({ key }) => SHOW_KEYS.includes(key));
+
+
+const cleanText = (v) =>
+  String(v || "")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export default function ViewAll() {
   const { type } = useParams();
@@ -14,20 +27,17 @@ export default function ViewAll() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all profiles and keep only those that belong to this route
+
   useEffect(() => {
     fetch("https://market-hub-blogs-backend.onrender.com/api/biographies")
       .then((res) => res.json())
       .then((data) => {
-        // Known routes (ceo / sportsperson / entrepreneur / actor ...) use the
-        // same grouping as the main page and the admin Category dropdown.
         const section = sectionFromRoute(type);
         const route = words(type);
 
         const filtered = (Array.isArray(data) ? data : []).filter((item) => {
           if (section) return getSection(item) === section;
 
-          // Any other route value: match whole words in type, category or role
           return (
             hasAll(words(item.type), route) ||
             hasAll(words(item.category), route) ||
@@ -44,40 +54,6 @@ export default function ViewAll() {
       });
   }, [type]);
 
-  const renderSocialIcon = (platform) => {
-    const key = platform.toLowerCase();
-
-    if (key.includes("twitter") || key.includes("x")) {
-      return (
-        <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-        </svg>
-      );
-    } else if (key.includes("instagram")) {
-      return (
-        <svg className="h-5 w-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
-          <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-          <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-        </svg>
-      );
-    } else if (key.includes("linked")) {
-      return (
-        <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
-          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-        </svg>
-      );
-    } else {
-      return (
-        <svg className="h-5 w-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="2" x2="22" y1="12" y2="12" />
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
-      );
-    }
-  };
-
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-white">
@@ -91,22 +67,18 @@ export default function ViewAll() {
 
   return (
     <main className="min-h-screen bg-white text-stone-800">
-      
-      {/* ===== FULL BACKGROUND HERO SECTION WITH DUAL-TONE OVERLAY ===== */}
+    
       <section className="relative overflow-hidden bg-stone-950 text-white border-b border-stone-200">
-        {/* Background Image with Controlled Brightness & Fit */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpwXYrwfpLtqUfNrWOlTE14nPxsc0nued4uGrqhzwkRQ&s=10" 
-            alt="Hero Background" 
+          <img
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpwXYrwfpLtqUfNrWOlTE14nPxsc0nued4uGrqhzwkRQ&s=10"
+            alt="Hero Background"
             className="h-full w-full object-cover object-center brightness-75 contrast-110 filter"
           />
-          {/* Rich Dual-Tone Gradient Overlay (Dark Amber / Black Mix) */}
           <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-950/90 to-stone-950/70" />
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-transparent to-stone-950/50" />
         </div>
 
-        {/* Ambient Glows */}
         <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl z-0" />
         <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-orange-500/10 blur-3xl z-0" />
 
@@ -170,94 +142,87 @@ export default function ViewAll() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-            {profiles.map((item) => (
-              <div
-                key={item._id || item.id}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-amber-500 hover:shadow-xl"
-              >
-                <Link to={`/biography/${item.type || 'actor'}/${item.slug}`} className="flex-1 flex flex-col">
-                  <div className="relative flex h-[320px] items-center justify-center overflow-hidden bg-stone-100">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-stone-950/60 to-transparent pointer-events-none" />
-                    <span className="absolute left-4 top-4 rounded-full bg-stone-900/90 border border-stone-700 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 shadow-sm backdrop-blur-md">
-                      {item.category || label}
-                    </span>
-                  </div>
+          <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {profiles.map((item) => {
+              const links = getSocialLinks(item);
+              const activeIcons = ICONS.filter(({ key }) => links[key]);
+              const about = cleanText(item.shortBio || item.description);
+              const profileUrl = `/biography/${item.type || "actor"}/${item.slug}`;
 
-                  <div className="p-5 sm:p-6 pb-2">
-                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900 group-hover:text-amber-600 transition-colors">
-                      {item.name}
-                    </h3>
-                    {item.role && (
-                      <p className="mt-1.5 text-xs sm:text-sm font-bold text-amber-700 uppercase tracking-wider">
-                        {item.role}
-                      </p>
-                    )}
-                    {item.company && (
-                      <p className="mt-0.5 text-xs sm:text-sm font-medium text-stone-500">
-                        {item.company}
-                      </p>
-                    )}
-                    {item.shortBio || item.description ? (
-                      <p className="mt-3 line-clamp-3 text-xs sm:text-sm leading-relaxed text-stone-600 font-light">
-                        {item.shortBio || item.description}
-                      </p>
-                    ) : null}
-                  </div>
-                </Link>
+              return (
+                <div
+                  key={item._id || item.id}
+                  className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-500 hover:shadow-xl"
+                >
+                  <Link to={profileUrl} className="flex flex-1 flex-col">
+                    <div className="relative h-[260px] shrink-0 overflow-hidden bg-stone-100">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-stone-950/60 to-transparent" />
+                      <span className="absolute left-4 top-4 rounded-full border border-stone-700 bg-stone-900/90 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 shadow-sm backdrop-blur-md">
+                        {item.category || label}
+                      </span>
+                    </div>
 
-                <div className="px-5 sm:px-6 pb-6 pt-2 mt-auto">
-                  <div className="flex items-center gap-2 mb-4 pt-3 border-t border-stone-100">
-                    {["twitter", "instagram", "linkedin", "website"].map((platform) => {
-                      const url = getSocialLinks(item)[platform];
-                      if (url) {
-                        return (
+                    <div className="flex flex-1 flex-col p-5 pb-3">
+                      <h3 className="line-clamp-2 min-h-[3.5rem] font-serif text-xl font-bold leading-7 text-stone-900 transition-colors group-hover:text-amber-600">
+                        {item.name}
+                      </h3>
+                      {item.role && (
+                        <p className="mt-1 text-xs font-bold uppercase tracking-wider text-amber-700">
+                          {item.role}
+                        </p>
+                      )}
+                      {item.company && (
+                        <p className="mt-0.5 truncate text-xs font-medium text-stone-500">
+                          {item.company}
+                        </p>
+                      )}
+                      {about && (
+                        <p className="mt-3 line-clamp-3 text-sm font-light leading-relaxed text-stone-600">
+                          {about}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+
+                  <div className="mt-auto px-5 pb-5">
+                    {activeIcons.length > 0 && (
+                      <div className="mb-3 flex items-center gap-2 border-t border-stone-100 pt-3">
+                        {activeIcons.map(({ key, label: name, Icon }) => (
                           <a
-                            key={platform}
-                            href={url}
+                            key={key}
+                            href={links[key]}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-amber-700 hover:bg-amber-500 hover:text-stone-950 transition-all duration-200 shadow-xs"
-                            title={platform}
+                            title={name}
+                            aria-label={`${item.name} on ${name}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 text-amber-700 shadow-xs transition-all duration-200 hover:bg-amber-500 hover:text-stone-950"
                           >
-                            {renderSocialIcon(platform)}
+                            <Icon className="h-4 w-4" />
                           </a>
-                        );
-                      }
-                      // Website is shown only when a link exists
-                      if (platform === "website") return null;
-                      return (
-                        <span
-                          key={platform}
-                          title={`${platform} link not added yet`}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-stone-300"
-                        >
-                          {renderSocialIcon(platform)}
-                        </span>
-                      );
-                    })}
-                  </div>
+                        ))}
+                      </div>
+                    )}
 
-                  <Link
-                    to={`/biography/${item.type || 'actor'}/${item.slug}`}
-                    className="flex items-center justify-between border-t border-stone-100 pt-3 group/cta"
-                  >
-                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-stone-800">
-                      Read Full Biography
-                    </span>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-sm font-bold text-stone-800 group-hover/cta:bg-amber-500 group-hover/cta:text-stone-950 transition-all shadow-xs">
-                      →
-                    </span>
-                  </Link>
+                    <Link
+                      to={profileUrl}
+                      className="group/cta flex items-center justify-between border-t border-stone-100 pt-3"
+                    >
+                      <span className="text-xs font-bold uppercase tracking-wider text-stone-800">
+                        Read Full Biography
+                      </span>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-sm font-bold text-stone-800 shadow-xs transition-all group-hover/cta:bg-amber-500 group-hover/cta:text-stone-950">
+                        →
+                      </span>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
