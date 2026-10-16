@@ -1,26 +1,109 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
+import { CalendarDays, MapPin, Building2, Briefcase, ArrowRight } from "lucide-react";
 import { getTypeInfo, viewAllPath } from "../data/biographyTypes";
 import RelatedProfiles from "./RelatedProfiles";
-import { SOCIAL_ICONS, getSocialLinks } from "../data/Biographysocials.js";
+import SeoHead from "../components/SeoHead";
+import ArticleBody from "../components/ArticleBody";
 
 const serif = "font-serif";
-const btnPrimary =
-  "inline-flex items-center justify-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600";
+
+const isLive = (x) => x && x.status !== "draft";
+
+
+const FAQ_START = "<!--BIO_FAQ_START-->";
+const META_RE = /<!--BIO_META:([\s\S]*?)-->/;
+const FAQ_JSON_RE = /<!--BIO_FAQ_JSON:([\s\S]*?)-->/;
+const LEGACY_FAQ_RE = /<!--FAQS:([\s\S]*?)-->/;
+
+const safeParse = (s) => {
+  try {
+    return JSON.parse(decodeURIComponent(s));
+  } catch {
+    return null;
+  }
+};
+
+const looksLikeHtml = (s) =>
+  /<\/?(p|h[1-6]|ul|ol|li|img|div|br|a|strong|em|blockquote|table|figure)\b/i.test(String(s || ""));
+
+const toPlainText = (s) =>
+  String(s || "")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getRich = (profile) => {
+  const raw = String(profile.description || "");
+
+
+  const mm = META_RE.exec(raw);
+  const meta = (mm && safeParse(mm[1])) || {};
+
+
+  let faqs = [];
+  const fm = FAQ_JSON_RE.exec(raw);
+  if (fm) {
+    const arr = safeParse(fm[1]);
+    if (Array.isArray(arr)) faqs = arr;
+  }
+  const lm = LEGACY_FAQ_RE.exec(raw);
+  if (!faqs.length && lm) {
+    const arr = safeParse(lm[1]);
+    if (Array.isArray(arr)) faqs = arr;
+  }
+  if (Array.isArray(profile.faqs) && profile.faqs.length) faqs = profile.faqs;
+  faqs = faqs
+    .filter((f) => f && f.q && f.a)
+    .map((f) => ({ q: String(f.q), a: String(f.a) }));
+
+
+  const start = raw.indexOf(FAQ_START);
+  const body = (start === -1 ? raw : raw.slice(0, start))
+    .replace(META_RE, "")
+    .replace(FAQ_JSON_RE, "")
+    .replace(LEGACY_FAQ_RE, "")
+    .trim();
+
+  return {
+    meta,
+    faqs,
+    bodyText: body,
+    contentHtml: profile.contentHtml || (looksLikeHtml(body) ? body : ""),
+  };
+};
 
 function SectionTitle({ children }) {
   return (
     <h2
       className={`${serif} mb-5 flex items-center gap-3 text-2xl font-bold tracking-tight text-stone-900`}
     >
-      <span className="h-6 w-1 rounded-full bg-amber-500" />
+      <span className="h-6 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
       {children}
     </h2>
   );
 }
 
+function Fact({ icon: Icon, label, value }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-amber-100 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">{label}</p>
+        <p className="truncate text-sm font-semibold text-stone-900">{value}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function BiographyDetails() {
-  const { slug } = useParams();
+  const { slug, type: routeType } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +116,7 @@ export default function BiographyDetails() {
             item.slug === slug ||
             item.name?.toLowerCase().replace(/\s+/g, "-") === slug
         );
-        setProfile(found || null);
+        setProfile(isLive(found) ? found : null);
         setLoading(false);
       })
       .catch((err) => {
@@ -41,6 +124,25 @@ export default function BiographyDetails() {
         setLoading(false);
       });
   }, [slug]);
+
+  const rich = useMemo(() => (profile ? getRich(profile) : null), [profile]);
+
+  const shortBio = profile ? profile.shortBio || rich?.meta?.excerpt || "" : "";
+
+
+  const seoPost = useMemo(() => {
+    if (!profile || !rich) return null;
+    const origin = (import.meta.env.VITE_SITE_URL || window.location.origin).replace(/\/+$/, "");
+    const canonical = `${origin}/biography/${routeType || "ceo"}/${slug}`;
+    return {
+      ...profile,
+      title: profile.name,
+      excerpt: shortBio || toPlainText(rich.bodyText).slice(0, 160),
+      faqEnabled: rich.faqs.length > 0,
+      faqs: rich.faqs,
+      seo: { ...(profile.seo || {}), canonicalUrl: profile.seo?.canonicalUrl || canonical },
+    };
+  }, [profile, rich, routeType, slug, shortBio]);
 
   if (loading) {
     return (
@@ -64,7 +166,10 @@ export default function BiographyDetails() {
           <p className="mt-2 text-sm text-stone-500">
             This biography does not exist or may have been removed.
           </p>
-          <Link to="/biography" className={`mt-6 ${btnPrimary} w-full`}>
+          <Link
+            to="/biography"
+            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600"
+          >
             Back to biographies
           </Link>
         </div>
@@ -78,87 +183,120 @@ export default function BiographyDetails() {
   const born = profile.born || profile.birth?.date;
   const birthplace = profile.birthplace || profile.birth?.place;
 
-  const socials = getSocialLinks(profile);
+  const bioText = rich.bodyText || shortBio || "";
+  const careerParagraphs = toPlainText(bioText) === bioText
+    ? bioText.split(/\n+/).map((p) => p.trim()).filter(Boolean)
+    : [toPlainText(bioText)];
 
-  const bioText = profile.description || profile.shortBio || "";
-  const careerParagraphs = bioText
-    .split(/\n+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const showToc = rich.meta.showToc ?? profile.showToc ?? true;
 
   return (
     <main className="relative min-h-screen bg-white text-stone-800">
-      {/* soft top background */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[26rem] border-b border-amber-100 bg-gradient-to-b from-amber-50/80 to-white" />
 
-      <div className="relative mx-auto max-w-6xl px-4 pb-14 pt-6 sm:px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-14">
-          {/* LEFT: header text + article */}
-          <div className="min-w-0">
-            <nav
-              aria-label="Breadcrumb"
-              className="mb-6 flex flex-wrap items-center gap-2 text-sm text-stone-500"
-            >
-              <Link to="/biography" className="transition hover:text-amber-600">
-                Biography
-              </Link>
-              <span aria-hidden="true" className="text-stone-300">/</span>
-              <Link to={allLink} className="transition hover:text-amber-600">
-                {label}
-              </Link>
-              <span aria-hidden="true" className="text-stone-300">/</span>
-              <span className="max-w-[160px] truncate font-medium text-stone-900 sm:max-w-none">
-                {profile.name}
-              </span>
-            </nav>
+      <SeoHead post={seoPost} />
 
-            <span className="inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-800">
-              {profile.category}
+
+      <section className="relative overflow-hidden border-b border-amber-100 bg-gradient-to-br from-amber-50 via-white to-orange-50/60">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-amber-200/40 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-orange-200/30 blur-3xl" />
+
+        <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-8 lg:pb-16">
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-8 flex flex-wrap items-center gap-2 text-sm text-stone-500"
+          >
+            <Link to="/biography" className="transition hover:text-amber-600">
+              Biography
+            </Link>
+            <span aria-hidden="true" className="text-stone-300">/</span>
+            <Link to={allLink} className="transition hover:text-amber-600">
+              {label}
+            </Link>
+            <span aria-hidden="true" className="text-stone-300">/</span>
+            <span className="max-w-[160px] truncate font-medium text-stone-900 sm:max-w-md">
+              {profile.name}
             </span>
+          </nav>
+
+          <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              {profile.category && (
+                <span className="rounded-full bg-amber-500 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
+                  {profile.category}
+                </span>
+              )}
+              <span className="rounded-full border border-amber-200 bg-white px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                {label}
+              </span>
+            </div>
 
             <h1
-              className={`${serif} mt-4 text-4xl font-bold leading-tight tracking-tight text-stone-900 sm:text-5xl`}
+              className={`${serif} mt-5 text-3xl font-bold leading-tight tracking-tight text-stone-900 sm:text-4xl lg:text-5xl`}
             >
               {profile.name}
             </h1>
 
             <p className="mt-3 text-lg text-stone-600">
               <span className="font-semibold text-amber-600">{profile.role}</span>
-              {profile.company && <span>, {profile.company}</span>}
+              {profile.company && <span className="text-stone-500"> at {profile.company}</span>}
             </p>
 
-            {profile.shortBio && (
-              <p className="mt-4 text-base leading-7 text-stone-600 sm:text-lg sm:leading-8">
-                {profile.shortBio}
+            {shortBio && (
+              <p className="mt-4 max-w-2xl text-base leading-7 text-stone-600 sm:text-lg sm:leading-8">
+                {shortBio}
               </p>
             )}
 
-            {(born || birthplace) && (
-              <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-stone-200 pt-4 text-sm text-stone-500">
-                {born && (
-                  <span>
-                    Born: <span className="font-semibold text-stone-800">{born}</span>
-                  </span>
-                )}
-                {birthplace && (
-                  <span>
-                    Birthplace:{" "}
-                    <span className="font-semibold text-stone-800">{birthplace}</span>
-                  </span>
-                )}
-              </div>
-            )}
-
-            <div className="mt-6">
-              <a href="#about" className={btnPrimary}>
-                Read full story →
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a
+                href="#about"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 px-6 py-3 text-sm font-bold text-stone-950 shadow-md shadow-amber-500/20 transition hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                Read full story
+                <ArrowRight className="h-4 w-4" />
               </a>
+              <Link
+                to={allLink}
+                className="inline-flex items-center rounded-xl border border-amber-200 bg-white px-6 py-3 text-sm font-bold text-amber-800 transition hover:border-amber-400 hover:bg-amber-50"
+              >
+                View all {label}
+              </Link>
             </div>
+          </div>
 
-            {/* ARTICLE */}
-            <article className="mt-14 space-y-12">
-              <section id="about" className="scroll-mt-24">
-                <SectionTitle>{`About ${profile.name}`}</SectionTitle>
+  
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Fact icon={Briefcase} label="Role" value={profile.role} />
+            <Fact icon={Building2} label="Company" value={profile.company} />
+            <Fact icon={CalendarDays} label="Born" value={born} />
+            <Fact icon={MapPin} label="Birthplace" value={birthplace} />
+          </div>
+        </div>
+      </section>
+
+
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-14">
+
+          <article className="min-w-0 space-y-12">
+            <section id="about" className="scroll-mt-28">
+              <SectionTitle>{`About ${profile.name}`}</SectionTitle>
+
+              {rich.contentHtml ? (
+           
+                <div className="text-stone-600 [&_a]:font-medium [&_a]:text-amber-700 [&_img]:mx-auto [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:shadow-md">
+                  <ArticleBody
+                    post={{
+                      ...profile,
+                      contentHtml: rich.contentHtml,
+                      faqEnabled: rich.faqs.length > 0,
+                      faqs: rich.faqs,
+                      showToc,
+                    }}
+                  />
+                </div>
+              ) : (
+   
                 <div className="space-y-5">
                   {careerParagraphs.map((para, i) => (
                     <p
@@ -173,109 +311,86 @@ export default function BiographyDetails() {
                     </p>
                   ))}
                 </div>
+              )}
+            </section>
+
+            {profile.education && profile.education.length > 0 && (
+              <section>
+                <SectionTitle>Education journey</SectionTitle>
+                <ol className="space-y-4 border-l-2 border-amber-200 pl-6">
+                  {profile.education.map((edu, i) => (
+                    <li key={i} className="relative">
+                      <span
+                        aria-hidden="true"
+                        className="absolute -left-[31px] top-2 h-3 w-3 rounded-full border-2 border-white bg-amber-500 ring-2 ring-amber-200"
+                      />
+                      <p className="text-base leading-7 text-stone-700">{edu}</p>
+                    </li>
+                  ))}
+                </ol>
               </section>
+            )}
 
-              {profile.education && profile.education.length > 0 && (
-                <section>
-                  <SectionTitle>Education journey</SectionTitle>
-                  <ol className="space-y-4 border-l-2 border-amber-200 pl-6">
-                    {profile.education.map((edu, i) => (
-                      <li key={i} className="relative">
-                        <span
-                          aria-hidden="true"
-                          className="absolute -left-[31px] top-2 h-3 w-3 rounded-full border-2 border-white bg-amber-500 ring-2 ring-amber-200"
-                        />
-                        <p className="text-base leading-7 text-stone-700">{edu}</p>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              )}
+            {profile.achievements && profile.achievements.length > 0 && (
+              <section>
+                <SectionTitle>Major achievements</SectionTitle>
+                <ul className="divide-y divide-stone-100 rounded-2xl border border-stone-200 bg-white shadow-sm">
+                  {profile.achievements.map((ach, i) => (
+                    <li key={i} className="flex gap-3 px-5 py-4">
+                      <span
+                        aria-hidden="true"
+                        className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-700"
+                      >
+                        ✓
+                      </span>
+                      <p className="text-base leading-7 text-stone-700">{ach}</p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </article>
 
-              {profile.achievements && profile.achievements.length > 0 && (
-                <section>
-                  <SectionTitle>Major achievements</SectionTitle>
-                  <ul className="divide-y divide-stone-100 rounded-xl border border-stone-200 bg-white">
-                    {profile.achievements.map((ach, i) => (
-                      <li key={i} className="flex gap-3 px-5 py-4">
-                        <span
-                          aria-hidden="true"
-                          className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-700"
-                        >
-                          ✓
-                        </span>
-                        <p className="text-base leading-7 text-stone-700">{ach}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-            </article>
-          </div>
+  
+          <aside className="lg:sticky lg:top-24 lg:self-start">
+            <div className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-xl shadow-stone-900/5">
+              <div className="relative">
+                <img
+                  src={profile.image}
+                  alt={profile.imageAlt || rich.meta.imageAlt || profile.name}
+                  className="aspect-[4/5] w-full bg-stone-100 object-cover object-top"
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-stone-950/80 via-stone-950/30 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5">
+                  <span className="inline-block rounded-full bg-amber-500 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                    {profile.category}
+                  </span>
+                  <p className="mt-2 text-sm font-semibold text-amber-200">{profile.role}</p>
+                </div>
+              </div>
 
-          {/* RIGHT: profile card, starts at the top and stays while scrolling */}
-          <aside className="lg:sticky lg:top-24 lg:self-start lg:pt-12">
-            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg shadow-stone-900/5">
-              <img
-                src={profile.image}
-                alt={profile.name}
-                className="aspect-square w-full bg-stone-100 object-cover object-top"
-              />
               <div className="p-5">
-                <h3 className={`${serif} text-xl font-bold text-stone-900`}>
-                  {profile.name}
-                </h3>
-                <p className="text-sm font-medium text-amber-600">{profile.role}</p>
-
-                <dl className="mt-4 divide-y divide-stone-100 border-t border-stone-100 text-sm">
+                <dl className="divide-y divide-stone-100 text-sm">
                   {[
+                    { name: "Company", value: profile.company },
                     { name: "Category", value: profile.category },
                     { name: "Born", value: born },
+                    { name: "Birthplace", value: birthplace },
                   ]
                     .filter((f) => f.value)
                     .map((f) => (
-                      <div key={f.name} className="flex justify-between gap-3 py-2.5">
-                        <dt className="text-stone-400">{f.name}</dt>
-                        <dd className="text-right font-semibold text-stone-800">
-                          {f.value}
-                        </dd>
+                      <div key={f.name} className="flex justify-between gap-4 py-2.5">
+                        <dt className="shrink-0 text-stone-400">{f.name}</dt>
+                        <dd className="text-right font-semibold text-stone-800">{f.value}</dd>
                       </div>
                     ))}
                 </dl>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2.5 border-t border-stone-100 pt-4">
-                  {SOCIAL_ICONS.map(({ key, label, Icon, optional }) => {
-                    if (socials[key]) {
-                      return (
-                        <a
-                          key={key}
-                          href={socials[key]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={label}
-                          aria-label={`${profile.name} on ${label}`}
-                          className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 text-amber-700 transition hover:bg-amber-500 hover:text-white"
-                        >
-                          <Icon className="h-5 w-5" />
-                        </a>
-                      );
-                    }
-                    if (optional) return null;
-                    // No link saved yet for this platform
-                    return (
-                      <span
-                        key={key}
-                        title={`${label} link not added yet`}
-                        className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-stone-300"
-                      >
-                        <Icon className="h-5 w-5" />
-                      </span>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 space-y-2.5">
-                  <Link to={allLink} className={`${btnPrimary} w-full`}>
+                <div className="mt-5 space-y-2.5">
+                  <Link
+                    to={allLink}
+                    className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 px-5 py-3 text-sm font-bold text-stone-950 shadow-md shadow-amber-500/20 transition hover:-translate-y-0.5"
+                  >
                     View all {label}
                   </Link>
                   <Link

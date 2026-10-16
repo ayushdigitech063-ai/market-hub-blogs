@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
+import SeoHead from "../components/SeoHead";
+import ArticleBody from "../components/ArticleBody";
 
 const API = "https://market-hub-blogs-backend.onrender.com/api";
 
@@ -31,6 +33,12 @@ export default function ArticleReadPage() {
       });
   }, [slug]);
 
+  // SEO ke liye: author ka naam (article me sirf authorId hota hai)
+  const seoPost = useMemo(
+    () => (article ? { ...article, author: author?.name || "" } : null),
+    [article, author]
+  );
+
   if (loading) {
     return (
       <main className="flex min-h-[60vh] items-center justify-center bg-slate-50 px-5">
@@ -39,7 +47,8 @@ export default function ArticleReadPage() {
     );
   }
 
-  if (!article) {
+  // Draft article public page par nahi dikhana
+  if (!article || article.status === "draft") {
     return (
       <main className="flex min-h-[60vh] items-center justify-center bg-slate-50 px-5">
         <div className="text-center">
@@ -58,6 +67,9 @@ export default function ArticleReadPage() {
 
   return (
     <main className="min-h-screen bg-white">
+      {/* title, meta, canonical, OG, Twitter, JSON-LD (Article + FAQ schema) */}
+      <SeoHead post={seoPost} />
+
       <article className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
         <Link to="/articles" className="text-sm text-slate-500 transition hover:text-red-600">
           Articles
@@ -85,14 +97,22 @@ export default function ArticleReadPage() {
 
         <img
           src={article.image}
-          alt={article.title}
+          alt={article.imageAlt || article.title}
           className="mt-8 aspect-[16/9] w-full rounded-2xl object-cover"
         />
 
-        <div className="mt-8 space-y-5 text-base leading-8 text-slate-700 sm:text-lg">
-          {(article.content || []).map((para, i) => (
-            <p key={i}>{para}</p>
-          ))}
+        <div className="mt-8 text-base text-slate-700 sm:text-lg">
+          {article.contentHtml ? (
+            // Naya article: HTML content + Table of Contents + FAQ accordion
+            <ArticleBody post={article} />
+          ) : (
+            // Purana article (contentHtml nahi hai): pehle jaisa hi dikhega
+            <div className="space-y-5 leading-8">
+              {(article.content || []).map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+            </div>
+          )}
         </div>
       </article>
     </main>

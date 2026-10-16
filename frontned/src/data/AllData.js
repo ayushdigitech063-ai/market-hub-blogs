@@ -1,12 +1,10 @@
-// src/data/AllData.js
 
-// About Page Images (Hero background & banner)
 export const aboutImages = {
   heroBg: "https://cdn.searchenginejournal.com/wp-content/uploads/2026/09/ai-assist-346.png",
   storyBanner: "https://cdn.searchenginejournal.com/wp-content/uploads/2018/08/About-2x_619996714.webp",
 };
 
-// Sliding Companies / Brand Logos Array
+
 export const companyLogos = [
   {
     id: 1,
@@ -49,11 +47,7 @@ export const companyLogos = [
     img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSISXBURx3Mqxn-hoH52jFqxJApL2LAit1QzeCAjCK0XA&s=10",
   },
 ];
-// src/data/AllData.js
 
-// (Pehle ka baaki data jo aapne rakha hai wo yahan rahega...)
-
-// Marketing Cards Component Data
 export const marketingTopics = [
   {
     id: 1,
@@ -111,11 +105,7 @@ export const marketingTopics = [
     color: "from-orange-600 to-amber-500",
   },
 ];
-// src/data/AllData.js
 
-// (Pehle ka baaki data yahan rahega...)
-
-// Hero Banner Data
 export const heroBannerData = [
   {
     id: 1,

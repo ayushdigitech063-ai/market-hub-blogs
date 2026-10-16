@@ -9,9 +9,10 @@ import {
 import LatestArticleDetail from "./pages/latest-article/[slug]";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
+
 import Footer from "./components/Footer";
 import SlidingCompanyDetail from "./pages/sliding-company/[slug]";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminDashboard from "./dashboard";
 import CompanyDetail from "./pages/company/[slug]";
 import Watsapp from "./components/Watsapp";
 import Home from "./pages/Home";
@@ -30,57 +31,61 @@ import ArticleReadPage from "./pages/ArticleReadPage";
 import AuthorPage from "./pages/AuthorPage";
 
 function AppContent() {
-  const { pathname } = useLocation();
+  const { pathname: rawPathname } = useLocation();
 
-  // Biography details page check
+
+  const pathname =
+    rawPathname.length > 1 ? rawPathname.replace(/\/+$/, "") : rawPathname;
+
+  const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
+
   const isBiographyDetailsPage =
     !!matchPath("/biography/:type/:slug", pathname) &&
     !pathname.startsWith("/biography/view-all/");
 
-  // Article Read Page check
+
   const isArticleReadPage = !!matchPath("/articles/:slug", pathname);
 
-  // Admin page check
-  const isAdminPage = pathname === "/admin";
 
-  // Check if Newsletter should show ONLY on main listing/landing pages
+  const isHomePage = pathname === "/";
   const isMainArticlesPage = pathname === "/articles";
   const isMainCompaniesPage = pathname === "/companies";
-  const isMainBiographyPage = pathname === "/biography" || pathname === "/biography/ceo";
-  const isHomePage = pathname === "/";
+  const isMainBiographyPage =
+    pathname === "/biography" || pathname === "/biography/ceo";
   const isAboutPage = pathname === "/about";
 
   const showNewsletter =
-    isHomePage ||
-    isMainArticlesPage ||
-    isMainCompaniesPage ||
-    isMainBiographyPage ||
-    isAboutPage;
+    !isAdminPage &&
+    (isHomePage ||
+      isMainArticlesPage ||
+      isMainCompaniesPage ||
+      isMainBiographyPage ||
+      isAboutPage);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-55">
-
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <ScrollToTop />
 
-      {/* Navbar */}
+
       {!isAdminPage && <Navbar />}
 
       <main className="flex-grow">
         <Routes>
 
-          {/* HOME */}
           <Route path="/" element={<Home />} />
 
-          {/* ARTICLES */}
+      
           <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/articles/:slug" element={<ArticleReadPage />} />
 
-          {/* AUTHORS */}
+
           <Route path="/authors" element={<AuthorPage />} />
           <Route path="/author/:authorId" element={<AuthorPage />} />
-          <Route path="/latest-article/:slug" element={<LatestArticleDetail />} />
+          <Route
+            path="/latest-article/:slug"
+            element={<LatestArticleDetail />}
+          />
 
-          {/* CATEGORIES */}
           <Route
             path="/categories"
             element={
@@ -90,46 +95,45 @@ function AppContent() {
             }
           />
 
-          {/* ABOUT */}
+
           <Route path="/about" element={<About />} />
 
-          {/* ARTICLE / BRAND / COMPANY */}
+  
           <Route path="/article/:id" element={<ArticleDetail />} />
           <Route path="/brand/:slug" element={<BrandDetail />} />
           <Route path="/company/:slug" element={<CompanyDetail />} />
           <Route path="/companies" element={<Companies />} />
 
-          {/* ADMIN */}
-          <Route path="/admin" element={<AdminDashboard />} />
 
-          {/* BIOGRAPHY */}
+          <Route path="/admin/*" element={<AdminDashboard />} />
+
+
           <Route path="/biography" element={<Biography />} />
           <Route path="/biography/ceo" element={<Biography />} />
 
-          {/* VIEW ALL */}
+
+          <Route path="/biography/view-all/:type" element={<ViewAll />} />
           <Route
-            path="/biography/view-all/:type"
-            element={<ViewAll />}
+            path="/sliding-company/:slug"
+            element={<SlidingCompanyDetail />}
           />
-          <Route path="/sliding-company/:slug" element={<SlidingCompanyDetail />} />
           <Route path="/search" element={<SearchResults />} />
 
-          {/* BIOGRAPHY DETAILS */}
           <Route
             path="/biography/:type/:slug"
             element={<Biographydetails />}
           />
-
         </Routes>
       </main>
 
-      {/* Newsletter - Sirf Main Pages par dekhashe, Detail Pages par nahi */}
+
       {showNewsletter && <Newsletter />}
-{!isAdminPage && <Watsapp />}
-      {/* Footer */}
-      {!isAdminPage && !isBiographyDetailsPage && !isArticleReadPage && <Footer />}
 
+      {!isAdminPage && <Watsapp />}
 
+      {!isAdminPage && !isBiographyDetailsPage && !isArticleReadPage && (
+        <Footer />
+      )}
     </div>
   );
 }

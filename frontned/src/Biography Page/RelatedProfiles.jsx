@@ -7,14 +7,13 @@ import { getSection, words } from "../data/biographyFilters";
 
 const MAX_RELATED = 9;
 
-// Comparable key: "Technology Entrepreneurs" and "technology-entrepreneur" match
+
 const key = (v) => words(v).join("");
 
-// Role words that say nothing about the person's field
+
 const ROLE_STOP = new Set(["of", "and", "the", "for", "in", "co", "former", "international", "professional"]);
 
-// Only profiles from the same group (Business / Sports / Entrepreneur / Actors)
-// are related. Within the group, a shared company or role ranks higher.
+
 const score = (item, profile, section) => {
   if (section && getSection(item) !== section) return 0;
 
@@ -107,7 +106,7 @@ export default function RelatedProfiles({ profile }) {
   if (related.length === 0) return null;
 
   return (
-    <section className="border-t border-stone-200/80 bg-gradient-to-b from-stone-50 to-amber-50/40 py-14 lg:py-20">
+    <section className="relative overflow-hidden border-t border-amber-100 bg-gradient-to-b from-amber-50/70 via-amber-50/40 to-yellow-50/60 py-12 sm:py-14 lg:py-16">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -117,20 +116,12 @@ export default function RelatedProfiles({ profile }) {
               <h2 className="font-serif text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
                 Related profiles
               </h2>
-              <p className="mt-0.5 text-xs font-normal text-stone-500 sm:text-sm">
-                More leaders similar to {profile.name}
-                {profile.category ? ` in ${profile.category}` : ""}
-              </p>
+            
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              to={viewAllPath(profile.type || profile.category)}
-              className="hidden text-xs font-bold uppercase tracking-wider text-amber-700 transition hover:text-amber-500 sm:inline"
-            >
-              View all →
-            </Link>
+           
             <div className="flex items-center gap-2">
               <ArrowButton dir="prev" onClick={() => scrollByDir("prev")} disabled={!canPrev} />
               <ArrowButton dir="next" onClick={() => scrollByDir("next")} disabled={!canNext} />
@@ -138,7 +129,7 @@ export default function RelatedProfiles({ profile }) {
           </div>
         </div>
 
-        {/* Slider */}
+
         <div
           ref={trackRef}
           onScroll={updateArrows}

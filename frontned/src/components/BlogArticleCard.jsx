@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const AUTHORS_URL = "https://market-hub-blogs-backend.onrender.com/api/blog-authors";
 
-/* Authors ek baar fetch honge, baaki cards cache se lenge */
+
 let authorsPromise = null;
 const loadAuthors = () => {
   if (!authorsPromise) {
@@ -18,7 +18,7 @@ const loadAuthors = () => {
   return authorsPromise;
 };
 
-/* Card ko pura <Link> me nahi lapeta: article aur author ke links alag hain */
+
 export default function BlogArticleCard({ article, showAuthor = true }) {
   const [author, setAuthor] = useState(null);
 

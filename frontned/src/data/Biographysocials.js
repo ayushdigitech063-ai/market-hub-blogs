@@ -1,79 +1,161 @@
-// Social links for a biography profile.
-// Used by the main biography page, the "View all" page and the details page,
-// so a link added in the admin panel shows up the same way everywhere.
-import { FaTwitter, FaInstagram, FaLinkedinIn, FaGlobe } from "react-icons/fa";
+import {
+  FaXTwitter,
+  FaInstagram,
+  FaLinkedinIn,
+  FaFacebookF,
+  FaYoutube,
+} from "react-icons/fa6";
 
-// Display order of the icons
+
 export const SOCIAL_ICONS = [
-  { key: "twitter", label: "Twitter", Icon: FaTwitter },
+  { key: "twitter", label: "X (Twitter)", Icon: FaXTwitter },
   { key: "instagram", label: "Instagram", Icon: FaInstagram },
   { key: "linkedin", label: "LinkedIn", Icon: FaLinkedinIn },
-  // Website is only shown when a link exists; the other three always show
-  { key: "website", label: "Website", Icon: FaGlobe, optional: true },
+  { key: "facebook", label: "Facebook", Icon: FaFacebookF, optional: true },
+  { key: "youtube", label: "YouTube", Icon: FaYoutube, optional: true },
 ];
 
-const normalizeUrl = (url) => {
-  if (!url || typeof url !== "string") return "";
-  const u = url.trim();
-  // Must look like a link ("site.com/..."), not a note such as "N/A" or "@handle"
-  if (!u || /\s/.test(u) || !u.includes(".")) return "";
-  return /^https?:\/\//i.test(u) ? u : `https://${u.replace(/^\/+/, "")}`;
+
+const ALIASES = {
+  twitter: ["twitter", "x", "twitterurl", "xurl", "twitterlink", "xlink", "twitterprofile", "xtwitter"],
+  instagram: ["instagram", "insta", "instagramurl", "instagramlink", "instaurl", "instalink"],
+  linkedin: ["linkedin", "linkedinurl", "linkedinlink", "linkedinprofile"],
+  facebook: ["facebook", "fb", "facebookurl", "facebooklink", "fburl"],
+  youtube: ["youtube", "yt", "youtubeurl", "youtubelink", "ytlink"],
 };
 
-// Field / platform name -> icon key ("LinkedIn", "linkedinUrl", "X", "site" ...)
-const platformOf = (name) => {
-  const k = String(name || "").toLowerCase().replace(/[^a-z]/g, "");
-  if (/^linked/.test(k)) return "linkedin";
-  if (/^insta/.test(k)) return "instagram";
-  if (/^(twitter|x)(url|link)?$/.test(k)) return "twitter";
-  if (/^(website|site|web)(url|link)?$/.test(k)) return "website";
-  return null;
+const BASE = {
+  twitter: "https://x.com/",
+  instagram: "https://instagram.com/",
+  linkedin: "https://linkedin.com/in/",
+  facebook: "https://facebook.com/",
+  youtube: "https://youtube.com/@",
 };
 
-// Link -> icon key, for fields with unexpected names ("profile1", "link", ...)
-const platformFromUrl = (url) => {
-  const host = url.replace(/^https?:\/\//i, "").split("/")[0].toLowerCase();
-  if (/(^|\.)linkedin\.com$/.test(host)) return "linkedin";
-  if (/(^|\.)instagram\.com$/.test(host)) return "instagram";
-  if (/(^|\.)(twitter|x)\.com$/.test(host)) return "twitter";
-  return null;
-};
+const norm = (k) => String(k).toLowerCase().replace(/[^a-z0-9]/g, "");
 
-// Returns { twitter?, instagram?, linkedin?, website? } with clean https links.
-// Reads the flat fields saved by the admin panel (twitter, linkedin, instagram,
-// website) and also any nested object / array of links (socials, socialLinks, ...).
-export const getSocialLinks = (item = {}) => {
-  const result = {};
-  const add = (name, url) => {
-    const clean = normalizeUrl(url);
-    if (!clean) return;
-    // Field name first; if the field name is unknown, recognise the site in the link itself
-    const platform = platformOf(name) || platformFromUrl(clean);
-    if (platform) result[platform] = clean;
-  };
-
-  // { twitter: "..." }  or  [{ platform: "twitter", url: "..." }]
-  const collect = (node, depth = 0) => {
-    if (!node || typeof node !== "object" || depth > 3) return;
-    if (Array.isArray(node)) {
-      node.forEach((n) => {
-        if (!n || typeof n !== "object") return;
-        add(n.platform || n.name || n.type || n.title, n.url || n.link || n.href);
-        collect(n, depth + 1);
-      });
-      return;
+// Description ke peeche chhupa BIO_META nikalo
+const readMeta = (text) => {
+  const m = /<!--BIO_META:([\s\S]*?)-->/.exec(String(text || ""));
+  if (!m) return {};
+  try {
+    return JSON.parse(decodeURIComponent(m[1]));
+  } catch {
+    try {
+      return JSON.parse(m[1]);
+    } catch {
+      return {};
     }
-    Object.entries(node).forEach(([k, v]) => {
-      if (typeof v === "string") add(k, v);
-      else collect(v, depth + 1);
+  }
+};
+
+const collect = (src, out) => {
+  if (!src) return;
+  if (Array.isArray(src)) {
+    src.forEach((e) => {
+      if (e && typeof e === "object") {
+        const name = e.platform || e.name || e.type || e.label || e.key;
+        const url = e.url || e.link || e.href;
+        if (name && url && !out[norm(name)]) out[norm(name)] = url;
+      }
     });
-  };
+    return;
+  }
+  if (typeof src === "object") {
+    Object.entries(src).forEach(([k, v]) => {
+      if ((typeof v === "string" || typeof v === "number") && !out[norm(k)]) {
+        out[norm(k)] = v;
+      }
+    });
+  }
+};
 
-  Object.values(item).forEach((v) => collect(v));
+const fixUrl = (key, value) => {
+  const v = String(value || "").trim();
+  if (!v || v === "#" || v === "null" || v === "undefined") return "";
+  if (/^https?:\/\//i.test(v)) return v;
+  if (v.startsWith("//")) return `https:${v}`;
+  if (/^[\w.-]+\.[a-z]{2,}/i.test(v)) return `https://${v}`;
+  return `${BASE[key]}${v.replace(/^@/, "")}`;
+};
+const DOMAINS = {
+  twitter: /(?:twitter\.com|x\.com)\//i,
+  instagram: /instagram\.com\//i,
+  linkedin: /linkedin\.com\//i,
+  facebook: /facebook\.com\//i,
+  youtube: /youtube\.com\/|youtu\.be\//i,
+};
 
-  // Flat fields win over nested ones
-  Object.entries(item).forEach(([k, v]) => {
-    if (typeof v === "string") add(k, v);
+
+const deepStrings = (val, out, depth = 0) => {
+  if (depth > 6 || val == null) return;
+
+  if (typeof val === "string") {
+    out.push(val);
+    const re = /<!--[A-Z_]+:([\s\S]*?)-->/g;
+    let m;
+    while ((m = re.exec(val))) {
+      let payload = m[1];
+      try {
+        payload = decodeURIComponent(payload);
+      } catch {}
+      out.push(payload);
+      try {
+        deepStrings(JSON.parse(payload), out, depth + 1);
+      } catch {}
+    }
+    return;
+  }
+
+  if (Array.isArray(val)) {
+    val.forEach((v) => deepStrings(v, out, depth + 1));
+    return;
+  }
+
+  if (typeof val === "object") {
+    Object.values(val).forEach((v) => deepStrings(v, out, depth + 1));
+  }
+};
+
+const scanUrls = (item) => {
+  const texts = [];
+  deepStrings(item, texts);
+
+  const found = {};
+  texts.forEach((t) => {
+    (t.match(/https?:\/\/[^\s"'<>)\\]+/g) || []).forEach((url) => {
+      Object.keys(DOMAINS).forEach((key) => {
+        if (!found[key] && DOMAINS[key].test(url)) found[key] = url;
+      });
+    });
+  });
+  return found;
+};
+
+export const getSocialLinks = (item = {}) => {
+  const meta = readMeta(item.description);
+  const flat = {};
+
+  [
+    item.socialLinks, item.socials, item.social, item.socialMedia, item.links,
+    item,
+    meta.socialLinks, meta.socials, meta.social, meta.socialMedia, meta.links,
+    meta,
+  ].forEach((src) => collect(src, flat));
+
+  const scanned = scanUrls(item);
+  const result = {};
+
+  SOCIAL_ICONS.forEach(({ key }) => {
+    for (const alias of ALIASES[key]) {
+      const url = fixUrl(key, flat[alias]);
+      if (url) {
+        result[key] = url;
+        return;
+      }
+    }
+
+    if (scanned[key]) result[key] = scanned[key];
   });
 
   return result;

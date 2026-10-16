@@ -1,5 +1,4 @@
-const BASE = "https://market-hub-blogs-backend.onrender.com/api/brands"; // apna backend port daalo
-
+const BASE = "https://market-hub-blogs-backend.onrender.com/api/brands"; 
 export const fetchFeatured = async () => {
   const res = await fetch(`${BASE}/featured`);
   if (!res.ok) throw new Error("Failed to load featured products");
@@ -9,5 +8,5 @@ export const fetchFeatured = async () => {
 export const fetchBrand = async (slug) => {
   const res = await fetch(`${BASE}/${slug}`);
   if (!res.ok) throw new Error("Product not found");
-  return res.json(); // { item, related }
+  return res.json(); 
 };

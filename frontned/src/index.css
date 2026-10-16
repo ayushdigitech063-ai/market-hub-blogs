@@ -1,6 +1,41 @@
 @import "tailwindcss";
 
-/* Custom Gradients matching your exact theme */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden; 
+    overflow-x: clip;   
+  }
+
+  body {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  h1, h2, h3, h4, h5, h6, p, li, a, span, td, th, blockquote {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+
+  img, picture, video, canvas, iframe {
+    max-width: 100%;
+    height: auto;
+  }
+  table { max-width: 100%; }
+  pre, code { max-width: 100%; overflow-x: auto; }
+}
+
+
 .hero-gradient {
   background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #2563eb 100%);
 }
@@ -9,58 +44,51 @@
   background: linear-gradient(135deg, #ef4444 0%, #f97316 50%, #f59e0b 100%);
 }
 
-/* Global typography (Tailwind classes like text-sm still override these) */
+
 @layer base {
   h1 {
-    font-size: clamp(1.625rem, 1.3rem + 1.4vw, 2.25rem); /* 26px -> 36px */
-    font-weight: 800;
+    font-size: clamp(1.625rem, 1.3rem + 1.4vw, 2.25rem); 
     line-height: 1.2;
   }
   h2 {
-    font-size: clamp(1.25rem, 1.1rem + 0.8vw, 1.625rem); /* 20px -> 26px */
+    font-size: clamp(1.25rem, 1.1rem + 0.8vw, 1.625rem); 
     font-weight: 700;
     line-height: 1.3;
   }
   h3 {
-    font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem); /* 17px -> 20px */
+    font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem); 
     font-weight: 700;
     line-height: 1.35;
   }
   h4 {
-    font-size: 0.9375rem; /* 15px */
+    font-size: 0.9375rem; 
     font-weight: 600;
     line-height: 1.4;
   }
   p {
-    font-size: 0.9375rem; /* 15px */
+    font-size: 0.9375rem; 
     line-height: 1.65;
   }
 }
 
-/* ============================================================
-   Night mode (applies to the whole site)
-   <ThemeToggle /> sets <html data-theme="dark"> to switch it on.
-   The page colours are inverted, then photos and videos are
-   inverted back so they keep their real colours.
-   ============================================================ */
+
 html[data-theme="dark"] {
-  /* 0.92 keeps the page dark grey instead of pure black */
+
   filter: invert(0.92) hue-rotate(180deg);
   background-color: #fff;
 }
 
-/* Photos, videos, embeds and background images keep their real colours */
+
 html[data-theme="dark"] :is(img, picture, video, canvas, iframe),
 html[data-theme="dark"] [style*="background-image"] {
   filter: invert(1) hue-rotate(180deg);
 }
 
-/* Add class="keep-original" to any section that should look the same in
-   night mode (for example a dark hero banner). */
+
 html[data-theme="dark"] .keep-original {
   filter: invert(1) hue-rotate(180deg);
 }
-/* ...and don't flip the images inside it a second time */
+
 html[data-theme="dark"] .keep-original :is(img, picture, video, canvas, iframe),
 html[data-theme="dark"] .keep-original [style*="background-image"] {
   filter: none;

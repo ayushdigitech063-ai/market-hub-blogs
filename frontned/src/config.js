@@ -1,1 +1,0 @@
-export const API = "https://market-hub-blogs-backend.onrender.com/api";

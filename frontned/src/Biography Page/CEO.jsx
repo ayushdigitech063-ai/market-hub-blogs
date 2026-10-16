@@ -46,6 +46,15 @@ const ACCENTS = {
   },
 };
 
+const cleanText = (v) =>
+  String(v || "")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
 function BiographyCard({
   item,
   basePath,
@@ -56,28 +65,32 @@ function BiographyCard({
 }) {
   const a = ACCENTS[accent];
   const socialLinks = getSocialLinks(item);
+  const activeIcons = SOCIAL_ICONS.filter(({ key }) => socialLinks[key]);
+  const about = cleanText(item.shortBio || item.description);
 
   return (
     <article
-      className={`group relative flex flex-col overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-sm transition-all duration-500 hover:-translate-y-2 ${a.cardHover}`}
+      className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-sm transition-all duration-500 hover:-translate-y-1 ${a.cardHover}`}
     >
       <Link to={`${basePath}/${item.slug}`} className="flex flex-1 flex-col">
-        <div className="relative h-[360px] overflow-hidden bg-stone-100">
+        <div className="relative h-[260px] shrink-0 overflow-hidden bg-stone-100">
           <img
             src={item.image}
             alt={item.name}
             className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
           />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-stone-950/80 via-stone-950/30 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-stone-950/70 via-stone-950/20 to-transparent" />
           <span
-            className={`absolute left-4 top-4 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider shadow-lg ${a.badge}`}
+            className={`absolute left-4 top-4 rounded-full px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-lg ${a.badge}`}
           >
             {item.category || fallbackCategory}
           </span>
         </div>
 
-        <div className="flex flex-1 flex-col p-6 pb-4">
-          <h3 className={`font-serif text-2xl font-bold leading-tight text-stone-900 transition-colors ${a.text}`}>
+        <div className="flex flex-1 flex-col p-5 pb-3">
+          <h3
+            className={`line-clamp-2 min-h-[3.5rem] font-serif text-xl font-bold leading-7 text-stone-900 transition-colors ${a.text}`}
+          >
             {item.name}
           </h3>
           <div className="mt-2 flex items-center gap-2">
@@ -85,57 +98,44 @@ function BiographyCard({
               {item.role || fallbackRole}
             </span>
             <span className="text-stone-300">•</span>
-            <span className="text-xs font-medium text-stone-500">
+            <span className="truncate text-xs font-medium text-stone-500">
               {item.company || fallbackCompany}
             </span>
           </div>
-          <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-stone-600 font-light">
-            {item.description || item.shortBio}
+          <p className="mt-3 line-clamp-3 text-sm font-light leading-relaxed text-stone-600">
+            {about}
           </p>
         </div>
       </Link>
 
-      <div className="mt-auto px-6 pb-6 pt-0">
-        <div className="mb-4 flex items-center gap-2.5 border-t border-stone-100 pt-4">
-          {SOCIAL_ICONS.map(({ key, label, Icon, optional }) => {
-            const url = socialLinks[key];
-            if (url) {
-              return (
-                <a
-                  key={key}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={label}
-                  className={`flex h-11 w-11 items-center justify-center rounded-full transition-all duration-300 shadow-xs ${a.icon}`}
-                >
-                  <Icon className="h-5 w-5" />
-                </a>
-              );
-            }
-            if (optional) return null;
-            // No link saved yet for this platform
-            return (
-              <span
+      <div className="mt-auto px-5 pb-5">
+        {activeIcons.length > 0 && (
+          <div className="mb-3 flex items-center gap-2 border-t border-stone-100 pt-3">
+            {activeIcons.map(({ key, label, Icon }) => (
+              <a
                 key={key}
-                title={`${label} link not added yet`}
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-stone-300"
+                href={socialLinks[key]}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={label}
+                aria-label={`${item.name} on ${label}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${a.icon}`}
               >
-                <Icon className="h-5 w-5" />
-              </span>
-            );
-          })}
-        </div>
+                <Icon className="h-4 w-4" />
+              </a>
+            ))}
+          </div>
+        )}
 
         <Link
           to={`${basePath}/${item.slug}`}
-          className="group/cta flex items-center justify-between border-t border-stone-100 pt-4"
+          className="group/cta flex items-center justify-between border-t border-stone-100 pt-3"
         >
           <span className="text-xs font-bold uppercase tracking-wider text-stone-900">
             Read full biography
           </span>
           <span
-            className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 shadow-xs ${a.arrow}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${a.arrow}`}
           >
             →
           </span>
@@ -225,7 +225,6 @@ export default function CEO() {
       .catch((err) => console.error("Error fetching biographies:", err));
   }, []);
 
-  // Same grouping as "View all", Related profiles and the admin Category dropdown
   const bySection = (name) =>
     biographies.filter((item) => getSection(item) === name).slice(0, 3);
 
@@ -237,26 +236,26 @@ export default function CEO() {
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
 
-{/* ===== COMPACT BIOGRAPHY HERO BANNER ===== */}
+
 <section className="relative isolate overflow-hidden bg-[#17140D] text-white">
 
-  {/* Background Image */}
+
   <img
     src="https://venturexindia.com/wp-content/uploads/2025/06/WhatsApp-Image-2025-06-25-at-15.52.37_f6ea0630-1.jpg"
     alt="Biography of leaders, legends and founders"
     className="absolute inset-0 h-full w-full scale-105 object-cover object-center brightness-[0.68] contrast-110 saturate-[0.85]"
   />
 
-  {/* Existing Dual-Tone Overlay */}
+
   <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#17140D] via-[#17140D]/90 to-[#17140D]/45" />
   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#17140D]/95 via-transparent to-[#17140D]/35" />
 
-  {/* Main Content */}
+
   <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12 lg:px-12 lg:py-14">
 
     <div className="max-w-3xl space-y-4 sm:space-y-5">
 
-      {/* Categories */}
+
       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-300">
         <span className="inline-flex items-center gap-2 rounded-full border border-stone-700 bg-stone-900/90 px-3 py-1.5 backdrop-blur-md">
           <span className={`h-2 w-2 rounded-full ${ACCENTS.ceo.dot}`} />
@@ -279,7 +278,7 @@ export default function CEO() {
         </span>
       </div>
 
-      {/* Heading */}
+
       <h1 className="max-w-3xl font-serif text-3xl font-extrabold leading-tight tracking-tight text-white drop-shadow-sm sm:text-4xl lg:text-5xl">
         Stories of{" "}
         <span className="bg-gradient-to-r from-[#F0D48A] via-[#D7A943] to-[#FFF0BD] bg-clip-text text-transparent">
@@ -288,14 +287,13 @@ export default function CEO() {
         & Founders
       </h1>
 
-      {/* Description */}
       <p className="max-w-2xl text-sm font-light leading-6 text-stone-300 drop-shadow sm:text-base sm:leading-7">
         Explore complete biographies, career journeys, defining achievements
         and leadership philosophies of influential business tycoons, sports
         champions, visionary startup founders and celebrated actors.
       </p>
 
-      {/* Buttons */}
+
       <div className="flex flex-wrap gap-2.5 pt-1 sm:gap-3">
 
         <Link
@@ -331,7 +329,7 @@ export default function CEO() {
     </div>
   </div>
 
-  {/* Existing Bottom Accent Line */}
+
   <div className="absolute inset-x-0 bottom-0 z-10 h-1.5 bg-[linear-gradient(90deg,#A87922,#D6AC55,#315F9D,#28734F,#A23B5E)]" />
 
 </section>

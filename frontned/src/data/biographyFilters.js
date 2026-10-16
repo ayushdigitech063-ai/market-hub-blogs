@@ -28,7 +28,7 @@ const LEGACY_CATEGORY_WORDS = [
   ["business", stems(["business", "ceo", "leader", "tech", "technology", "executive"])],
 ];
 
-// Last resort when a profile has no usable category or type
+
 const ROLE_WORDS = [
   ["sports", stems(["player", "athlete", "cricketer", "footballer", "sprinter", "sportsperson", "sport"])],
   ["actors", stems(["actor", "actress"])],
@@ -41,21 +41,19 @@ const matchGroup = (groups, w) => {
   return hit ? hit[0] : null;
 };
 
-// Returns "business" | "sports" | "entrepreneur" | "actors" | null
+
 export const getSection = (item) => {
-  // 1. Category chosen from the admin dropdown
+
   const cat = words(item.category);
   if (cat.length === 1 && TOKEN_SECTION[cat[0]]) return TOKEN_SECTION[cat[0]];
 
-  // 2. Type chosen from the admin dropdown
+
   const typeHit = words(item.type).map((w) => TOKEN_SECTION[w]).find(Boolean);
   if (typeHit) return typeHit;
 
-  // 3. Older free-text category, then 4. role
   return matchGroup(LEGACY_CATEGORY_WORDS, cat) || matchGroup(ROLE_WORDS, words(item.role));
 };
 
-// Maps a route value ("ceo", "sportsperson", "entrepreneurs", "actor"...) to a group.
-// Returns null for anything else.
+
 export const sectionFromRoute = (value) =>
   words(value).map((w) => TOKEN_SECTION[w]).find(Boolean) || null;

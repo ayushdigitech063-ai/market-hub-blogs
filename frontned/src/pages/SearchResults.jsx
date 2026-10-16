@@ -1,111 +1,12 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Search, LoaderCircle, ArrowUpRight } from "lucide-react";
 import {
-  Search,
-  Building2,
-  BookOpen,
-  UserRound,
-  Package,
-  LoaderCircle,
-  ArrowUpRight,
-} from "lucide-react";
-
-const API = "https://market-hub-blogs-backend.onrender.com/api";
-
-const SOURCES = [
-  {
-    type: "Article",
-    endpoint: `${API}/blog-articles`,
-    icon: BookOpen,
-    getTitle: (x) => x.title || x.articleTitle || x.name,
-    getDescription: (x) =>
-      x.description || x.excerpt || x.summary || x.content,
-    getImage: (x) => x.imageURL || x.imageUrl || x.image,
-    getUrl: (x) =>
-      `/articles/${x.slug || x._id || x.id}`,
-  },
-  {
-    type: "Company",
-    endpoint: `${API}/companies`,
-    icon: Building2,
-    getTitle: (x) => x.name || x.title,
-    getDescription: (x) => x.description,
-    getImage: (x) => x.imageURL || x.imageUrl || x.image,
-    getUrl: (x) => `/company/${x.slug}`,
-  },
-  {
-    type: "Author",
-    endpoint: `${API}/blog-authors`,
-    icon: UserRound,
-    getTitle: (x) => x.name || x.authorName || x.title,
-    getDescription: (x) =>
-      x.bio || x.biography || x.description || x.about,
-    getImage: (x) => x.imageURL || x.imageUrl || x.image,
-    getUrl: (x) => `/author/${x.id || x._id}`,
-  },
-  {
-    type: "Biography",
-    endpoint: `${API}/biographies`,
-    icon: UserRound,
-    getTitle: (x) => x.name || x.title,
-    getDescription: (x) =>
-      x.description || x.shortBio || x.role || x.company,
-    getImage: (x) => x.imageURL || x.imageUrl || x.image,
-    getUrl: (x) =>
-      `/biography/${getBioType(x)}/${x.slug}`,
-  },
-  {
-    type: "Brand / Product",
-    endpoint: `${API}/brands/featured`,
-    icon: Package,
-    getTitle: (x) =>
-      x.name || x.articleTitle || x.title || x.brand,
-    getDescription: (x) =>
-      x.description || x.shortDescription || x.category,
-    getImage: (x) => x.imageURL || x.imageUrl || x.image,
-    getUrl: (x) => `/brand/${x.slug}`,
-  },
-];
-
-function getBioType(item) {
-  const raw = String(item.type || item.category || "ceo")
-    .toLowerCase()
-    .replace(/\s+/g, "");
-
-  if (raw.includes("sport")) return "sports";
-  if (raw.includes("entrepreneur")) return "entrepreneur";
-  return "ceo";
-}
-
-function asArray(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  if (Array.isArray(data?.items)) return data.items;
-  if (Array.isArray(data?.results)) return data.results;
-  return [];
-}
-
-function searchableText(item) {
-  return [
-    item.title,
-    item.description,
-    item.author,
-    item.authorName,
-    item.category,
-    item.subCategory,
-    item.brand,
-    item.company,
-    item.name,
-    item.role,
-    item.shortBio,
-    ...(Array.isArray(item.tags) ? item.tags : []),
-    ...(Array.isArray(item.keywords) ? item.keywords : []),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
+  loadSearchIndex,
+  searchItems,
+  SEARCH_TYPES,
+  TYPE_ICONS,
+} from "../api/searchApi";
 
 export default function SearchResults() {
   const [searchParams] = useSearchParams();
@@ -119,115 +20,28 @@ export default function SearchResults() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadData() {
-      setLoading(true);
-
-      const responses = await Promise.all(
-        SOURCES.map(async (source) => {
-          try {
-            const response = await fetch(source.endpoint);
-            if (!response.ok) throw new Error("Request failed");
-
-            const data = await response.json();
-
-            return {
-              source,
-              items: asArray(data),
-              failed: false,
-            };
-          } catch (error) {
-            console.error(
-              `Search source failed: ${source.type}`,
-              error
-            );
-
-            return {
-              source,
-              items: [],
-              failed: true,
-            };
-          }
-        })
-      );
-
-      if (cancelled) return;
-
-      const results = [];
-      const failed = [];
-
-      responses.forEach(({ source, items, failed: hasFailed }) => {
-        if (hasFailed) failed.push(source.type);
-
-        items.forEach((item, index) => {
-          const title = source.getTitle(item);
-          const url = source.getUrl(item);
-
-          if (!title || !url || url.endsWith("/undefined")) return;
-
-          results.push({
-            id: `${source.type}-${item._id || item.id || item.slug || index}`,
-            type: source.type,
-            title,
-            description: source.getDescription(item) || "",
-            image: source.getImage(item) || "",
-            url,
-            searchText: searchableText({
-              ...item,
-              title,
-              description: source.getDescription(item),
-            }),
-            Icon: source.icon,
-          });
-        });
+    loadSearchIndex()
+      .then(({ items, failed }) => {
+        if (cancelled) return;
+        setAllResults(items);
+        setFailedSources(failed);
+      })
+      .catch((error) => console.error("Search failed:", error))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-
-      setAllResults(results);
-      setFailedSources(failed);
-      setLoading(false);
-    }
-
-    loadData();
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const results = useMemo(() => {
-    if (!query) return [];
+  const results = useMemo(
+    () => searchItems(allResults, query, { type: activeType }),
+    [allResults, query, activeType]
+  );
 
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-
-    return allResults
-      .map((item) => {
-        const title = item.title.toLowerCase();
-        const text = item.searchText;
-
-        const score = words.reduce((total, word) => {
-          if (title === word) return total + 10;
-          if (title.startsWith(word)) return total + 6;
-          if (title.includes(word)) return total + 4;
-          if (text.includes(word)) return total + 1;
-          return total;
-        }, 0);
-
-        return { ...item, score };
-      })
-      .filter((item) => item.score > 0)
-      .filter(
-        (item) => activeType === "All" || item.type === activeType
-      )
-      .sort((a, b) => b.score - a.score);
-  }, [allResults, query, activeType]);
-
-  const types = [
-    "All",
-    "Article",
-    "Company",
-    "Brand / Product",
-    "Author",
-    "Biography",
-  ];
+  const types = ["All", ...SEARCH_TYPES];
 
   return (
     <main className="min-h-screen bg-[#FAF9F6] px-4 py-10 sm:px-6 lg:px-8">
@@ -314,7 +128,7 @@ export default function SearchResults() {
             ) : (
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {results.map((item) => {
-                  const Icon = item.Icon;
+                  const Icon = TYPE_ICONS[item.type] || Search;
 
                   return (
                     <Link
@@ -378,4 +192,3 @@ export default function SearchResults() {
     </main>
   );
 }
-
