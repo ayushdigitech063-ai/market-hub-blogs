@@ -145,20 +145,24 @@ export default function RelatedProfiles({ profile }) {
           ))}
         </div>
       </div>
-      {/* Navigation Arrows - Below Cards */}
+   
+{/* Navigation Arrows - Below Cards */}
 <div className="mt-5 flex items-center justify-center gap-3">
   <ArrowButton
     dir="prev"
     onClick={() => scrollByDir("prev")}
     disabled={!canPrev}
+    className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
   />
 
   <ArrowButton
     dir="next"
     onClick={() => scrollByDir("next")}
     disabled={!canNext}
+    className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
   />
 </div>
+
     </section>
     
   );
