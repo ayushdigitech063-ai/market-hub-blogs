@@ -172,7 +172,7 @@ export function Field({ field, value, onChange, editing }) {
           required={field.required} disabled={disabled} placeholder={field.placeholder} className={inputClass} />
       )}
       {field.hint && <p className="mt-1 text-[11px] text-slate-400">{field.hint}</p>}
-      {disabled && <p className="mt-1 text-[11px] text-slate-400">Edit me ye field change nahi hoti.</p>}
+      {disabled && <p className="mt-1 text-[11px] text-slate-400">This field did not change during Edititng</p>}
     </div>
   );
 }

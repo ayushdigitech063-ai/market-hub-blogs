@@ -25,7 +25,7 @@ import About from "./pages/company/About/page";
 import Biography from "./Biography Page/Biography";
 import Biographydetails from "./Biography Page/Biographydetails";
 import ViewAll from "./Biography Page/ViewAll";
-import Newsletter from "./components/Newsletter";
+
 import ArticlesPage from "./pages/ArticlesPage";
 import ArticleReadPage from "./pages/ArticleReadPage";
 import AuthorPage from "./pages/AuthorPage";
@@ -127,7 +127,7 @@ function AppContent() {
       </main>
 
 
-      {showNewsletter && <Newsletter />}
+
 
       {!isAdminPage && <Watsapp />}
 

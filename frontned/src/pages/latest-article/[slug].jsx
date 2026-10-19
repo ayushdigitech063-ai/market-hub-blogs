@@ -237,10 +237,9 @@ export default function LatestArticleDetail() {
           Article Not Found
         </h2>
 
-        <p className="max-w-md text-sm leading-6 text-stone-500">
-          Ye article exist nahi karta, draft hai, ya abhi
-          available nahi hai.
-        </p>
+     <p className="max-w-md text-sm leading-6 text-stone-500">
+  This article does not exist, is a draft, or is currently unavailable.
+</p>
 
         <Link
           to="/"

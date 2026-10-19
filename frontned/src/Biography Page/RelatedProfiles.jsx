@@ -120,13 +120,7 @@ export default function RelatedProfiles({ profile }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-           
-            <div className="flex items-center gap-2">
-              <ArrowButton dir="prev" onClick={() => scrollByDir("prev")} disabled={!canPrev} />
-              <ArrowButton dir="next" onClick={() => scrollByDir("next")} disabled={!canNext} />
-            </div>
-          </div>
+         
         </div>
 
 
@@ -146,10 +140,26 @@ export default function RelatedProfiles({ profile }) {
                   <ProfileCard item={item} />
                 </div>
               </div>
+              
             </div>
           ))}
         </div>
       </div>
+      {/* Navigation Arrows - Below Cards */}
+<div className="mt-5 flex items-center justify-center gap-3">
+  <ArrowButton
+    dir="prev"
+    onClick={() => scrollByDir("prev")}
+    disabled={!canPrev}
+  />
+
+  <ArrowButton
+    dir="next"
+    onClick={() => scrollByDir("next")}
+    disabled={!canNext}
+  />
+</div>
     </section>
+    
   );
 }

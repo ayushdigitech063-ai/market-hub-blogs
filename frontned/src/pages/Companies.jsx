@@ -105,65 +105,65 @@ export default function Companies() {
 
   return (
     <main className="min-h-screen bg-[#F8FAFD] text-slate-900">
-  
+
 {/* HERO BANNER */}
-<section className="relative isolate overflow-hidden border-b border-[#E5D8B7] bg-[#171A20] text-white">
+<section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
+  {/* Background Image */}
   <img
     src={HERO_IMAGE}
     alt="Global companies and business innovation"
-    className="absolute inset-0 h-full w-full object-cover object-center brightness-[0.58] saturate-[0.85]"
+    className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
   />
 
   {/* Gradient Overlays */}
-  <div className="absolute inset-0 bg-gradient-to-r from-[#101820]/95 via-[#101820]/80 to-[#101820]/45" />
-  <div className="absolute inset-0 bg-gradient-to-t from-[#101820]/70 via-transparent to-[#101820]/20" />
+  <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
+  <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/60 via-transparent to-[#111D32]/20" />
 
-  <div className="relative mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-11 lg:px-12 lg:py-14">
-    <div className="max-w-3xl">
+  {/* Content */}
+  <div className="mx-auto flex min-h-[390px] w-full max-w-[1600px] items-center px-5 py-12 sm:min-h-[430px] sm:px-8 sm:py-14 lg:min-h-[460px] lg:px-14 lg:py-16 xl:min-h-[480px] xl:px-16">
+    <div className="w-full max-w-3xl">
 
       {/* Badge */}
-      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#E3C477]/40 bg-[#211E17]/75 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#F4D78E] backdrop-blur-md sm:text-xs">
-        <Sparkles className="h-3.5 w-3.5" />
-        Global brands · Company insights
+      <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/95 backdrop-blur-md sm:text-xs">
+        <Sparkles className="h-4 w-4 shrink-0 text-[#E47742]" />
+        Global Brands · Company Insights
       </div>
 
       {/* Heading */}
-      <h1 className="max-w-3xl font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+      <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl lg:text-5xl xl:text-[3.4rem]">
         Explore the world’s
-        <span className="mt-1 block bg-gradient-to-r from-[#F5D98F] via-[#DDB65D] to-[#FFF0C2] bg-clip-text text-transparent">
-          leading companies
+        <span className="mt-2 block bg-gradient-to-r from-[#F5D98F] via-[#E8BD70] to-[#FFF0C2] bg-clip-text text-transparent">
+          Leading companies
         </span>
       </h1>
 
       {/* Description */}
-      <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">
-        Discover company stories, technology updates, business moves, and expert
-        insights—all in one place.
+      <p className="mt-5 max-w-2xl text-base leading-7 text-white/85 sm:mt-6 sm:text-lg sm:leading-8">
+        Discover leading companies, their inspiring stories, latest technology
+        updates, business developments, and industry insights—all in one place.
       </p>
 
       {/* Buttons */}
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      <div className="mt-7 flex flex-wrap items-center gap-3 sm:gap-4">
         <a
           href="#companies-list"
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#D5AB50] to-[#F0D58C] px-5 py-2.5 text-xs font-bold text-[#241B0B] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:brightness-105 sm:text-sm"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#E47742] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-black/20 transition duration-200 hover:-translate-y-0.5 hover:bg-[#D76532] sm:text-base"
         >
-          Browse companies
+          Browse Companies
           <ArrowRight className="h-4 w-4" />
         </a>
 
-        <span className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-xs text-white/90 backdrop-blur-md sm:text-sm">
-          <Building2 className="h-4 w-4 text-[#F0D58C]" />
-          <strong className="text-[#F0D58C]">
+        <span className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm text-white/90 backdrop-blur-md sm:text-base">
+          <Building2 className="h-5 w-5 shrink-0 text-[#F0D58C]" />
+          <strong className="font-bold text-[#F0D58C]">
             {companiesData.length}
           </strong>
           companies listed
         </span>
       </div>
+
     </div>
   </div>
-
-  {/* Bottom Accent Line */}
-  <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-[#315D91] via-[#D8AD54] to-[#2F8055]" />
 </section>
 
 

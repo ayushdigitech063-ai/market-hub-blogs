@@ -20,8 +20,7 @@ const Label = ({ children, required, right }) => (
     {right}
   </div>
 );
-
-export default function PostEditor({ config, form, setForm, editing, saving, categories, onSave, onCancel }) {
+export default function PostEditor({ config, form, setForm, editing, saving, categories, onSave, onCancel, submitLabel }) {
   const [slugTouched, setSlugTouched] = useState(editing);
 
   const segment = config.urlSegment ? config.urlSegment(form) : "";
@@ -43,7 +42,7 @@ export default function PostEditor({ config, form, setForm, editing, saving, cat
   };
 
   const slugLocked = editing && config.lockSlugOnEdit;
-  const publishLabel = form.status === "published" ? (editing ? "Update Post" : "Publish Post") : "Save Draft";
+ const publishLabel = submitLabel || (form.status === "published" ? (editing ? "Update Post" : "Publish Post") : "Save Draft");
 
   return (
     <form onSubmit={onSave} className="space-y-5">

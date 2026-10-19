@@ -1,15 +1,10 @@
-
+import { sortLatestFirst } from "../utils/sortLatest";
 const BASE =
   "https://market-hub-blogs-backend.onrender.com/api/latest-articles";
 
 export const fetchLatestArticles = async (limit) => {
-  const url = new URL(BASE);
 
-  if (limit !== undefined && limit !== null && limit !== "") {
-    url.searchParams.set("limit", String(limit));
-  }
-
-  const response = await fetch(url.toString());
+  const response = await fetch(BASE);
 
   if (!response.ok) {
     throw new Error(
@@ -25,10 +20,14 @@ export const fetchLatestArticles = async (limit) => {
       ? data.articles
       : [];
 
-
-  return articles.filter(
-    (article) => article && article.status !== "draft"
+  const sorted = sortLatestFirst(
+    articles.filter((article) => article && article.status !== "draft")
   );
+
+  const n = Number(limit);
+  return limit !== undefined && limit !== null && limit !== "" && n > 0
+    ? sorted.slice(0, n)
+    : sorted;
 };
 
 
@@ -46,7 +45,6 @@ export const fetchLatestArticle = async (slug) => {
       `Failed to load article: ${response.status}`
     );
   }
-
 
   return response.json();
 };

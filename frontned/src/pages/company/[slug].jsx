@@ -36,11 +36,19 @@ const readPack = (s) => {
 export default function CompanyDetail() {
   const { slug } = useParams();
   const scrollRef = useRef(null);
-  const scroll = (amount) =>
-    scrollRef.current?.scrollBy({ left: amount, behavior: "smooth" });
+
+  // dir = -1 (previous) ya 1 (next): ek card jitna scroll karta hai
+  const scroll = (dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const card = el.firstElementChild;
+    const step = card ? card.offsetWidth + 20 : 340; // card width + gap-5
+    el.scrollBy({ left: dir * step, behavior: "smooth" });
+  };
 
   const [company, setCompany] = useState(null);
   const [articles, setArticles] = useState([]);
+  const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -49,6 +57,7 @@ export default function CompanyDetail() {
     setLoading(true);
     setNotFound(false);
     setArticles([]);
+    setRelated([]);
 
     const loadCompany = async () => {
 
@@ -113,6 +122,20 @@ export default function CompanyDetail() {
           setArticles(list);
         } catch (err) {
           console.error("Error fetching articles:", err);
+        }
+
+        try {
+          const res = await fetch(`${API}/companies`);
+          const all = await res.json();
+          const others = (Array.isArray(all) ? all : []).filter(
+            (x) => x && x.slug && x.slug !== c.slug && isLive(x)
+          );
+          const sameCategory = c.category
+            ? others.filter((x) => norm(x.category) === norm(c.category))
+            : [];
+          setRelated((sameCategory.length ? sameCategory : others).slice(0, 12));
+        } catch (err) {
+          console.error("Error fetching related companies:", err);
         }
       })
       .catch(() => setNotFound(true))
@@ -186,7 +209,7 @@ export default function CompanyDetail() {
       <SeoHead post={view} />
 
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-     
+
         <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
           <Link
             to="/companies"
@@ -199,7 +222,7 @@ export default function CompanyDetail() {
           <span className="text-slate-700">{view.name}</span>
         </nav>
 
-  
+
         <section className="relative overflow-hidden rounded-3xl border border-sky-100 bg-slate-900 shadow-xl shadow-sky-900/10">
           {view.imageURL && (
             <img
@@ -262,145 +285,88 @@ export default function CompanyDetail() {
         )}
 
 
-        <section className="relative mt-14 overflow-hidden rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-100/70 via-white to-blue-100/70 px-4 py-8 shadow-sm sm:px-7 sm:py-10 lg:px-9">
+        {related.length > 0 && (
+          <section className="mt-14">
+            <h2 className="mb-6 border-l-4 border-teal-500 pl-3 font-serif text-2xl font-bold text-slate-900 sm:text-3xl">
+              Related companies
+            </h2>
 
-          <div className="pointer-events-none absolute -left-20 top-0 h-64 w-64 rounded-full bg-rose-300/25 blur-3xl" />
-          <div className="pointer-events-none absolute -right-16 top-20 h-64 w-64 rounded-full bg-blue-300/30 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-1/3 h-40 w-72 rounded-full bg-sky-100/40 blur-3xl" />
+            <div
+              ref={scrollRef}
+              className="flex snap-x snap-proximity gap-5 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {related.map((r) => (
+                <Link
+                  key={r.slug}
+                  to={`/companies/${r.slug}`}
+                  className="group w-[260px] shrink-0 snap-start overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-md transition-all hover:-translate-y-1 hover:shadow-xl sm:w-[calc((100%-2.5rem)/2.5)]"
+                >
+                  <div className="relative h-52 overflow-hidden bg-slate-100 sm:h-60">
+                    {r.imageURL && (
+                      <img
+                        src={r.imageURL}
+                        alt={r.name}
+                        className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                      />
+                    )}
 
-          <div className="relative z-10">
+                    <span className="absolute left-3 top-3 rounded-full bg-slate-900/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-200">
+                      {r.category || "Company"}
+                    </span>
+                  </div>
 
-            <div className="mb-7 flex flex-wrap items-center justify-between gap-5 border-b border-slate-200/80 pb-6">
-              <div className="flex items-start gap-4">
-                <span className="mt-1 h-14 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-blue-600 via-indigo-500 to-rose-400" />
+                  <div className="p-5">
+                    <h3 className="font-serif text-xl font-bold text-slate-900">
+                      {r.name}
+                    </h3>
 
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-[0.17em] text-blue-700">
-                    Continue Exploring
-                  </span>
+                    <span className="mt-2 block text-[11px] font-bold uppercase tracking-wider text-teal-700">
+                      Company
+                    </span>
 
-                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                    Related Articles
-                  </h2>
+                    {cleanDesc(r.description) && (
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                        {cleanDesc(r.description)}
+                      </p>
+                    )}
 
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    Explore fresh perspectives, discover useful insights, and keep up
-                    with the latest developments across business, technology, and
-                    digital marketing.
-                  </p>
-                </div>
-              </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
+                        Read full profile
+                      </span>
 
-              {articles.length > 1 && (
-                <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => scroll(-420)}
-                    aria-label="Previous articles"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition duration-300 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => scroll(420)}
-                    aria-label="Next articles"
-                    className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20 transition duration-300 hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-              )}
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition-colors group-hover:bg-teal-500 group-hover:text-white">
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
 
-            {/* Empty State */}
-            {articles.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 px-6 py-12 text-center">
-                <h3 className="text-base font-semibold text-slate-800">
-                  No Related Articles Yet
-                </h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  Related articles will appear here when they become available.
-                </p>
-              </div>
-            ) : (
-
-              <div
-                ref={scrollRef}
-                className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-0.5 pb-4 pt-1 [&::-webkit-scrollbar]:hidden"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            {/* Previous / Next arrows — cards ke niche center mein */}
+            <div className="mt-5 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => scroll(-1)}
+                aria-label="Previous companies"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:border-teal-500 hover:bg-teal-500 hover:text-white hover:shadow-md"
               >
-                {articles.map((a) => (
-                  <article
-                    key={a.id}
-                    className="group flex w-[285px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/10 sm:w-[340px] lg:w-[360px]"
-                  >
-          
-                    <div className="relative overflow-hidden bg-slate-100">
-                      <img
-                        src={a.image}
-                        alt={a.title}
-                        loading="lazy"
-                        className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-52"
-                      />
+                <ChevronLeft className="h-5 w-5" />
+              </button>
 
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+              <button
+                type="button"
+                onClick={() => scroll(1)}
+                aria-label="Next companies"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:border-teal-500 hover:bg-teal-500 hover:text-white hover:shadow-md"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          </section>
+        )}
 
-                      {a.category && (
-                        <span className="absolute bottom-4 left-4 max-w-[85%] truncate rounded-full border border-white/70 bg-white/95 px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider text-blue-800 shadow-sm backdrop-blur-sm">
-                          {a.category}
-                        </span>
-                      )}
-                    </div>
-
-
-                    <div className="flex flex-1 flex-col p-5">
-                      <span className="mb-3 h-1 w-10 rounded-full bg-gradient-to-r from-blue-600 to-rose-400" />
-
-                      <h3 className="line-clamp-2 min-h-[56px] text-lg font-bold leading-7 text-slate-900 transition-colors duration-300 group-hover:text-blue-700">
-                        {a.title}
-                      </h3>
-
-
-                      <div className="mt-4 flex min-h-[58px] items-center justify-between gap-3 border-t border-slate-100 pt-4">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-100 bg-gradient-to-br from-blue-50 to-rose-50 text-sm font-bold text-blue-700">
-                            {(a.author || "A").charAt(0).toUpperCase()}
-                          </span>
-
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                              Written by
-                            </p>
-                            <p className="mt-0.5 truncate text-sm font-semibold text-slate-800">
-                              {a.author || "Admin"}
-                            </p>
-                          </div>
-                        </div>
-
-                        {a.readTime && (
-                          <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-                            {a.readTime}
-                          </span>
-                        )}
-                      </div>
-
-
-                      <Link
-                        to={`/article/${a.id}`}
-                        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition duration-300 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
-                      >
-                        Read Article
-                        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
       </div>
     </main>
   );
