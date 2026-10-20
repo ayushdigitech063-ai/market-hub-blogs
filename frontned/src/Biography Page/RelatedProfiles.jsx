@@ -111,9 +111,9 @@ export default function RelatedProfiles({ profile }) {
         {/* Header */}
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="h-10 w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
+            <span className="h-8 w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
             <div>
-              <h2 className="font-serif text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
+              <h2 className="font-serif text-xl font-bold tracking-tight text-stone-900 sm:text-2xl">
                 Related profiles
               </h2>
             

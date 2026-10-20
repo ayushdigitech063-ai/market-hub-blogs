@@ -16,6 +16,39 @@ const API = "https://market-hub-blogs-backend.onrender.com/api";
 
 const isLive = (x) => x && x.status !== "draft";
 
+// API kabhi direct array aur kabhi { items: [...] } / { articles: [...] } return karti hai.
+const getList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  for (const key of ["items", "articles", "companies", "results", "data"]) {
+    if (Array.isArray(payload[key])) return payload[key];
+    if (payload[key] && typeof payload[key] === "object") {
+      for (const nestedKey of ["items", "articles", "companies", "results"]) {
+        if (Array.isArray(payload[key][nestedKey])) return payload[key][nestedKey];
+      }
+    }
+  }
+  return [];
+};
+
+// Company ke alag-alag fields se naam/slug/ID nikalta hai.
+const valuesFrom = (value) => {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value.flatMap(valuesFrom);
+  if (typeof value === "object") {
+    return [
+      value.slug,
+      value.name,
+      value.companyName,
+      value.title,
+      value._id,
+      value.id,
+    ].filter(Boolean);
+  }
+  return [value];
+};
+
 const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 const COMPANY_PACK = /<!--COMPANY_PACK:([\s\S]*?)-->/;
@@ -111,8 +144,9 @@ export default function CompanyDetail() {
       } catch (_) {}
 
       const res = await fetch(`${API}/companies`);
-      const list = await res.json();
-      return (Array.isArray(list) ? list : []).find((c) => c.slug === slug) || null;
+      if (!res.ok) return null;
+      const payload = await res.json();
+      return getList(payload).find((c) => c.slug === slug) || null;
     };
 
     loadCompany()
@@ -123,65 +157,139 @@ export default function CompanyDetail() {
         }
         setCompany(c);
 
-        // ---------- Isi company ke articles (strict filter) ----------
+        // ---------- Isi company ke related articles (global matching) ----------
         try {
-          const res = await fetch(`${API}/articles`);
-          const all = await res.json();
+          // Articles alag-alag APIs mein ho sakte hain; dono sources check karo.
+          const endpoints = [
+            `${API}/articles`,
+            `${API}/latest-articles?all=true`,
+          ];
+
+          const responses = await Promise.allSettled(
+            endpoints.map(async (url) => {
+              const res = await fetch(url);
+              if (!res.ok) return [];
+              return getList(await res.json());
+            })
+          );
+
+          const all = responses.flatMap((result) =>
+            result.status === "fulfilled" ? result.value : []
+          );
 
           const slugKey = norm(c.slug);
           const nameKey = norm(c.name);
+          const companyId = String(c._id || c.id || "");
           const hasRange =
             c.startId != null &&
             c.endId != null &&
             Number.isFinite(Number(c.startId)) &&
             Number.isFinite(Number(c.endId));
-          const start = Number(c.startId);
-          const end = Number(c.endId);
+          const startId = Number(c.startId);
+          const endId = Number(c.endId);
 
-          // Sirf tab match jab article ki company/category isi company ke
-          // slug ya name se exact mile. Name lamba ho (jaise "Microsoft Leading
-          // Technology...") to uska shuruaati hissa match hota hai, lekin
-          // tab hi jab kam se kam 4 characters ho, taaki galat match na ho.
-          const sameCompany = (value) => {
-            const k = norm(value);
-            if (!k) return false;
-            if (k === slugKey || k === nameKey) return true;
-            return k.length >= 4 && (nameKey.startsWith(k) || slugKey.startsWith(k));
+          // Exact company metadata ko pehle match karo.
+          const matchesCompanyValue = (value) => {
+            return valuesFrom(value).some((entry) => {
+              const key = norm(entry);
+              if (!key) return false;
+              if (key === slugKey || key === nameKey) return true;
+
+              // Long enough prefixes handle names such as "JPMorgan Chase AI..."
+              // without matching very short/generic company names.
+              if (slugKey.length >= 5 && key.startsWith(slugKey)) return true;
+              if (nameKey.length >= 5 && key.startsWith(nameKey)) return true;
+              if (key.length >= 5 && slugKey.startsWith(key)) return true;
+              if (key.length >= 5 && nameKey.startsWith(key)) return true;
+              return false;
+            });
           };
 
           const matches = (a) => {
-            const byCompany = sameCompany(a.company);
-            const byCategory = sameCompany(a.category);
+            if (!a) return false;
+
+            const structuredFields = [
+              a.companySlug,
+              a.companyName,
+              a.company,
+              a.relatedCompany,
+              a.relatedCompanies,
+              a.companyId,
+              a.brand,
+              a.brands,
+            ];
+
+            if (structuredFields.some(matchesCompanyValue)) return true;
+
+            // Category/tags are checked as metadata too, but broad categories won't
+            // match unless they resemble this specific company's name/slug.
+            if (
+              matchesCompanyValue(a.category) ||
+              matchesCompanyValue(a.tags) ||
+              matchesCompanyValue(a.keywords)
+            ) {
+              return true;
+            }
+
+            // Fallback for older records where company metadata was not saved:
+            // match the article title/slug only when it begins with this company.
+            const titleKey = norm(a.title);
+            const articleSlugKey = norm(a.slug);
+            const titleMatch =
+              (slugKey.length >= 5 && titleKey.startsWith(slugKey)) ||
+              (nameKey.length >= 5 && titleKey.startsWith(nameKey)) ||
+              (slugKey.length >= 5 && articleSlugKey.startsWith(slugKey)) ||
+              (nameKey.length >= 5 && articleSlugKey.startsWith(nameKey));
+            if (titleMatch) return true;
+
+            // Support legacy companies that store an article ID range.
+            const articleNumericId = Number(a.id);
             const byRange =
               hasRange &&
-              Number.isFinite(Number(a.id)) &&
-              Number(a.id) >= start &&
-              Number(a.id) <= end;
-            return byCompany || byCategory || byRange;
+              Number.isFinite(articleNumericId) &&
+              articleNumericId >= startId &&
+              articleNumericId <= endId;
+            if (byRange) return true;
+
+            // A company ID is only reliable when the article explicitly stores it.
+            const articleCompanyId = String(
+              a.companyId || a.company?._id || a.company?.id || ""
+            );
+            return Boolean(companyId && articleCompanyId && articleCompanyId === companyId);
           };
 
+          // Merge both APIs and remove duplicates using Mongo ID, slug, or numeric ID.
           const seen = new Set();
-          const list = (Array.isArray(all) ? all : [])
-            .filter((a) => a && matches(a) && isLive(a))
+          const list = all
+            .filter((a) => isLive(a) && matches(a))
             .filter((a) => {
-              const key = a._id || a.id || a.slug;
+              const key = String(a._id || a.slug || a.id || "");
               if (!key || seen.has(key)) return false;
               seen.add(key);
               return true;
             })
-            .sort((a, b) => articleTime(b) - articleTime(a) || Number(b.id) - Number(a.id));
+            .sort(
+              (a, b) =>
+                articleTime(b) - articleTime(a) ||
+                Number(b.id || 0) - Number(a.id || 0)
+            );
 
-          setArticles(list);
+                 setArticles(list);
         } catch (err) {
-          console.error("Error fetching articles:", err);
+          console.error("Error fetching related articles:", err);
+          setArticles([]);
         }
 
         // ---------- Same category ki baaki companies ----------
         try {
           const res = await fetch(`${API}/companies`);
-          const all = await res.json();
-          const catKey = norm(c.category);
-          const others = (Array.isArray(all) ? all : []).filter(
+          if (!res.ok) {
+            setRelated([]);
+          } else {
+            const payload = await res.json();
+            const all = getList(payload);
+            const catKey = norm(c.category);
+            const others = all.filter(
             (x) =>
               x &&
               x.slug &&
@@ -190,7 +298,8 @@ export default function CompanyDetail() {
               catKey &&
               norm(x.category) === catKey
           );
-          setRelated(others.slice(0, 12));
+            setRelated(others.slice(0, 12));
+          }
         } catch (err) {
           console.error("Error fetching related companies:", err);
         }
@@ -411,9 +520,7 @@ export default function CompanyDetail() {
             {/* < > arrows: 3 se zyada ho tabhi desktop par dikhte hain */}
             {articles.length > 1 && (
               <div
-                className={`mt-3 flex items-center justify-center gap-3 ${
-                  articles.length > 3 ? "" : "lg:hidden"
-                }`}
+                className="mt-3 flex items-center justify-center gap-3"
               >
                 <button
                   type="button"
@@ -488,9 +595,7 @@ export default function CompanyDetail() {
 
             {related.length > 1 && (
               <div
-                className={`mt-3 flex items-center justify-center gap-3 ${
-                  related.length > 3 ? "" : "lg:hidden"
-                }`}
+                className="mt-3 flex items-center justify-center gap-3"
               >
                 <button
                   type="button"
