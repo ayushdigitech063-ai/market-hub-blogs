@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import { getTypeInfo } from "../data/biographyTypes";
 import { getSection, sectionFromRoute, words } from "../data/biographyFilters";
 import { SOCIAL_ICONS, getSocialLinks } from "../data/Biographysocials.js";
 
 const hasAll = (haystack, needles) =>
   needles.length > 0 && needles.every((n) => haystack.includes(n));
+
+// Naya add hua profile sabse pehle (Mongo _id time ke hisaab se badhta hai)
+const newestFirst = (a, b) => String(b._id || "").localeCompare(String(a._id || ""));
 
 const SHOW_KEYS = ["twitter", "instagram", "linkedin"];
 const ICONS = SOCIAL_ICONS.filter(({ key }) => SHOW_KEYS.includes(key));
@@ -23,6 +27,8 @@ const cleanText = (v) =>
 export default function ViewAll() {
   const { type } = useParams();
   const { label, title, description } = getTypeInfo(type);
+
+  const titleWords = String(title || "Biographies").trim().split(/\s+/);
 
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +51,7 @@ export default function ViewAll() {
           );
         });
 
-        setProfiles(filtered);
+        setProfiles([...filtered].sort(newestFirst));
         setLoading(false);
       })
       .catch((err) => {
@@ -68,43 +74,61 @@ export default function ViewAll() {
   return (
     <main className="min-h-screen bg-white text-stone-800">
     
-      <section className="relative overflow-hidden bg-stone-950 text-white border-b border-stone-200">
-        <div className="absolute inset-0 z-0">
-          <img
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpwXYrwfpLtqUfNrWOlTE14nPxsc0nued4uGrqhzwkRQ&s=10"
-            alt="Hero Background"
-            className="h-full w-full object-cover object-center brightness-75 contrast-110 filter"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-950/90 to-stone-950/70" />
-          <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-transparent to-stone-950/50" />
-        </div>
+      <section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
+        <img
+          src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpwXYrwfpLtqUfNrWOlTE14nPxsc0nued4uGrqhzwkRQ&s=10"
+          alt="Biography collection background"
+          className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
+        />
 
-        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl z-0" />
-        <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-orange-500/10 blur-3xl z-0" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/60 via-transparent to-[#111D32]/20" />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <Link
-            to="/biography"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-stone-300 transition hover:text-amber-400 mb-8 backdrop-blur-sm bg-stone-900/40 px-3 py-1.5 rounded-full border border-stone-700/50 w-fit"
-          >
-            <span>←</span>
-            <span>Back to Biography</span>
-          </Link>
+        <div className="mx-auto flex min-h-[360px] w-full max-w-[1600px] items-center px-5 py-10 sm:min-h-[400px] sm:px-8 sm:py-12 lg:min-h-[440px] lg:px-14 lg:py-14 xl:min-h-[460px] xl:px-16">
+          <div className="w-full max-w-3xl">
+            <Link
+              to="/biography"
+              className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white/90 backdrop-blur-md transition hover:bg-white/20 sm:text-sm"
+            >
+              <span>←</span>
+              <span>Back to Biography</span>
+            </Link>
 
-          <div className="max-w-3xl space-y-5">
-            <span className="inline-flex rounded-full bg-amber-500 text-stone-950 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider shadow">
-              {label || "Biography Collection"}
-            </span>
-            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-white drop-shadow-md">
-              {title}
+            <div className="mb-5 flex">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/95 backdrop-blur-md sm:text-xs">
+                <Sparkles className="h-4 w-4 shrink-0 text-[#E47742]" />
+                {label || "Biography Collection"}
+              </div>
+            </div>
+
+            <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-[3.4rem]">
+              {titleWords.length > 1 && (
+                <span className="block text-white">{titleWords.slice(0, -1).join(" ")}</span>
+              )}
+              <span className="mt-2 block bg-gradient-to-r from-[#F5D98F] via-[#E8BD70] to-[#FFF0C2] bg-clip-text text-transparent first:mt-0">
+                {titleWords[titleWords.length - 1]}
+              </span>
             </h1>
-            <p className="text-stone-200 text-sm sm:text-base leading-relaxed font-normal max-w-2xl drop-shadow">
+
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/85 sm:mt-5 sm:text-base sm:leading-7">
               {description}
             </p>
+
+            <div className="mt-5 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 backdrop-blur-md sm:mt-6">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E47742]/20 text-[#F5D98F]">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white sm:text-base">
+                  {profiles.length} Profiles
+                </p>
+                <p className="mt-0.5 text-xs text-white/75 sm:text-sm">
+                  Verified biographies
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 z-10" />
       </section>
 
       {/* ===== PROFILES GRID SECTION ===== */}

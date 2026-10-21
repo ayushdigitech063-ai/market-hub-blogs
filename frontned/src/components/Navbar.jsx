@@ -1,6 +1,10 @@
-import React, { useState } from "react";
+
+import React, { useState, lazy, Suspense } from "react";
 import { Link, NavLink } from "react-router-dom";
-import SearchBox from "./SearchBox"; 
+import SearchBox from "./SearchBox";
+import SubmissionStatus from "./SubmissionStatus";
+
+const SubmitBlogModal = lazy(() => import("./SubmitBlogModal"));
 
 const links = [
   { to: "/", label: "Home", end: true },
@@ -12,62 +16,47 @@ const links = [
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-
-
   const [isSubscribeOpen, setIsSubscribeOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubscribeSubmit = (e) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-      setTimeout(() => {
-        setSubmitted(false);
-        setIsSubscribeOpen(false);
-        setEmail("");
-        setName("");
-      }, 2000);
-    }
-  };
 
   const navClass = ({ isActive }) =>
-    `whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-semibold tracking-wide transition-all duration-200 ${
+    `relative whitespace-nowrap rounded-xl px-3 py-2.5 text-[13px] font-semibold transition-all duration-200 ${
       isActive
-        ? "bg-gradient-to-r from-amber-100 to-orange-100 text-amber-900 shadow-sm ring-1 ring-amber-200"
-        : "text-stone-600 hover:bg-amber-50 hover:text-amber-800"
+        ? "bg-orange-50 text-orange-700"
+        : "text-slate-600 hover:bg-slate-50 hover:text-orange-700"
     }`;
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-amber-100 bg-white/90 shadow-[0_4px_24px_-10px_rgba(180,83,9,0.28)] backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-   
-          <div className="flex min-h-[78px] items-center justify-between gap-4">
-
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-[0_4px_24px_-12px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+          {/* Main Navbar */}
+          <div className="flex min-h-[76px] items-center justify-between gap-3 lg:gap-5">
+            {/* Logo */}
             <Link
               to="/"
               aria-label="Market Digital Insights home"
-              className="flex min-w-0 shrink-0 items-center"
+              className="group flex min-w-0 shrink-0 items-center"
             >
-              <div className="flex h-[58px] w-[155px] items-center justify-start sm:w-[190px]">
+              <div className="flex h-[54px] w-[145px] items-center sm:w-[175px] lg:w-[190px]">
                 <img
                   src="/logo.png"
                   alt="Market Digital Insights"
-                  className="block max-h-[54px] max-w-full object-contain object-left transition-transform duration-300 hover:scale-[1.04]"
+                  className="block max-h-[50px] max-w-full object-contain object-left transition-transform duration-300 group-hover:scale-[1.03]"
                 />
               </div>
             </Link>
 
-            <div className="hidden flex-1 justify-center px-3 md:flex lg:px-6">
-              <SearchBox />
+            {/* Desktop Search */}
+            <div className="hidden min-w-[160px] flex-1 justify-center px-1 md:flex lg:px-3">
+              <div className="w-full max-w-[340px]">
+                <SearchBox />
+              </div>
             </div>
 
-
+            {/* Desktop Navigation */}
             <nav
               aria-label="Main navigation"
-              className="hidden items-center gap-1 lg:flex"
+              className="hidden shrink-0 items-center gap-0.5 lg:flex"
             >
               {links.map((link) => (
                 <NavLink
@@ -76,26 +65,51 @@ export default function Navbar() {
                   end={link.end}
                   className={navClass}
                 >
-                  {link.label}
+                  {({ isActive }) => (
+                    <span className="relative">
+                      {link.label}
+                      {isActive && (
+                        <span className="absolute -bottom-[9px] left-0 right-0 mx-auto h-[2px] rounded-full bg-orange-500" />
+                      )}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </nav>
 
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            {/* Add To Blog + Mobile Menu */}
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setIsSubscribeOpen(true)}
-                className="inline-flex cursor-pointer items-center justify-center rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 px-4 py-2.5 text-xs font-bold tracking-wide text-white shadow-md shadow-orange-500/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/40 sm:px-6"
+               className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-rose-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-sm shadow-orange-600/20 transition-all duration-300 hover:-translate-y-0.5 hover:from-orange-700 hover:to-rose-700 hover:shadow-md hover:shadow-orange-600/25 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 sm:px-4 sm:text-xs"
               >
-                Subscribe
+                <svg
+                  className="h-4 w-4 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 5v14M5 12h14"
+                  />
+                </svg>
+                <span className="whitespace-nowrap">Add To Blog</span>
               </button>
 
+              {/* Mobile Menu Button */}
               <button
                 type="button"
                 onClick={() => setMobileOpen(!mobileOpen)}
-                aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+                aria-label={
+                  mobileOpen ? "Close navigation" : "Open navigation"
+                }
                 aria-expanded={mobileOpen}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-amber-800 transition hover:border-amber-400 hover:bg-amber-100 lg:hidden"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-300 lg:hidden"
               >
                 {mobileOpen ? (
                   <svg
@@ -103,9 +117,14 @@ export default function Navbar() {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="1.8"
+                    aria-hidden="true"
                   >
-                    <path strokeLinecap="round" d="m6 6 12 12M18 6 6 18" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m6 6 12 12M18 6 6 18"
+                    />
                   </svg>
                 ) : (
                   <svg
@@ -113,19 +132,24 @@ export default function Navbar() {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="1.8"
+                    aria-hidden="true"
                   >
-                    <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 7h16M4 12h16M4 17h16"
+                    />
                   </svg>
                 )}
               </button>
             </div>
           </div>
 
-
+          {/* Tablet Navigation */}
           <nav
             aria-label="Tablet navigation"
-            className="hidden items-center justify-center gap-2 overflow-x-auto border-t border-amber-100 py-2.5 md:flex lg:hidden"
+            className="hidden items-center justify-center gap-1 overflow-x-auto border-t border-slate-100 py-2 md:flex lg:hidden"
           >
             {links.map((link) => (
               <NavLink
@@ -139,14 +163,15 @@ export default function Navbar() {
             ))}
           </nav>
 
-      
+          {/* Mobile Search */}
           <div className="pb-3 md:hidden">
             <SearchBox />
           </div>
 
+          {/* Mobile Navigation */}
           {mobileOpen && (
-            <div className="mb-3 rounded-2xl border border-amber-100 bg-gradient-to-b from-amber-50/70 to-white p-2 shadow-sm md:hidden">
-              <nav className="flex flex-col gap-1">
+            <div className="mb-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/5 md:hidden">
+              <nav aria-label="Mobile navigation" className="flex flex-col gap-1">
                 {links.map((link) => (
                   <NavLink
                     key={link.to}
@@ -154,14 +179,36 @@ export default function Navbar() {
                     end={link.end}
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
-                      `rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                      `flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
                         isActive
-                          ? "bg-gradient-to-r from-amber-100 to-orange-100 text-amber-900 ring-1 ring-amber-200"
-                          : "text-stone-600 hover:bg-amber-50 hover:text-amber-800"
+                          ? "bg-orange-50 text-orange-700"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-orange-700"
                       }`
                     }
                   >
-                    {link.label}
+                    {({ isActive }) => (
+                      <>
+                        <span>{link.label}</span>
+                        <svg
+                          className={`h-4 w-4 transition-transform ${
+                            isActive
+                              ? "translate-x-0 text-orange-600"
+                              : "-translate-x-1 text-slate-400"
+                          }`}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="m9 18 6-6-6-6"
+                          />
+                        </svg>
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </nav>
@@ -169,85 +216,21 @@ export default function Navbar() {
           )}
         </div>
 
-
-        <div className="h-[3px] bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
+        {/* Bottom Accent */}
+        <div className="h-[2px] bg-gradient-to-r from-orange-200 via-orange-500 to-rose-400" />
       </header>
 
+      {/* Blog Submission Modal */}
       {isSubscribeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-amber-100 bg-white p-7 shadow-2xl">
-            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400" />
-
-            <button
-              type="button"
-              onClick={() => setIsSubscribeOpen(false)}
-              className="absolute right-4 top-5 flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-sm font-bold text-stone-500 transition hover:bg-amber-100 hover:text-amber-800"
-            >
-              ✕
-            </button>
-
-            <div className="mb-5 text-center">
-              <h3 className="text-xl font-extrabold text-stone-900">
-                Subscribe to Newsletter
-              </h3>
-              <p className="mt-1.5 text-xs text-stone-500">
-                Get the latest articles & market insights right in your inbox.
-              </p>
-            </div>
-
-            {submitted ? (
-              <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-center text-xs font-semibold text-green-700">
-                ✓ Thank you for subscribing!
-              </div>
-            ) : (
-              <form onSubmit={handleSubscribeSubmit} className="space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-stone-700">
-                    Your Name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="w-full rounded-xl border border-amber-200 bg-amber-50/40 px-4 py-3 text-xs text-stone-900 outline-none transition focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-400/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-stone-700">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="w-full rounded-xl border border-amber-200 bg-amber-50/40 px-4 py-3 text-xs text-stone-900 outline-none transition focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-400/20"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsSubscribeOpen(false)}
-                    className="rounded-full border border-stone-200 px-5 py-2.5 text-xs font-semibold text-stone-600 transition hover:bg-stone-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-orange-500/30 transition hover:-translate-y-0.5 hover:shadow-lg"
-                  >
-                    Subscribe Now
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
+        <Suspense fallback={null}>
+          <SubmitBlogModal
+            onClose={() => setIsSubscribeOpen(false)}
+          />
+        </Suspense>
       )}
+
+      {/* Submission Status */}
+      <SubmissionStatus />
     </>
   );
 }

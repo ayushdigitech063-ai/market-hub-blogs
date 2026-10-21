@@ -1,9 +1,26 @@
 
-
 import React, { useMemo, useRef } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import { API, authFetch } from "../config";
+
+const FORMATS = [
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "color",
+  "background",
+  "align",
+  "list",
+  "indent",
+  "blockquote",
+  "code-block",
+  "link",
+  "image",
+  "video",
+];
 
 export default function RichEditor({
   value,
@@ -31,7 +48,6 @@ export default function RichEditor({
 
     return data.url;
   };
-
 
   const handleImageUpload = () => {
     const input = document.createElement("input");
@@ -68,21 +84,12 @@ export default function RichEditor({
     () => ({
       toolbar: {
         container: [
-          [{ header: [2, 3, 4, false] }],
+          [{ header: [1, 2, 3, 4, false] }],
           ["bold", "italic", "underline", "strike"],
-          [
-            { color: [] },
-            { background: [] },
-          ],
+          [{ color: [] }, { background: [] }],
           [{ align: [] }],
-          [
-            { list: "ordered" },
-            { list: "bullet" },
-          ],
-          [
-            { indent: "-1" },
-            { indent: "+1" },
-          ],
+          [{ list: "ordered" }, { list: "bullet" }],
+          [{ indent: "-1" }, { indent: "+1" }],
           ["blockquote", "code-block"],
           ["link", "image", "video"],
           ["clean"],
@@ -98,39 +105,36 @@ export default function RichEditor({
     []
   );
 
-  const formats = [
-    "header",
-    "bold",
-    "italic",
-    "underline",
-    "strike",
-    "color",
-    "background",
-    "align",
-    "list",
-    "indent",
-    "blockquote",
-    "code-block",
-    "link",
-    "image",
-    "video",
-  ];
-
   return (
-    <div className="rich-editor overflow-hidden rounded-xl border border-orange-200 bg-white">
+    <div
+      className="rich-editor overflow-hidden rounded-xl border border-orange-200 bg-white"
+      style={{ "--editor-height": `${height}px` }}
+    >
       <ReactQuill
         ref={quillRef}
         theme="snow"
         value={value || ""}
         onChange={onChange}
         modules={modules}
-        formats={formats}
-        style={{ height }}
+        formats={FORMATS}
         placeholder="Write your article content here..."
       />
 
       <style>{`
+        /* Editor ki total height fix. Toolbar upar, content neeche scroll hoga. */
+        .rich-editor .quill {
+          display: flex;
+          flex-direction: column;
+          height: var(--editor-height);
+        }
+
+        /* Toolbar kabhi hide ya scroll nahi hoga */
         .rich-editor .ql-toolbar.ql-snow {
+          display: block !important;
+          visibility: visible !important;
+          flex: 0 0 auto;
+          position: relative;
+          z-index: 5;
           border: 0;
           border-bottom: 1px solid #fed7aa;
           padding: 12px 14px;
@@ -142,14 +146,20 @@ export default function RichEditor({
         }
 
         .rich-editor .ql-container.ql-snow {
+          flex: 1 1 auto;
+          min-height: 0;
+          height: auto;
           border: 0;
+          overflow: hidden;
           font-family: Inter, system-ui, sans-serif;
           font-size: 15px;
           color: #1e293b;
         }
 
+        /* Sirf content scroll hoga */
         .rich-editor .ql-editor {
-          min-height: 100%;
+          height: 100%;
+          overflow-y: auto;
           line-height: 1.8;
           padding: 20px 24px;
           overflow-wrap: anywhere;
@@ -162,6 +172,7 @@ export default function RichEditor({
           right: 24px;
         }
 
+        .rich-editor .ql-editor h1,
         .rich-editor .ql-editor h2,
         .rich-editor .ql-editor h3,
         .rich-editor .ql-editor h4 {

@@ -14,12 +14,42 @@ import ArticleBody from "../../components/ArticleBody";
 
 const API = "https://market-hub-blogs-backend.onrender.com/api";
 
-
 const isLive = (x) => x && x.status !== "draft";
 
+// API kabhi direct array aur kabhi { items: [...] } / { articles: [...] } return karti hai.
+const getList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  for (const key of ["items", "articles", "companies", "results", "data"]) {
+    if (Array.isArray(payload[key])) return payload[key];
+    if (payload[key] && typeof payload[key] === "object") {
+      for (const nestedKey of ["items", "articles", "companies", "results"]) {
+        if (Array.isArray(payload[key][nestedKey])) return payload[key][nestedKey];
+      }
+    }
+  }
+  return [];
+};
+
+// Company ke alag-alag fields se naam/slug/ID nikalta hai.
+const valuesFrom = (value) => {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value.flatMap(valuesFrom);
+  if (typeof value === "object") {
+    return [
+      value.slug,
+      value.name,
+      value.companyName,
+      value.title,
+      value._id,
+      value.id,
+    ].filter(Boolean);
+  }
+  return [value];
+};
 
 const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-
 
 const COMPANY_PACK = /<!--COMPANY_PACK:([\s\S]*?)-->/;
 const cleanDesc = (s) => String(s || "").replace(COMPANY_PACK, "").trim();
@@ -33,14 +63,66 @@ const readPack = (s) => {
   }
 };
 
+// HTML hata kar plain text banata hai (card ke summary ke liye)
+const toText = (s) =>
+  String(s || "")
+    .replace(COMPANY_PACK, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const articleImage = (a) => {
+  const img =
+    a?.image ||
+    a?.imageURL ||
+    a?.featuredImage ||
+    a?.bannerImage ||
+    a?.thumbnail ||
+    "";
+  if (typeof img === "string") return img;
+  return img?.url || img?.secure_url || img?.src || "";
+};
+
+const articleDate = (a) => a?.publishDate || a?.publishedAt || a?.createdAt || null;
+
+const articleTime = (a) => {
+  const t = new Date(articleDate(a)).getTime();
+  return Number.isNaN(t) ? 0 : t;
+};
+
+const fmtDate = (v) => {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const ARROW_BTN =
+  "flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95";
+
 export default function CompanyDetail() {
   const { slug } = useParams();
-  const scrollRef = useRef(null);
-  const scroll = (amount) =>
-    scrollRef.current?.scrollBy({ left: amount, behavior: "smooth" });
+  const scrollRef = useRef(null); // related companies slider
+  const articlesRef = useRef(null); // company articles slider
+
+  // dir = -1 (previous) ya 1 (next): ek card jitna scroll karta hai
+  const scroll = (dir, ref = scrollRef) => {
+    const el = ref.current;
+    if (!el) return;
+    const card = el.firstElementChild;
+    const step = card ? card.offsetWidth + 20 : 340; // card width + gap-5
+    el.scrollBy({ left: dir * step, behavior: "smooth" });
+  };
 
   const [company, setCompany] = useState(null);
   const [articles, setArticles] = useState([]);
+  const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -49,9 +131,9 @@ export default function CompanyDetail() {
     setLoading(true);
     setNotFound(false);
     setArticles([]);
+    setRelated([]);
 
     const loadCompany = async () => {
-
       try {
         const res = await fetch(`${API}/companies/${slug}`);
         if (res.ok) {
@@ -62,8 +144,9 @@ export default function CompanyDetail() {
       } catch (_) {}
 
       const res = await fetch(`${API}/companies`);
-      const list = await res.json();
-      return (Array.isArray(list) ? list : []).find((c) => c.slug === slug) || null;
+      if (!res.ok) return null;
+      const payload = await res.json();
+      return getList(payload).find((c) => c.slug === slug) || null;
     };
 
     loadCompany()
@@ -74,51 +157,156 @@ export default function CompanyDetail() {
         }
         setCompany(c);
 
+        // ---------- Isi company ke related articles (global matching) ----------
         try {
-          const res = await fetch(`${API}/articles`);
-          const all = await res.json();
+          // Articles alag-alag APIs mein ho sakte hain; dono sources check karo.
+          const endpoints = [
+            `${API}/articles`,
+            `${API}/latest-articles?all=true`,
+          ];
+
+          const responses = await Promise.allSettled(
+            endpoints.map(async (url) => {
+              const res = await fetch(url);
+              if (!res.ok) return [];
+              return getList(await res.json());
+            })
+          );
+
+          const all = responses.flatMap((result) =>
+            result.status === "fulfilled" ? result.value : []
+          );
 
           const slugKey = norm(c.slug);
           const nameKey = norm(c.name);
+          const companyId = String(c._id || c.id || "");
           const hasRange =
             c.startId != null &&
             c.endId != null &&
             Number.isFinite(Number(c.startId)) &&
             Number.isFinite(Number(c.endId));
-          const start = Number(c.startId);
-          const end = Number(c.endId);
+          const startId = Number(c.startId);
+          const endId = Number(c.endId);
 
-          const matches = (a) => {
-            const company = norm(a.company);
-            const category = norm(a.category);
-            const byCompany =
-              company &&
-              (company === slugKey ||
-                company === nameKey ||
-                company.includes(slugKey) ||
-                nameKey.includes(company));
-            const byCategory =
-              category &&
-              (category === slugKey ||
-                category === nameKey ||
-                category.includes(slugKey));
-            const byRange = hasRange && Number(a.id) >= start && Number(a.id) <= end;
-            return byCompany || byCategory || byRange;
+          // Exact company metadata ko pehle match karo.
+          const matchesCompanyValue = (value) => {
+            return valuesFrom(value).some((entry) => {
+              const key = norm(entry);
+              if (!key) return false;
+              if (key === slugKey || key === nameKey) return true;
+
+              // Long enough prefixes handle names such as "JPMorgan Chase AI..."
+              // without matching very short/generic company names.
+              if (slugKey.length >= 5 && key.startsWith(slugKey)) return true;
+              if (nameKey.length >= 5 && key.startsWith(nameKey)) return true;
+              if (key.length >= 5 && slugKey.startsWith(key)) return true;
+              if (key.length >= 5 && nameKey.startsWith(key)) return true;
+              return false;
+            });
           };
 
-          const list = (Array.isArray(all) ? all : [])
-            .filter((a) => matches(a) && isLive(a))
-            .sort((a, b) => Number(a.id) - Number(b.id));
+          const matches = (a) => {
+            if (!a) return false;
 
-          setArticles(list);
+            const structuredFields = [
+              a.companySlug,
+              a.companyName,
+              a.company,
+              a.relatedCompany,
+              a.relatedCompanies,
+              a.companyId,
+              a.brand,
+              a.brands,
+            ];
+
+            if (structuredFields.some(matchesCompanyValue)) return true;
+
+            // Category/tags are checked as metadata too, but broad categories won't
+            // match unless they resemble this specific company's name/slug.
+            if (
+              matchesCompanyValue(a.category) ||
+              matchesCompanyValue(a.tags) ||
+              matchesCompanyValue(a.keywords)
+            ) {
+              return true;
+            }
+
+            // Fallback for older records where company metadata was not saved:
+            // match the article title/slug only when it begins with this company.
+            const titleKey = norm(a.title);
+            const articleSlugKey = norm(a.slug);
+            const titleMatch =
+              (slugKey.length >= 5 && titleKey.startsWith(slugKey)) ||
+              (nameKey.length >= 5 && titleKey.startsWith(nameKey)) ||
+              (slugKey.length >= 5 && articleSlugKey.startsWith(slugKey)) ||
+              (nameKey.length >= 5 && articleSlugKey.startsWith(nameKey));
+            if (titleMatch) return true;
+
+            // Support legacy companies that store an article ID range.
+            const articleNumericId = Number(a.id);
+            const byRange =
+              hasRange &&
+              Number.isFinite(articleNumericId) &&
+              articleNumericId >= startId &&
+              articleNumericId <= endId;
+            if (byRange) return true;
+
+            // A company ID is only reliable when the article explicitly stores it.
+            const articleCompanyId = String(
+              a.companyId || a.company?._id || a.company?.id || ""
+            );
+            return Boolean(companyId && articleCompanyId && articleCompanyId === companyId);
+          };
+
+          // Merge both APIs and remove duplicates using Mongo ID, slug, or numeric ID.
+          const seen = new Set();
+          const list = all
+            .filter((a) => isLive(a) && matches(a))
+            .filter((a) => {
+              const key = String(a._id || a.slug || a.id || "");
+              if (!key || seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            })
+            .sort(
+              (a, b) =>
+                articleTime(b) - articleTime(a) ||
+                Number(b.id || 0) - Number(a.id || 0)
+            );
+
+                 setArticles(list);
         } catch (err) {
-          console.error("Error fetching articles:", err);
+          console.error("Error fetching related articles:", err);
+          setArticles([]);
+        }
+
+        // ---------- Same category ki baaki companies ----------
+        try {
+          const res = await fetch(`${API}/companies`);
+          if (!res.ok) {
+            setRelated([]);
+          } else {
+            const payload = await res.json();
+            const all = getList(payload);
+            const catKey = norm(c.category);
+            const others = all.filter(
+            (x) =>
+              x &&
+              x.slug &&
+              x.slug !== c.slug &&
+              isLive(x) &&
+              catKey &&
+              norm(x.category) === catKey
+          );
+            setRelated(others.slice(0, 12));
+          }
+        } catch (err) {
+          console.error("Error fetching related companies:", err);
         }
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [slug]);
-
 
   const view = useMemo(() => {
     if (!company) return null;
@@ -145,7 +333,6 @@ export default function CompanyDetail() {
     };
   }, [company]);
 
-
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-white">
@@ -156,7 +343,6 @@ export default function CompanyDetail() {
       </main>
     );
   }
-
 
   if (notFound || !view || !isLive(view)) {
     return (
@@ -186,7 +372,6 @@ export default function CompanyDetail() {
       <SeoHead post={view} />
 
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-     
         <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
           <Link
             to="/companies"
@@ -199,7 +384,6 @@ export default function CompanyDetail() {
           <span className="text-slate-700">{view.name}</span>
         </nav>
 
-  
         <section className="relative overflow-hidden rounded-3xl border border-sky-100 bg-slate-900 shadow-xl shadow-sky-900/10">
           {view.imageURL && (
             <img
@@ -243,9 +427,8 @@ export default function CompanyDetail() {
           </div>
         </section>
 
-
         {view.contentHtml && (
-          <article className="mx-auto mt-10 max-w-4xl rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-10">
+          <article className="mx-auto mt-10 max-w-4xl">
             <div className="mb-8">
               <span className="text-[11px] font-bold uppercase tracking-widest text-teal-700">
                 About the company
@@ -261,146 +444,179 @@ export default function CompanyDetail() {
           </article>
         )}
 
-
-        <section className="relative mt-14 overflow-hidden rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-100/70 via-white to-blue-100/70 px-4 py-8 shadow-sm sm:px-7 sm:py-10 lg:px-9">
-
-          <div className="pointer-events-none absolute -left-20 top-0 h-64 w-64 rounded-full bg-rose-300/25 blur-3xl" />
-          <div className="pointer-events-none absolute -right-16 top-20 h-64 w-64 rounded-full bg-blue-300/30 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-1/3 h-40 w-72 rounded-full bg-sky-100/40 blur-3xl" />
-
-          <div className="relative z-10">
-
-            <div className="mb-7 flex flex-wrap items-center justify-between gap-5 border-b border-slate-200/80 pb-6">
-              <div className="flex items-start gap-4">
-                <span className="mt-1 h-14 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-blue-600 via-indigo-500 to-rose-400" />
-
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-[0.17em] text-blue-700">
-                    Continue Exploring
-                  </span>
-
-                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                    Related Articles
-                  </h2>
-
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    Explore fresh perspectives, discover useful insights, and keep up
-                    with the latest developments across business, technology, and
-                    digital marketing.
-                  </p>
-                </div>
+        {/* ================= Isi company ke articles (3 ek baar mein) ================= */}
+        {articles.length > 0 && (
+          <section className="mt-14 border-t border-sky-100 pt-12 sm:mt-16 sm:pt-14">
+            <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-teal-700">
+                  Related Articles
+                </span>
+                <h2 className="mt-1 font-serif text-2xl font-bold text-slate-900 sm:text-3xl">
+                  More about {view.name}
+                </h2>
+                <div className="mt-3 h-1 w-14 rounded-full bg-gradient-to-r from-sky-500 to-teal-500" />
               </div>
-
-              {articles.length > 1 && (
-                <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => scroll(-420)}
-                    aria-label="Previous articles"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition duration-300 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => scroll(420)}
-                    aria-label="Next articles"
-                    className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20 transition duration-300 hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-              )}
+              <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
+                {articles.length} {articles.length === 1 ? "article" : "articles"}
+              </span>
             </div>
 
-            {/* Empty State */}
-            {articles.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 px-6 py-12 text-center">
-                <h3 className="text-base font-semibold text-slate-800">
-                  No Related Articles Yet
-                </h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  Related articles will appear here when they become available.
-                </p>
-              </div>
-            ) : (
-
-              <div
-                ref={scrollRef}
-                className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-0.5 pb-4 pt-1 [&::-webkit-scrollbar]:hidden"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-              >
-                {articles.map((a) => (
-                  <article
-                    key={a.id}
-                    className="group flex w-[285px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/10 sm:w-[340px] lg:w-[360px]"
+            <div
+              ref={articlesRef}
+              className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-1 pb-5 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {articles.slice(0, 12).map((a) => {
+                const img = articleImage(a);
+                const text = toText(a.excerpt || a.shortDescription || a.description || a.contentHtml);
+                const date = fmtDate(articleDate(a));
+                const key = a._id || a.id || a.slug;
+                return (
+                  <Link
+                    key={key}
+                    to={`/latest-article/${a.slug || a._id}`}
+                    className="group flex w-[82%] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-200 hover:shadow-lg hover:shadow-sky-900/10 sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
                   >
-          
-                    <div className="relative overflow-hidden bg-slate-100">
-                      <img
-                        src={a.image}
-                        alt={a.title}
-                        loading="lazy"
-                        className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-52"
-                      />
-
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
-
-                      {a.category && (
-                        <span className="absolute bottom-4 left-4 max-w-[85%] truncate rounded-full border border-white/70 bg-white/95 px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider text-blue-800 shadow-sm backdrop-blur-sm">
-                          {a.category}
-                        </span>
+                    <div className="relative aspect-[16/9] overflow-hidden bg-slate-100">
+                      {img ? (
+                        <img
+                          src={img}
+                          alt={a.imageAlt || a.title}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-teal-300">
+                          <Building2 className="h-10 w-10" />
+                        </div>
                       )}
                     </div>
 
-
                     <div className="flex flex-1 flex-col p-5">
-                      <span className="mb-3 h-1 w-10 rounded-full bg-gradient-to-r from-blue-600 to-rose-400" />
-
-                      <h3 className="line-clamp-2 min-h-[56px] text-lg font-bold leading-7 text-slate-900 transition-colors duration-300 group-hover:text-blue-700">
+                      {date && (
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                          <CalendarDays className="h-3.5 w-3.5 text-teal-600" />
+                          {date}
+                        </span>
+                      )}
+                      <h3 className="mt-2 line-clamp-2 font-serif text-lg font-bold leading-snug text-slate-900 transition-colors group-hover:text-teal-700">
                         {a.title}
                       </h3>
-
-
-                      <div className="mt-4 flex min-h-[58px] items-center justify-between gap-3 border-t border-slate-100 pt-4">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-100 bg-gradient-to-br from-blue-50 to-rose-50 text-sm font-bold text-blue-700">
-                            {(a.author || "A").charAt(0).toUpperCase()}
-                          </span>
-
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                              Written by
-                            </p>
-                            <p className="mt-0.5 truncate text-sm font-semibold text-slate-800">
-                              {a.author || "Admin"}
-                            </p>
-                          </div>
-                        </div>
-
-                        {a.readTime && (
-                          <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-                            {a.readTime}
-                          </span>
-                        )}
-                      </div>
-
-
-                      <Link
-                        to={`/article/${a.id}`}
-                        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition duration-300 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
-                      >
+                      {text && (
+                        <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
+                          {text}
+                        </p>
+                      )}
+                      <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs font-bold uppercase tracking-wider text-teal-700">
                         Read Article
-                        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                      </Link>
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </span>
                     </div>
-                  </article>
-                ))}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* < > arrows: 3 se zyada ho tabhi desktop par dikhte hain */}
+            {articles.length > 1 && (
+              <div
+                className="mt-3 flex items-center justify-center gap-3"
+              >
+                <button
+                  type="button"
+                  onClick={() => scroll(-1, articlesRef)}
+                  aria-label="Previous articles"
+                  className={ARROW_BTN}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scroll(1, articlesRef)}
+                  aria-label="Next articles"
+                  className={ARROW_BTN}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
             )}
-          </div>
-        </section>
+          </section>
+        )}
+
+        {/* ================= Same category ki companies (3 ek baar mein) ================= */}
+        {related.length > 0 && (
+          <section className="mt-14 border-t border-sky-100 pt-12 sm:mt-16 sm:pt-14">
+            <div className="mb-7">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-teal-700">
+                Keep Exploring
+              </span>
+              <h2 className="mt-1 font-serif text-2xl font-bold text-slate-900 sm:text-3xl">
+                Related Companies
+              </h2>
+              <div className="mt-3 h-1 w-14 rounded-full bg-gradient-to-r from-sky-500 to-teal-500" />
+            </div>
+
+            <div
+              ref={scrollRef}
+              className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-1 pb-5 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {related.map((c) => (
+                <Link
+                  key={c._id || c.slug}
+                  to={`/company/${c.slug}`}
+                  className="group relative w-[82%] shrink-0 snap-start overflow-hidden rounded-2xl bg-slate-900 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-900/20 sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
+                >
+                  <div className="relative h-56 sm:h-60">
+                    {c.imageURL && (
+                      <img
+                        src={c.imageURL}
+                        alt={c.name}
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#091827]/95 via-[#102D46]/60 to-[#0F4560]/20" />
+                    <div className="relative z-10 flex h-full flex-col justify-end p-5">
+                      <h3 className="line-clamp-2 font-serif text-lg font-bold leading-snug text-white">
+                        {c.name}
+                      </h3>
+                      <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-200">
+                        {toText(c.description)}
+                      </p>
+                      <span className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-cyan-200">
+                        View Articles
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {related.length > 1 && (
+              <div
+                className="mt-3 flex items-center justify-center gap-3"
+              >
+                <button
+                  type="button"
+                  onClick={() => scroll(-1, scrollRef)}
+                  aria-label="Previous companies"
+                  className={ARROW_BTN}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scroll(1, scrollRef)}
+                  aria-label="Next companies"
+                  className={ARROW_BTN}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );

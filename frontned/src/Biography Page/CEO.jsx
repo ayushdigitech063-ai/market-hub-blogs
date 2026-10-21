@@ -3,47 +3,24 @@ import { Link } from "react-router-dom";
 import { getSection } from "../data/biographyFilters";
 import { SOCIAL_ICONS, getSocialLinks } from "../data/Biographysocials.js";
 
+// Ek hi color theme (amber/gold) - saare sections me yahi use hota hai
+// Color badalna ho to sirf yahi object badlo
+const THEME = {
+  bar: "bg-[#A87922]",
+  dot: "bg-[#D6AC55]",
+  text: "text-[#9A6B19]",
+  badge: "bg-[#3A2B12]/90 backdrop-blur-md text-[#F4D995] border border-[#C59A42]/40",
+  cardHover: "hover:border-[#C59A42]/70 hover:shadow-2xl hover:shadow-[#A87922]/10",
+  icon: "bg-[#F8F0DC] text-[#8B641C] hover:bg-[#A87922] hover:text-white",
+  arrow: "bg-[#F8F0DC] text-[#8B641C] group-hover/cta:bg-[#A87922] group-hover/cta:text-white",
+  viewAll: "border-[#E8D5A5] text-[#805A17] hover:border-[#A87922] hover:bg-[#A87922] hover:text-white",
+};
+
 const ACCENTS = {
-  ceo: {
-    bar: "bg-[#A87922]",
-    dot: "bg-[#D6AC55]",
-    text: "text-[#9A6B19]",
-    badge: "bg-[#3A2B12]/90 backdrop-blur-md text-[#F4D995] border border-[#C59A42]/40",
-    cardHover: "hover:border-[#C59A42]/70 hover:shadow-2xl hover:shadow-[#A87922]/10",
-    icon: "bg-[#F8F0DC] text-[#8B641C] hover:bg-[#A87922] hover:text-white",
-    arrow: "bg-[#F8F0DC] text-[#8B641C] group-hover/cta:bg-[#A87922] group-hover/cta:text-white",
-    viewAll: "border-[#E8D5A5] text-[#805A17] hover:border-[#A87922] hover:bg-[#A87922] hover:text-white",
-  },
-  sports: {
-    bar: "bg-[#315F9D]",
-    dot: "bg-[#79A9E8]",
-    text: "text-[#315F9D]",
-    badge: "bg-[#102B4C]/90 backdrop-blur-md text-[#C9E1FF] border border-[#5687C5]/50",
-    cardHover: "hover:border-[#5687C5]/70 hover:shadow-2xl hover:shadow-[#315F9D]/10",
-    icon: "bg-[#E8F1FC] text-[#315F9D] hover:bg-[#315F9D] hover:text-white",
-    arrow: "bg-[#E8F1FC] text-[#315F9D] group-hover/cta:bg-[#315F9D] group-hover/cta:text-white",
-    viewAll: "border-[#C7D9F1] text-[#244D83] hover:border-[#315F9D] hover:bg-[#315F9D] hover:text-white",
-  },
-  entrepreneur: {
-    bar: "bg-[#28734F]",
-    dot: "bg-[#68B78B]",
-    text: "text-[#28734F]",
-    badge: "bg-[#123A2A]/90 backdrop-blur-md text-[#C9F2D9] border border-[#4B9A70]/50",
-    cardHover: "hover:border-[#4B9A70]/70 hover:shadow-2xl hover:shadow-[#28734F]/10",
-    icon: "bg-[#E6F4EB] text-[#28734F] hover:bg-[#28734F] hover:text-white",
-    arrow: "bg-[#E6F4EB] text-[#28734F] group-hover/cta:bg-[#28734F] group-hover/cta:text-white",
-    viewAll: "border-[#C4E3D0] text-[#205C3F] hover:border-[#28734F] hover:bg-[#28734F] hover:text-white",
-  },
-  actors: {
-    bar: "bg-[#A23B5E]",
-    dot: "bg-[#E58AA8]",
-    text: "text-[#9A2F52]",
-    badge: "bg-[#4A1429]/90 backdrop-blur-md text-[#FBD0DE] border border-[#C4577D]/50",
-    cardHover: "hover:border-[#C4577D]/70 hover:shadow-2xl hover:shadow-[#A23B5E]/10",
-    icon: "bg-[#FBE8EE] text-[#9A2F52] hover:bg-[#A23B5E] hover:text-white",
-    arrow: "bg-[#FBE8EE] text-[#9A2F52] group-hover/cta:bg-[#A23B5E] group-hover/cta:text-white",
-    viewAll: "border-[#F0CBD7] text-[#7E2441] hover:border-[#A23B5E] hover:bg-[#A23B5E] hover:text-white",
-  },
+  ceo: THEME,
+  sports: THEME,
+  entrepreneur: THEME,
+  actors: THEME,
 };
 
 const cleanText = (v) =>
@@ -163,17 +140,7 @@ function CategorySection({
   if (!items.length) return null;
 
   return (
-    <section
-      className={
-        accent === "ceo"
-          ? "bg-gradient-to-b from-[#FBF6E9] via-[#F8F2E3] to-white"
-          : accent === "sports"
-          ? "bg-gradient-to-b from-[#EAF2FC] via-[#E4EDF9] to-white"
-          : accent === "entrepreneur"
-          ? "bg-gradient-to-b from-[#EAF5EE] via-[#E2F0E7] to-white"
-          : "bg-gradient-to-b from-[#FBEDF1] via-[#F8E6EC] to-white"
-      }
-    >
+    <section className="bg-gradient-to-b from-[#FBF6E9] via-[#F8F2E3] to-white">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-12 lg:py-24">
         <div className="mb-12 flex flex-col justify-between gap-6 sm:flex-row sm:items-end border-b border-stone-200/80 pb-6">
           <div className="flex gap-4">
@@ -225,8 +192,17 @@ export default function CEO() {
       .catch((err) => console.error("Error fetching biographies:", err));
   }, []);
 
-  const bySection = (name) =>
-    biographies.filter((item) => getSection(item) === name).slice(0, 3);
+
+const bySection = (name) =>
+  biographies
+    .filter((item) => getSection(item) === name)
+    .sort((a, b) =>
+      String(b._id || b.id || "").localeCompare(
+        String(a._id || a.id || "")
+      )
+    )
+    .slice(0, 3);
+
 
   const businessData = bySection("business");
   const sportsData = bySection("sports");
@@ -237,49 +213,46 @@ export default function CEO() {
     <main className="min-h-screen bg-stone-50 text-stone-900">
 
 
-<section className="relative isolate overflow-hidden bg-[#17140D] text-white">
 
-
+<section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
   <img
     src="https://venturexindia.com/wp-content/uploads/2025/06/WhatsApp-Image-2025-06-25-at-15.52.37_f6ea0630-1.jpg"
     alt="Biography of leaders, legends and founders"
-    className="absolute inset-0 h-full w-full scale-105 object-cover object-center brightness-[0.68] contrast-110 saturate-[0.85]"
+    className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
   />
 
+  {/* Overlay matched with HeroBanner */}
+  <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
+  <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/65 via-transparent to-[#111D32]/20" />
 
-  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#17140D] via-[#17140D]/90 to-[#17140D]/45" />
-  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#17140D]/95 via-transparent to-[#17140D]/35" />
+  <div className="mx-auto flex min-h-[360px] w-full max-w-[1600px] items-center px-5 py-10 sm:min-h-[400px] sm:px-8 sm:py-12 lg:min-h-[440px] lg:px-14 lg:py-14 xl:min-h-[460px] xl:px-16">
+    <div className="w-full max-w-3xl">
 
-
-  <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12 lg:px-12 lg:py-14">
-
-    <div className="max-w-3xl space-y-4 sm:space-y-5">
-
-
-      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-300">
-        <span className="inline-flex items-center gap-2 rounded-full border border-stone-700 bg-stone-900/90 px-3 py-1.5 backdrop-blur-md">
+      {/* Category Labels */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 sm:mb-5 sm:gap-3">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
           <span className={`h-2 w-2 rounded-full ${ACCENTS.ceo.dot}`} />
           Business & CEOs
         </span>
 
-        <span className="inline-flex items-center gap-2 rounded-full border border-stone-700 bg-stone-900/90 px-3 py-1.5 backdrop-blur-md">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
           <span className={`h-2 w-2 rounded-full ${ACCENTS.sports.dot}`} />
           Sports Legends
         </span>
 
-        <span className="inline-flex items-center gap-2 rounded-full border border-stone-700 bg-stone-900/90 px-3 py-1.5 backdrop-blur-md">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
           <span className={`h-2 w-2 rounded-full ${ACCENTS.entrepreneur.dot}`} />
           Entrepreneurs
         </span>
 
-        <span className="inline-flex items-center gap-2 rounded-full border border-stone-700 bg-stone-900/90 px-3 py-1.5 backdrop-blur-md">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
           <span className={`h-2 w-2 rounded-full ${ACCENTS.actors.dot}`} />
           Actors
         </span>
       </div>
 
-
-      <h1 className="max-w-3xl font-serif text-3xl font-extrabold leading-tight tracking-tight text-white drop-shadow-sm sm:text-4xl lg:text-5xl">
+      {/* Main Heading */}
+      <h1 className="max-w-3xl text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl lg:text-[2.7rem]">
         Stories of{" "}
         <span className="bg-gradient-to-r from-[#F0D48A] via-[#D7A943] to-[#FFF0BD] bg-clip-text text-transparent">
           Leaders, Legends
@@ -287,52 +260,51 @@ export default function CEO() {
         & Founders
       </h1>
 
-      <p className="max-w-2xl text-sm font-light leading-6 text-stone-300 drop-shadow sm:text-base sm:leading-7">
+      {/* Description */}
+      <p className="mt-4 max-w-2xl text-sm leading-6 text-white/85 sm:mt-5 sm:text-base sm:leading-7">
         Explore complete biographies, career journeys, defining achievements
         and leadership philosophies of influential business tycoons, sports
         champions, visionary startup founders and celebrated actors.
       </p>
 
-
-      <div className="flex flex-wrap gap-2.5 pt-1 sm:gap-3">
-
+      {/* Action Buttons */}
+      <div className="mt-6 flex flex-wrap gap-2.5 sm:mt-7 sm:gap-3">
         <Link
           to="/biography/view-all/ceo"
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4A84F] to-[#F0D58F] px-5 py-2.5 text-sm font-bold text-[#211A0C] shadow-lg shadow-[#C49A3B]/20 transition-all duration-300 hover:-translate-y-0.5 hover:from-[#E2BD69] hover:to-[#F7E6B0]"
+          className="inline-flex items-center gap-2 rounded-full bg-[#E47742] px-5 py-2.5 text-sm font-semibold text-white transition duration-300 hover:-translate-y-0.5 hover:bg-[#CF6332] sm:px-6 sm:py-3"
         >
           Explore Business
-          <span>→</span>
+          <span aria-hidden="true">→</span>
         </Link>
 
         <Link
           to="/biography/view-all/sportsperson"
-          className="inline-flex items-center rounded-xl border border-stone-700 bg-stone-900/70 px-5 py-2.5 text-sm font-bold text-white shadow-md backdrop-blur-md transition-all duration-300 hover:bg-stone-800"
+          className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
         >
           Sports Legends
         </Link>
 
         <Link
           to="/biography/view-all/entrepreneur"
-          className="inline-flex items-center rounded-xl border border-stone-700 bg-stone-900/70 px-5 py-2.5 text-sm font-bold text-white shadow-md backdrop-blur-md transition-all duration-300 hover:bg-stone-800"
+          className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
         >
           Entrepreneurs
         </Link>
 
         <Link
           to="/biography/view-all/actor"
-          className="inline-flex items-center rounded-xl border border-stone-700 bg-stone-900/70 px-5 py-2.5 text-sm font-bold text-white shadow-md backdrop-blur-md transition-all duration-300 hover:bg-stone-800"
+          className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
         >
           Actors
         </Link>
-
       </div>
     </div>
   </div>
 
-
-  <div className="absolute inset-x-0 bottom-0 z-10 h-1.5 bg-[linear-gradient(90deg,#A87922,#D6AC55,#315F9D,#28734F,#A23B5E)]" />
-
+  {/* Bottom accent */}
+  <div className="absolute inset-x-0 bottom-0 z-10 h-1 bg-gradient-to-r from-[#A87922] via-[#F0D48A] to-[#A87922]" />
 </section>
+
 
 
       <CategorySection

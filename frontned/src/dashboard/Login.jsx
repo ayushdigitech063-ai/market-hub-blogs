@@ -57,7 +57,7 @@ export default function Login({ mode, onAuth }) {
           </span>
           <h1 className="mt-4 text-2xl font-bold">{isRegister ? "Create Admin Account" : "Admin Login"}</h1>
           <p className="mt-1 text-sm text-white/90">
-            {isRegister ? "Naya admin account banao" : "Apne account me login karo"}
+            {isRegister ? "Naya admin account banao" : "Please Login  Your Account"}
           </p>
         </div>
 

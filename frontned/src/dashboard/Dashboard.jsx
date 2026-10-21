@@ -1,18 +1,14 @@
-
-
 import React, { useState } from "react";
 import { Menu, LogOut, LayoutDashboard } from "lucide-react";
 import { API } from "./config";
+import WhatsAppSettings from "./WhatsAppSettings";
 import { GlobalStyle, Toast, PageHeader } from "./ui";
 import Sidebar from "./Sidebar";
 import Overview from "./Overview";
 import CrudSection from "./CrudSection";
-import PostSection from "./PostSection";
-import BlogArticlesSection from "./BlogArticlesSection";
-import {
-  articleConfig, latestArticleConfig, biographyConfig,
-  companyConfig, brandConfig, slidingCompanyConfig,
-} from "./postConfigs";
+import UnifiedBlogs, { BLOG_KEYS } from "./UnifiedBlogs";
+import SettingsSection from "./SettingsSection";
+   import NotificationsSection from "./NotificationsSection";
 import { META, emptyBlogAuthor, blogAuthorFields } from "./constants";
 
 
@@ -27,6 +23,7 @@ function Section({ id, tab, counts, children }) {
 
 export default function Dashboard({ admin, onLogout }) {
   const [tab, setTab] = useState("overview");
+  const [blogType, setBlogType] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [counts, setCounts] = useState({
     biographies: 0, articles: 0, companies: 0, brands: 0,
@@ -39,11 +36,22 @@ export default function Dashboard({ admin, onLogout }) {
     setTimeout(() => setToast(null), 3000);
   };
   const setCount = (key) => (n) => setCounts((c) => ({ ...c, [key]: n }));
+
+  // Overview ke cards (biographies/brands/...) bhi ab Blog Posts page kholte hain
   const goTo = (key) => {
-    setTab(key);
+    if (BLOG_KEYS.includes(key)) {
+      setBlogType(key);
+      setTab("blogs");
+    } else {
+      if (key === "blogs") setBlogType("all");
+      setTab(key);
+    }
     setSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const blogsTotal = BLOG_KEYS.reduce((s, k) => s + (counts[k] || 0), 0);
+  const sidebarCounts = { ...counts, blogs: blogsTotal };
 
   return (
     <div className="min-h-screen bg-orange-50/30 lg:flex">
@@ -75,12 +83,12 @@ export default function Dashboard({ admin, onLogout }) {
         <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <Sidebar tab={tab} counts={counts} admin={admin} open={sidebarOpen}
+      <Sidebar tab={tab} counts={sidebarCounts} admin={admin} open={sidebarOpen}
         onClose={() => setSidebarOpen(false)} goTo={goTo} />
 
       <main className="min-w-0 flex-1">
 
-        <div className="sticky top-0 z-30 hidden items-center justify-end border-b border-orange-200 bg-white/90 px-10 py-3 backdrop-blur lg:flex">
+        <div className="sticky top-0 z-30 hidden h-[72px] items-center justify-end border-b border-orange-200 bg-white/90 px-10 backdrop-blur lg:flex">
           <button onClick={onLogout}
             className="inline-flex items-center gap-2 rounded-lg border border-rose-100 bg-rose-50 px-3.5 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">
             <LogOut className="h-4 w-4" /> Logout
@@ -92,22 +100,12 @@ export default function Dashboard({ admin, onLogout }) {
             <Overview counts={counts} admin={admin} goTo={goTo} />
           </div>
 
-       
-          <Section id="biographies" tab={tab} counts={counts}>
-            <PostSection config={biographyConfig} notify={notify} onCount={setCount("biographies")} />
+          {/* ONE blog page: Biography / Brand / Sliding Company / Latest Article */}
+          <Section id="blogs" tab={tab} counts={{ ...counts, blogs: blogsTotal }}>
+            <UnifiedBlogs type={blogType} setType={setBlogType} counts={counts}
+              notify={notify} setCount={setCount} />
           </Section>
 
-
-          <Section id="articles" tab={tab} counts={counts}>
-            <PostSection config={articleConfig} notify={notify} onCount={setCount("articles")} />
-          </Section>
-
-  
-          <Section id="companies" tab={tab} counts={counts}>
-            <PostSection config={companyConfig} notify={notify} onCount={setCount("companies")} />
-          </Section>
-
-        
           <Section id="authors" tab={tab} counts={counts}>
             <CrudSection
               singular="Author"
@@ -159,26 +157,18 @@ export default function Dashboard({ admin, onLogout }) {
               notify={notify}
             />
           </Section>
-
-
-          <Section id="blogArticles" tab={tab} counts={counts}>
-            <BlogArticlesSection active={tab === "blogArticles"} notify={notify} onCount={setCount("blogArticles")} />
+   {tab === "notifications" && <NotificationsSection />}
+          {/* Settings: count box hide hota hai (ui.jsx change dekho) */}
+          <Section id="settings" tab={tab} counts={counts}>
+            <SettingsSection admin={admin} counts={counts} onLogout={onLogout} />
           </Section>
+          
+{/* WhatsApp Settings */}
+<Section id="whatsappSettings" tab={tab} counts={counts}>
+  <WhatsAppSettings notify={notify} />
+</Section>
 
-
-          <Section id="brands" tab={tab} counts={counts}>
-            <PostSection config={brandConfig} notify={notify} onCount={setCount("brands")} />
-          </Section>
-
-
-          <Section id="latestArticles" tab={tab} counts={counts}>
-            <PostSection config={latestArticleConfig} notify={notify} onCount={setCount("latestArticles")} />
-          </Section>
-
-
-          <Section id="slidingCompanies" tab={tab} counts={counts}>
-            <PostSection config={slidingCompanyConfig} notify={notify} onCount={setCount("slidingCompanies")} />
-          </Section>
+          
         </div>
       </main>
     </div>

@@ -79,7 +79,7 @@ const getRich = (profile) => {
 function SectionTitle({ children }) {
   return (
     <h2
-      className={`${serif} mb-5 flex items-center gap-3 text-2xl font-bold tracking-tight text-stone-900`}
+      className={`${serif} mb-5 flex items-center gap-3 text-xl font-bold tracking-tight text-stone-900 sm:text-2xl`}
     >
       <span className="h-6 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
       {children}
@@ -203,7 +203,7 @@ export default function BiographyDetails() {
         <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-8 lg:pb-16">
           <nav
             aria-label="Breadcrumb"
-            className="mb-8 flex flex-wrap items-center gap-2 text-sm text-stone-500"
+            className="mb-8 flex flex-wrap items-center gap-2 text-xs text-stone-500 sm:text-sm"
           >
             <Link to="/biography" className="transition hover:text-amber-600">
               Biography
@@ -231,18 +231,18 @@ export default function BiographyDetails() {
             </div>
 
             <h1
-              className={`${serif} mt-5 text-3xl font-bold leading-tight tracking-tight text-stone-900 sm:text-4xl lg:text-5xl`}
+              className={`${serif} mt-5 text-2xl font-bold leading-tight tracking-tight text-stone-900 sm:text-3xl lg:text-4xl`}
             >
               {profile.name}
             </h1>
 
-            <p className="mt-3 text-lg text-stone-600">
+            <p className="mt-3 text-base text-stone-600 sm:text-lg">
               <span className="font-semibold text-amber-600">{profile.role}</span>
               {profile.company && <span className="text-stone-500"> at {profile.company}</span>}
             </p>
 
             {shortBio && (
-              <p className="mt-4 max-w-2xl text-base leading-7 text-stone-600 sm:text-lg sm:leading-8">
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-600 sm:text-base sm:leading-7">
                 {shortBio}
               </p>
             )}
@@ -284,7 +284,7 @@ export default function BiographyDetails() {
 
               {rich.contentHtml ? (
            
-                <div className="text-stone-600 [&_a]:font-medium [&_a]:text-amber-700 [&_img]:mx-auto [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:shadow-md">
+                <div className="text-sm leading-7 text-stone-600 sm:text-base [&_h2]:text-xl sm:[&_h2]:text-2xl [&_h3]:text-lg sm:[&_h3]:text-xl [&_h4]:text-base sm:[&_h4]:text-lg [&_p]:text-sm sm:[&_p]:text-base [&_li]:text-sm sm:[&_li]:text-base [&_a]:font-medium [&_a]:text-amber-700 [&_img]:mx-auto [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:shadow-md">
                   <ArticleBody
                     post={{
                       ...profile,
@@ -303,8 +303,8 @@ export default function BiographyDetails() {
                       key={i}
                       className={
                         i === 0
-                          ? "text-lg font-medium leading-8 text-stone-900"
-                          : "text-[17px] leading-8 text-stone-600"
+                          ? "text-base font-medium leading-7 text-stone-900 sm:leading-8"
+                          : "text-sm leading-7 text-stone-600 sm:text-base"
                       }
                     >
                       {para}
@@ -324,7 +324,7 @@ export default function BiographyDetails() {
                         aria-hidden="true"
                         className="absolute -left-[31px] top-2 h-3 w-3 rounded-full border-2 border-white bg-amber-500 ring-2 ring-amber-200"
                       />
-                      <p className="text-base leading-7 text-stone-700">{edu}</p>
+                      <p className="text-sm leading-7 text-stone-700 sm:text-base">{edu}</p>
                     </li>
                   ))}
                 </ol>
@@ -343,7 +343,7 @@ export default function BiographyDetails() {
                       >
                         ✓
                       </span>
-                      <p className="text-base leading-7 text-stone-700">{ach}</p>
+                      <p className="text-sm leading-7 text-stone-700 sm:text-base">{ach}</p>
                     </li>
                   ))}
                 </ul>

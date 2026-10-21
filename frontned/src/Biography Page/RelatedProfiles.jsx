@@ -111,22 +111,16 @@ export default function RelatedProfiles({ profile }) {
         {/* Header */}
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="h-10 w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
+            <span className="h-8 w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
             <div>
-              <h2 className="font-serif text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
+              <h2 className="font-serif text-xl font-bold tracking-tight text-stone-900 sm:text-2xl">
                 Related profiles
               </h2>
             
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-           
-            <div className="flex items-center gap-2">
-              <ArrowButton dir="prev" onClick={() => scrollByDir("prev")} disabled={!canPrev} />
-              <ArrowButton dir="next" onClick={() => scrollByDir("next")} disabled={!canNext} />
-            </div>
-          </div>
+         
         </div>
 
 
@@ -146,10 +140,30 @@ export default function RelatedProfiles({ profile }) {
                   <ProfileCard item={item} />
                 </div>
               </div>
+              
             </div>
           ))}
         </div>
       </div>
+   
+{/* Navigation Arrows - Below Cards */}
+<div className="mt-5 flex items-center justify-center gap-3">
+  <ArrowButton
+    dir="prev"
+    onClick={() => scrollByDir("prev")}
+    disabled={!canPrev}
+    className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+  />
+
+  <ArrowButton
+    dir="next"
+    onClick={() => scrollByDir("next")}
+    disabled={!canNext}
+    className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+  />
+</div>
+
     </section>
+    
   );
 }

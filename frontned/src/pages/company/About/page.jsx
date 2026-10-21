@@ -64,54 +64,68 @@ export default function About() {
     <main className="min-h-screen overflow-hidden bg-white text-stone-800">
 
      
-      <section className="relative flex min-h-[420px] items-center justify-center overflow-hidden sm:min-h-[460px]">
-        <img
-          src={aboutImages.heroBg}
-          alt="Market Hub digital insights"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+   
+{/* ===== ABOUT HERO BANNER ===== */}
+<section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
+  {/* Background Image */}
+  <img
+    src={aboutImages.heroBg}
+    alt="Market Hub digital insights"
+    className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
+  />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950/90 via-stone-950/75 to-stone-950/60" />
+  {/* Gradient Overlays */}
+  <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
+  <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/60 via-transparent to-[#111D32]/20" />
 
-        <div className="relative z-10 mx-auto max-w-5xl px-5 py-20 text-center sm:px-8">
-          <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            Welcome to Market Hub
-          </span>
+  {/* Hero Content */}
+  <div className="mx-auto flex min-h-[360px] w-full max-w-[1600px] items-center px-5 py-10 sm:min-h-[400px] sm:px-8 sm:py-12 lg:min-h-[440px] lg:px-14 lg:py-14 xl:min-h-[460px] xl:px-16">
+    <div className="mx-auto w-full max-w-3xl text-center">
 
-          <h1 className="mx-auto mt-5 max-w-4xl text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl">
-            Insights That Inspire.
-            <span className="mt-1 block text-amber-400">
-              Knowledge That Empowers.
-            </span>
-          </h1>
+      {/* Badge */}
+      <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/95 backdrop-blur-md sm:text-xs">
+        <span className="h-2 w-2 rounded-full bg-[#E47742]" />
+        Welcome to Market Hub
+      </div>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-stone-200">
-            Your destination for digital marketing, SEO, business insights,
-            technology updates, and company profiles. Discover meaningful
-            knowledge that helps you understand the changing digital world.
-          </p>
+      {/* Heading */}
+      <h1 className="mx-auto max-w-4xl text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-[3.4rem]">
+        <span className="block text-white">
+          Insights That Inspire.
+        </span>
+        <span className="mt-2 block bg-gradient-to-r from-[#F5D98F] via-[#E8BD70] to-[#FFF0C2] bg-clip-text text-transparent">
+          Knowledge That Empowers.
+        </span>
+      </h1>
 
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link
-              to="/articles"
-              className={`${buttonClass} bg-amber-500 text-stone-950 shadow-md hover:-translate-y-0.5 hover:bg-amber-400`}
-            >
-              Explore Articles <span className="ml-2">→</span>
-            </Link>
+      {/* Description */}
+      <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-white/85 sm:mt-6 sm:text-lg sm:leading-8">
+        Your destination for digital marketing, SEO, business insights,
+        technology updates, and company profiles. Discover meaningful
+        knowledge that helps you understand the changing digital world.
+      </p>
 
-            <a
-              href="#our-story"
-              className={`${buttonClass} border border-white/40 text-white hover:border-amber-400 hover:bg-white/10`}
-            >
-              Discover Our Story
-            </a>
-          </div>
-        </div>
+      {/* Buttons */}
+      <div className="mt-7 flex flex-wrap justify-center gap-3 sm:gap-4">
+        <Link
+          to="/articles"
+          className={`${buttonClass} inline-flex items-center justify-center rounded-full bg-[#E47742] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-black/20 transition duration-200 hover:-translate-y-0.5 hover:bg-[#D76532] sm:text-base`}
+        >
+          Explore Articles
+          <span className="ml-2" aria-hidden="true">→</span>
+        </Link>
 
-        <div className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-amber-600 via-amber-300 to-orange-500" />
-      </section>
+        <a
+          href="#our-story"
+          className={`${buttonClass} inline-flex items-center justify-center rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#F5D98F] hover:bg-white/15 sm:text-base`}
+        >
+          Discover Our Story
+        </a>
+      </div>
 
+    </div>
+  </div>
+</section>
 
       <section className="border-b border-stone-100 bg-stone-50 py-6">
         <div className="mx-auto mb-4 max-w-7xl px-5 text-center">

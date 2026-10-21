@@ -5,7 +5,7 @@ import BrandCard from "../../components/BrandCard";
 import SeoHead from "../../components/SeoHead";
 import ArticleBody from "../../components/ArticleBody";
 import { fetchBrand } from "../../api/brandApi";
-
+import { API } from "../../dashboard/config";
 
 const isLive = (x) => x && x.status !== "draft";
 
@@ -37,22 +37,48 @@ export default function BrandDetail() {
 
   const [item, setItem] = useState(null);
   const [relatedItems, setRelatedItems] = useState([]);
+  const [relatedFallback, setRelatedFallback] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
+    let active = true;
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     setLoading(true);
     setNotFound(false);
+    setRelatedFallback(false);
 
     fetchBrand(slug)
       .then((data) => {
+        if (!active) return;
         setItem(data.item);
-        setRelatedItems((data.related || []).filter(isLive));
+        const related = (data.related || []).filter(isLive);
+        setRelatedItems(related);
+
+        // Same brand ka koi aur product na ho to baaki live products dikhao
+        if (related.length === 0) {
+          fetch(`${API}/brands`)
+            .then((r) => r.json())
+            .then((all) => {
+              if (!active) return;
+              const cur = data.item;
+              const score = (b) =>
+                (b.brand === cur.brand ? 2 : 0) + (b.category === cur.category ? 1 : 0);
+              const others = (Array.isArray(all) ? all : [])
+                .filter((b) => isLive(b) && b._id !== cur._id && b.slug !== cur.slug)
+                .sort((a, b) => score(b) - score(a))
+                .slice(0, 8);
+              setRelatedItems(others);
+              setRelatedFallback(others.length > 0);
+            })
+            .catch(() => {});
+        }
       })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
+      .catch(() => active && setNotFound(true))
+      .finally(() => active && setLoading(false));
+
+    return () => { active = false; };
   }, [slug]);
 
 
@@ -287,7 +313,7 @@ export default function BrandDetail() {
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-widest text-amber-700">
-                  More From {brand}
+                  {relatedFallback ? "You May Also Like" : `More From ${brand}`}
                 </span>
                 <h2 className="mt-1 text-xl sm:text-2xl font-serif font-bold text-stone-900">
                   Related Articles & Products

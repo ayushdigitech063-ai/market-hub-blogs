@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import BlogArticleCard from "../components/BlogArticleCard";
+import { sortLatestFirst } from "../utils/sortLatest";
 import { Globe, ArrowLeft, BookOpen, UserRound } from "lucide-react";
 
 const API = "https://market-hub-blogs-backend.onrender.com/api";
@@ -69,7 +70,9 @@ export default function AuthorPage() {
     ])
       .then(([authorData, articlesList]) => {
         setAuthor(authorData);
-        setAuthorArticles(Array.isArray(articlesList) ? articlesList : []);
+        setAuthorArticles(
+          Array.isArray(articlesList) ? sortLatestFirst(articlesList) : []
+        );
         setLoading(false);
       })
       .catch((err) => {
@@ -232,9 +235,7 @@ export default function AuthorPage() {
               </div>
             )}
 
-            {/* =================================================
-                EDUCATION / BACKGROUND
-            ================================================= */}
+        
 
             {author.education && (
               <div className="mt-7 border-t border-slate-100 pt-6">

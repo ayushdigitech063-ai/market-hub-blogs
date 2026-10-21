@@ -1,161 +1,490 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
-  Clock3,
-  BookOpen,
-} from "lucide-react";
-import { heroBannerData as bannerData } from "../data/AllData";
+
+const API_BASE =
+  "https://market-hub-blogs-backend.onrender.com/api";
+
+const API_ENDPOINTS = [
+  { type: "article", url: `${API_BASE}/latest-articles` },
+  { type: "biography", url: `${API_BASE}/biographies` },
+  { type: "company", url: `${API_BASE}/companies` },
+  { type: "brand", url: `${API_BASE}/brands` },
+];
+
+const getItems = (response, type) => {
+  if (Array.isArray(response)) return response;
+  if (!response || typeof response !== "object") return [];
+
+  const keys = {
+    article: ["articles", "latestArticles", "data", "results"],
+    biography: ["biographies", "data", "results"],
+    company: ["companies", "data", "results"],
+    brand: ["brands", "data", "results"],
+  };
+
+  for (const key of keys[type] || ["data", "results"]) {
+    if (Array.isArray(response[key])) return response[key];
+  }
+
+  return [];
+};
+
+const getSlug = (item) =>
+  item?.slug ||
+  item?.seoSlug ||
+  item?.urlSlug ||
+  item?._id ||
+  item?.id ||
+  "";
+
+const getTitle = (item) =>
+  item?.title ||
+  item?.name ||
+  item?.companyName ||
+  item?.brandName ||
+  item?.fullName ||
+  "Explore Market Hub";
+
+const getImage = (item) => {
+  if (!item) return "";
+
+  const imageFields = [
+    item.bannerImage,
+    item.banner,
+    item.featuredImage,
+    item.featured_image,
+    item.thumbnail,
+    item.image,
+    item.imageUrl,
+    item.imageURL,
+    item.coverImage,
+    item.cover,
+    item.profileImage,
+    item.photoUrl,
+    item.photo,
+    item.logoUrl,
+    item.logo,
+    item.companyLogo,
+    item.companyImage,
+    item.companyBanner,
+    item.brandLogo,
+    item.ogImage,
+  ];
+
+  const extractUrl = (value) => {
+    if (typeof value === "string") {
+      return value.trim();
+    }
+
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        const url = extractUrl(entry);
+        if (url) return url;
+      }
+      return "";
+    }
+
+    if (value && typeof value === "object") {
+      return (
+        value.url ||
+        value.secure_url ||
+        value.src ||
+        value.imageUrl ||
+        value.image ||
+        value.path ||
+        value.location ||
+        value.href ||
+        ""
+      );
+    }
+
+    return "";
+  };
+
+  for (const field of imageFields) {
+    const url = extractUrl(field);
+    if (url) return url;
+  }
+
+  return "";
+};
+
+const getPublishedDate = (item) =>
+  item?.publishedAt ||
+  item?.publishDate ||
+  item?.publishedDate ||
+  item?.createdAt ||
+  item?.updatedAt ||
+  item?.date ||
+  null;
+
+const toPlainText = (value) => {
+  if (typeof value !== "string") return "";
+
+  return value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+// Full blog ko banner mein dikhane ke bajaye short summary.
+const getDescription = (item) => {
+  const candidates = [
+    item?.excerpt,
+    item?.shortDescription,
+    item?.summary,
+    item?.metaDescription,
+    item?.seoDescription,
+    item?.subtitle,
+    item?.description,
+  ];
+
+  const description = candidates.map(toPlainText).find(Boolean);
+
+  if (!description) {
+    return "Discover the latest stories, insights and updates on Market Hub.";
+  }
+
+  if (description.length <= 180) return description;
+
+  return `${description.slice(0, 177).trimEnd()}...`;
+};
+
+const getDateValue = (item) => {
+  const value = getPublishedDate(item);
+  if (!value) return 0;
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const getLatestOne = (items, type) => {
+  const validItems = items.filter((item) => {
+    if (!item || !getSlug(item)) return false;
+
+    const status = String(item.status || "").toLowerCase();
+
+    if (status === "draft" || status === "inactive") return false;
+    if (item.active === false || item.isActive === false) return false;
+    if (item.published === false) return false;
+
+    return true;
+  });
+
+  validItems.sort((a, b) => getDateValue(b) - getDateValue(a));
+
+  const latest = validItems[0];
+
+  return latest
+    ? [
+        {
+          ...latest,
+          _bannerType: type,
+          _bannerTitle: getTitle(latest),
+          _bannerDescription: getDescription(latest),
+          _bannerImage: getImage(latest),
+          _bannerDate: getPublishedDate(latest),
+          _bannerLink: getLink(latest, type),
+        },
+      ]
+    : [];
+};
+
+function getLink(item, type) {
+  const slug = getSlug(item);
+
+  switch (type) {
+    case "biography":
+      return `/biography/${slug}`;
+    case "company":
+      return `/company/${slug}`;
+    case "brand":
+      return `/brand/${slug}`;
+    default:
+      return `/latest-article/${slug}`;
+  }
+}
+
+const getCategoryLabel = (type) => {
+  switch (type) {
+    case "biography":
+      return "Biography";
+    case "company":
+      return "Company";
+    case "brand":
+      return "Brand";
+    default:
+      return "Latest Article";
+  }
+};
+
+const formatDate = (value) => {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 export default function HeroBanner() {
+  const [slides, setSlides] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [imageFailed, setImageFailed] = useState(false);
 
-  useEffect(() => {
-    if (!bannerData?.length) return;
+  const fetchBannerData = useCallback(async () => {
+    setLoading(true);
 
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % bannerData.length);
-    }, 5000);
+    try {
+      // Har API ko alag fetch karo, taaki ek API fail ho to
+      // baaki categories ka data phir bhi banner mein aa sake.
+      const responses = await Promise.all(
+        API_ENDPOINTS.map(async ({ type, url }) => {
+          try {
+            const response = await fetch(url);
 
-    return () => clearInterval(timer);
+            if (!response.ok) {
+              console.error(
+                `Failed to fetch ${type}:`,
+                response.status
+              );
+              return { type, items: [] };
+            }
+
+            const json = await response.json();
+
+            return {
+              type,
+              items: getItems(json, type),
+            };
+          } catch (error) {
+            console.error(`Error fetching ${type}:`, error);
+            return { type, items: [] };
+          }
+        })
+      );
+
+      const dataByType = Object.fromEntries(
+        responses.map(({ type, items }) => [type, items])
+      );
+
+      // Har category se exactly ek latest record.
+      const latestSlides = [
+        ...getLatestOne(dataByType.article || [], "article"),
+        ...getLatestOne(dataByType.biography || [], "biography"),
+        ...getLatestOne(dataByType.company || [], "company"),
+        ...getLatestOne(dataByType.brand || [], "brand"),
+      ];
+
+      setSlides(latestSlides);
+      setCurrentIndex(0);
+    } catch (error) {
+      console.error("Hero banner loading error:", error);
+      setSlides([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (!bannerData?.length) return null;
+  useEffect(() => {
+    fetchBannerData();
+  }, [fetchBannerData]);
 
-  const currentItem = bannerData[currentIndex];
+  useEffect(() => {
+    if (slides.length <= 1) return undefined;
 
-  const handlePrev = () => {
-    setCurrentIndex(
-      (prev) => (prev - 1 + bannerData.length) % bannerData.length
+    const timer = window.setInterval(() => {
+      setCurrentIndex((index) => (index + 1) % slides.length);
+    }, 6000);
+
+    return () => window.clearInterval(timer);
+  }, [slides.length]);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [currentIndex]);
+
+  const previousSlide = () => {
+    setCurrentIndex((index) =>
+      index === 0 ? slides.length - 1 : index - 1
     );
   };
 
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % bannerData.length);
+  const nextSlide = () => {
+    setCurrentIndex((index) => (index + 1) % slides.length);
   };
 
+  if (loading) {
+    return (
+      <section className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex min-h-[400px] items-center justify-center rounded-3xl bg-[#F8F5F0]">
+          <div className="text-center">
+            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-[#E47742]/25 border-t-[#E47742]" />
+            <p className="mt-4 text-sm text-[#5D6472]">
+              Loading latest updates...
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (slides.length === 0) {
+    return (
+      <section className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex min-h-[320px] flex-col items-center justify-center rounded-3xl bg-[#F8F5F0] px-6 text-center">
+          <h2 className="text-2xl font-bold text-[#17243D]">
+            Discover Market Hub
+          </h2>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-[#5D6472]">
+            The latest articles, biographies, companies and brands will appear
+            here when data is available.
+          </p>
+          <button
+            type="button"
+            onClick={fetchBannerData}
+            className="mt-5 rounded-full bg-[#E47742] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#CF6332]"
+          >
+            Try Again
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  const slide = slides[currentIndex];
+
+  // Description kabhi title se hi shuru hoti hai (duplicate dikhta tha) — sirf display ke liye hata rahe hain.
+  const bannerTitle = slide._bannerTitle || "";
+  const rawDescription = slide._bannerDescription || "";
+  const bannerDescription =
+    bannerTitle && rawDescription.toLowerCase().startsWith(bannerTitle.toLowerCase())
+      ? rawDescription
+          .slice(bannerTitle.length)
+          .replace(/^[\s:\-–—.,]+/, "") || rawDescription
+      : rawDescription;
+
+  const arrowClass =
+    "flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/10 text-xl leading-none text-white backdrop-blur transition hover:bg-white hover:text-[#17243D]";
+
   return (
-    <section className="bg-[#fffaf3] px-3 py-3 sm:px-5 sm:py-4 lg:px-8">
-      <div className="relative mx-auto max-w-[1600px] overflow-hidden rounded-2xl border border-[#e9dfce] bg-[#101827] shadow-[0_14px_40px_rgba(15,23,42,0.14)] sm:rounded-[26px]">
+   <section className="w-full">
+  <div className="relative isolate min-h-[460px] overflow-hidden bg-[#17243D] sm:min-h-[490px] lg:min-h-[520px]">
+        {/* Image: mobile par poore banner me, desktop par right side me */}
+        <div className="absolute inset-0 -z-20 lg:left-auto lg:w-[58%]">
+          {slide._bannerImage && !imageFailed && (
+            <img
+              key={slide._bannerImage}
+              src={slide._bannerImage}
+              alt={slide._bannerTitle}
+              onError={() => setImageFailed(true)}
+              className="h-full w-full object-cover object-[center_18%]"
+            />
+          )}
+        </div>
 
-        <img
-          key={currentItem.id}
-          src={currentItem.image}
-          alt={currentItem.title}
-          className="absolute inset-0 h-full w-full object-cover object-center"
-        />
+        {/* Overlays: mobile par text padhne layak dark, desktop par left se smooth fade */}
+        <div className="absolute inset-0 -z-10 bg-[#111D32]/80 lg:hidden" />
+        <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-[#17243D] from-[40%] to-transparent to-[75%] lg:block" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-1/3 bg-gradient-to-t from-[#111D32]/70 to-transparent" />
 
-  
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0b1220]/95 via-[#101827]/80 to-[#101827]/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#080e19]/65 via-transparent to-[#080e19]/10" />
+        <div className="flex min-h-[460px] items-center px-6 pb-24 pt-12 sm:min-h-[490px] sm:px-10 lg:min-h-[520px] lg:px-16">
+          <div className="w-full max-w-3xl lg:max-w-[46%]">
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <span className="rounded-full bg-[#E47742] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
+                {getCategoryLabel(slide._bannerType)}
+              </span>
 
-
-        <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-amber-400/10 blur-3xl" />
-
-        <div
-          key={`content-${currentItem.id}`}
-          className="relative flex min-h-[350px] items-center px-5 py-8 sm:min-h-[370px] sm:px-9 sm:py-9 lg:min-h-[390px] lg:px-14 lg:py-10"
-        >
-          <div className="w-full max-w-[740px] pb-10 sm:pb-8">
-
-       
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-[#c5a264]/15 px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.13em] text-amber-300 backdrop-blur-md sm:text-[11px]">
-              <Sparkles size={14} />
-              <span>{currentItem.category}</span>
+              {slide._bannerDate && (
+                <span className="text-sm text-white/80">
+                  {formatDate(slide._bannerDate)}
+                </span>
+              )}
             </div>
 
-
-            <h1 className="max-w-[700px] text-[27px] font-extrabold leading-[1.16] tracking-[-0.035em] text-white sm:text-[36px] lg:text-[46px]">
-              {currentItem.title}
+            <h1 className="line-clamp-3 text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-[2.6rem] xl:text-5xl">
+              {slide._bannerTitle}
             </h1>
 
-            <div className="mt-4 flex items-center gap-2">
-              <span className="h-[3px] w-10 rounded-full bg-[#d8b574]" />
-              <span className="h-[3px] w-3 rounded-full bg-[#d8b574]/45" />
-            </div>
-
-
-            <p className="mt-4 max-w-[580px] text-[13px] leading-6 text-slate-200 sm:text-[14px] sm:leading-7">
-              {currentItem.excerpt}
+            <p className="mt-5 line-clamp-3 max-w-xl text-sm leading-7 text-white/85 sm:text-base sm:leading-8">
+              {bannerDescription}
             </p>
 
-            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 sm:gap-x-7">
-
-              {/* Author */}
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d8b574]/60 bg-white/10 text-sm font-bold text-[#e8c981] shadow-inner backdrop-blur-sm">
-                  {currentItem.author?.charAt(0) || "A"}
-                </div>
-
-                <div>
-                  <p className="text-[13px] font-bold text-white sm:text-sm">
-                    {currentItem.author}
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-300">
-                    {currentItem.date}
-                  </p>
-                </div>
-              </div>
-
-
-              <span className="hidden h-9 w-px bg-white/20 sm:block" />
-
-
-              <div className="flex items-center gap-2 text-xs font-medium text-[#e8c981]">
-                <Clock3 size={16} />
-                <span>{currentItem.readTime}</span>
-              </div>
-            </div>
-
-
-            <div className="mt-5">
+            <div className="mt-7 flex flex-wrap items-center gap-4">
               <Link
-                to="/Biography"
-                className="group inline-flex items-center gap-3 rounded-lg bg-[#d0ad6c] px-5 py-3 text-[13px] font-bold text-[#111827] shadow-lg shadow-black/10 transition duration-300 hover:-translate-y-0.5 hover:bg-[#e5c78e] hover:shadow-xl"
+                to={slide._bannerLink}
+                className="inline-flex items-center gap-2 rounded-full bg-[#E47742] px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#CF6332]"
               >
-                <BookOpen size={17} />
-                Explore Biography
-                <ArrowRight
-                  size={16}
-                  className="transition-transform duration-300 group-hover:translate-x-1"
-                />
+                Explore More
+                <span aria-hidden="true">→</span>
               </Link>
+
+              {slide.author && (
+                <span className="text-sm text-white/80">
+                  By{" "}
+                  {typeof slide.author === "string"
+                    ? slide.author
+                    : slide.author?.name ||
+                      slide.author?.fullName ||
+                      ""}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="absolute bottom-5 right-5 z-10 flex items-center gap-3 sm:bottom-6 sm:right-7">
-          <span className="hidden text-[11px] font-semibold tracking-wider text-white/70 sm:block">
-            {String(currentIndex + 1).padStart(2, "0")} /{" "}
-            {String(bannerData.length).padStart(2, "0")}
-          </span>
+        {slides.length > 1 && (
+          <div className="absolute bottom-6 left-6 flex items-center gap-5 sm:bottom-8 sm:left-10 lg:left-16">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={previousSlide}
+                aria-label="Previous slide"
+                className={arrowClass}
+              >
+                ‹
+              </button>
 
+              <button
+                type="button"
+                onClick={nextSlide}
+                aria-label="Next slide"
+                className={arrowClass}
+              >
+                ›
+              </button>
+            </div>
 
-          <button
-            type="button"
-            onClick={handlePrev}
-            aria-label="Previous slide"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-[#101827]/60 text-white backdrop-blur-md transition hover:border-[#d8b574] hover:bg-[#d0ad6c] hover:text-[#101827] sm:h-11 sm:w-11"
-          >
-            <ChevronLeft size={21} />
-          </button>
-
-
-          <button
-            type="button"
-            onClick={handleNext}
-            aria-label="Next slide"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-[#101827]/60 text-white backdrop-blur-md transition hover:border-[#d8b574] hover:bg-[#d0ad6c] hover:text-[#101827] sm:h-11 sm:w-11"
-          >
-            <ChevronRight size={21} />
-          </button>
-        </div>
-
-        <div className="absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-[#b88a43] via-[#f0d59b] to-[#b88a43]" />
+            <div className="flex items-center gap-2">
+              {slides.map((item, index) => (
+                <button
+                  key={`${item._bannerType}-${getSlug(item)}`}
+                  type="button"
+                  onClick={() => setCurrentIndex(index)}
+                  aria-label={`Show slide ${index + 1}`}
+                  className={`h-2 rounded-full transition-all ${
+                    index === currentIndex
+                      ? "w-8 bg-[#E47742]"
+                      : "w-2 bg-white/60 hover:bg-white"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

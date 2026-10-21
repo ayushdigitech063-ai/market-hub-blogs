@@ -1,3 +1,5 @@
+
+
 import React from "react";
 
 const SCROLL_CSS = `
@@ -10,6 +12,7 @@ html{scrollbar-width:thin;scrollbar-color:#fdba74 #fff7ed}
 .nav-scroll::-webkit-scrollbar{display:none}
 @keyframes modalPop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
 .modal-pop{animation:modalPop .2s ease-out}
+.ql-toolbar.ql-snow{position:sticky;top:0;z-index:20;background:#fff}
 `;
 export const GlobalStyle = () => <style>{SCROLL_CSS}</style>;
 
@@ -34,10 +37,12 @@ export function PageHeader({ meta, count }) {
         <h1 className="mt-0.5 text-xl font-bold tracking-tight text-slate-900">{meta.title}</h1>
         <p className="mt-0.5 text-xs text-slate-500">{meta.desc}</p>
       </div>
-      <div className="rounded-lg border border-orange-100 bg-white px-4 py-2 text-center">
-        <p className="text-lg font-bold leading-tight text-orange-600">{count}</p>
-        <p className="text-[10px] font-medium text-slate-400">Total</p>
-      </div>
+      {count != null && (
+        <div className="rounded-lg border border-orange-100 bg-white px-4 py-2 text-center">
+          <p className="text-lg font-bold leading-tight text-orange-600">{count}</p>
+          <p className="text-[10px] font-medium text-slate-400">Total</p>
+        </div>
+      )}
     </div>
   );
 }

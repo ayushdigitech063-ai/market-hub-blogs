@@ -237,10 +237,9 @@ export default function LatestArticleDetail() {
           Article Not Found
         </h2>
 
-        <p className="max-w-md text-sm leading-6 text-stone-500">
-          Ye article exist nahi karta, draft hai, ya abhi
-          available nahi hai.
-        </p>
+     <p className="max-w-md text-sm leading-6 text-stone-500">
+  This article does not exist, is a draft, or is currently unavailable.
+</p>
 
         <Link
           to="/"
@@ -340,56 +339,34 @@ export default function LatestArticleDetail() {
         </div>
       </section>
 
-     
+    
 {sortedRelated.length > 0 && (
-  <section className="relative overflow-hidden border-t border-violet-100 bg-[#F4F1FF] py-12 sm:py-16 lg:py-20">
-
-    <div className="pointer-events-none absolute -left-24 top-10 h-64 w-64 rounded-full bg-purple-200/40 blur-3xl" />
-    <div className="pointer-events-none absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-pink-200/40 blur-3xl" />
+  <section className="relative isolate overflow-hidden border-t border-[#E9E2D8] bg-[#F8F7F3] py-12 sm:py-16 lg:py-20">
+    {/* Soft background accents */}
+    <div className="pointer-events-none absolute -left-24 top-10 -z-10 h-64 w-64 rounded-full bg-[#E47742]/10 blur-3xl" />
+    <div className="pointer-events-none absolute -right-20 bottom-0 -z-10 h-72 w-72 rounded-full bg-[#E8BD70]/15 blur-3xl" />
 
     <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Section heading */}
+      <div className="mb-7 border-b border-[#E5DED3] pb-6 sm:mb-9">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#E9DCCB] bg-white/90 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#A9552F] shadow-sm sm:text-xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#E47742]" />
+          Keep Exploring
+        </span>
 
-      <div className="mb-7 flex items-end justify-between gap-4 border-b border-violet-200 pb-5 sm:mb-9">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.2em] text-violet-700 shadow-sm sm:text-xs">
-            <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-500" />
-            Keep Exploring
+        <h2 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-[#17243D] sm:text-3xl lg:text-4xl">
+          Related{" "}
+          <span className="bg-gradient-to-r from-[#E47742] to-[#C85B35] bg-clip-text text-transparent">
+            Articles
           </span>
+        </h2>
 
-          <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#211447] sm:text-4xl">
-            Related Articles
-            <span className="ml-2 text-violet-600">.</span>
-          </h2>
-
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
-            Discover more insights, ideas and guides selected for you.
-          </p>
-        </div>
-
-        {sortedRelated.length > 1 && (
-          <div className="flex shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={() => scrollSlider(-1)}
-              aria-label="Previous articles"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-violet-200 bg-white text-violet-800 shadow-sm transition-all duration-300 hover:-translate-x-0.5 hover:border-violet-700 hover:bg-violet-700 hover:text-white sm:h-12 sm:w-12"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => scrollSlider(1)}
-              aria-label="Next articles"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-700 text-white shadow-md shadow-violet-200 transition-all duration-300 hover:translate-x-0.5 hover:bg-[#211447] sm:h-12 sm:w-12"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        )}
+        <p className="mt-2 max-w-xl text-sm leading-6 text-[#626979] sm:text-base">
+          Discover more insights, ideas and guides selected for you.
+        </p>
       </div>
 
-
+      {/* Related articles slider */}
       <div
         ref={sliderRef}
         className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-6"
@@ -397,7 +374,7 @@ export default function LatestArticleDetail() {
         {sortedRelated.slice(0, 6).map((article) => (
           <div
             key={article._id || article.slug}
-            className="w-[88%] shrink-0 snap-start overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-[0_8px_30px_rgba(49,25,100,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_18px_45px_rgba(49,25,100,0.12)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+            className="w-[88%] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#EAE4DA] bg-white shadow-[0_8px_28px_rgba(23,36,61,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-[#E8C4A8] hover:shadow-[0_16px_38px_rgba(23,36,61,0.11)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
           >
             <ArticleCard
               article={article}
@@ -407,16 +384,36 @@ export default function LatestArticleDetail() {
         ))}
       </div>
 
+      {/* Navigation buttons below the cards */}
+      {sortedRelated.length > 1 && (
+        <div className="mt-5 flex items-center justify-center gap-3">
+         
+<button
+  type="button"
+  onClick={() => scrollSlider(-1)}
+  aria-label="Previous articles"
+  className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:-translate-x-0.5 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E9B96D] focus-visible:ring-offset-2"
+>
+  <ChevronLeft className="h-5 w-5" />
+</button>
 
-      <div className="mt-3 flex items-center justify-center gap-2">
-        <span className="h-1 w-8 rounded-full bg-violet-700" />
-        <span className="h-1 w-2 rounded-full bg-fuchsia-400" />
-        <span className="h-1 w-2 rounded-full bg-violet-200" />
-      </div>
+<button
+  type="button"
+  onClick={() => scrollSlider(1)}
+  aria-label="Next articles"
+  className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:translate-x-0.5 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E9B96D] focus-visible:ring-offset-2"
+>
+  <ChevronRight className="h-5 w-5" />
+</button>
+
+           
+        </div>
+      )}
     </div>
   </section>
+)}
 
-      )}
+  
     </main>
   );
 }

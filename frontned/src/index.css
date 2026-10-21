@@ -1,89 +1,262 @@
+
 @import "tailwindcss";
 
+/* =========================================
+   GLOBAL TYPOGRAPHY SETTINGS
+   Change font family and sizes from here
+========================================= */
+
+:root {
+  --font-family-main: Arial, Helvetica, sans-serif;
+
+  /* Global font sizes */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 19px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+
+  /* Font weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line heights */
+  --line-height-tight: 1.3;
+  --line-height-normal: 1.6;
+  --line-height-relaxed: 1.65;
+
+  /* Text colors */
+  --color-heading: #17243d;
+  --color-body: #596579;
+}
+
+/* =========================================
+   GLOBAL BASE STYLES
+========================================= */
 
 @layer base {
   html {
+    font-family: var(--font-family-main);
+    font-size: 16px;
     -webkit-text-size-adjust: 100%;
-    overflow-x: hidden; 
-    overflow-x: clip;   
+    overflow-x: clip;
   }
 
   body {
     width: 100%;
     min-width: 0;
-    overflow-x: hidden;
+    margin: 0;
     overflow-x: clip;
+    font-family: var(--font-family-main);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+    color: var(--color-body);
   }
 
   #root {
     max-width: 100%;
-    overflow-x: hidden;
+    min-width: 0;
     overflow-x: clip;
   }
 
-  h1, h2, h3, h4, h5, h6, p, li, a, span, td, th, blockquote {
+  /* Prevent text overflow */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  li,
+  a,
+  span,
+  td,
+  th,
+  blockquote {
     overflow-wrap: break-word;
     word-break: break-word;
   }
 
+  /* Global heading styles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-top: 0;
+    font-family: var(--font-family-main);
+    color: var(--color-heading);
+    line-height: var(--line-height-tight);
+  }
 
-  img, picture, video, canvas, iframe {
+  h1 {
+    font-size: clamp(26px, 24px + 0.7vw, var(--font-size-3xl));
+    font-weight: var(--font-weight-bold);
+  }
+
+  h2 {
+    font-size: clamp(22px, 20px + 0.5vw, var(--font-size-2xl));
+    font-weight: var(--font-weight-bold);
+  }
+
+  h3 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  h4 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  h5,
+  h6 {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* Global paragraph styles */
+  p {
+    font-family: var(--font-family-main);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-relaxed);
+    color: var(--color-body);
+  }
+
+  li,
+  td,
+  th,
+  blockquote {
+    font-family: var(--font-family-main);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+  }
+
+  a {
+    font-family: var(--font-family-main);
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-family: var(--font-family-main);
+  }
+
+  button {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  iframe {
     max-width: 100%;
     height: auto;
   }
-  table { max-width: 100%; }
-  pre, code { max-width: 100%; overflow-x: auto; }
+
+  table {
+    max-width: 100%;
+  }
+
+  pre,
+  code {
+    max-width: 100%;
+    overflow-x: auto;
+  }
 }
 
+/* =========================================
+   REUSABLE TYPOGRAPHY CLASSES
+   Use these in React components
+========================================= */
+
+@layer components {
+  .global-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    color: var(--color-heading);
+  }
+
+  .section-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    color: var(--color-heading);
+  }
+
+  .card-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    color: var(--color-heading);
+  }
+
+  .body-text {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-relaxed);
+    color: var(--color-body);
+  }
+
+  .small-text {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+  }
+
+  .eyebrow-text {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+}
+
+/* =========================================
+   EXISTING GRADIENTS
+========================================= */
 
 .hero-gradient {
-  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #2563eb 100%);
+  background: linear-gradient(
+    135deg,
+    #1d4ed8 0%,
+    #3b82f6 50%,
+    #2563eb 100%
+  );
 }
 
 .btn-gradient {
-  background: linear-gradient(135deg, #ef4444 0%, #f97316 50%, #f59e0b 100%);
+  background: linear-gradient(
+    135deg,
+    #ef4444 0%,
+    #f97316 50%,
+    #f59e0b 100%
+  );
 }
 
-
-@layer base {
-  h1 {
-    font-size: clamp(1.625rem, 1.3rem + 1.4vw, 2.25rem); 
-    line-height: 1.2;
-  }
-  h2 {
-    font-size: clamp(1.25rem, 1.1rem + 0.8vw, 1.625rem); 
-    font-weight: 700;
-    line-height: 1.3;
-  }
-  h3 {
-    font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem); 
-    font-weight: 700;
-    line-height: 1.35;
-  }
-  h4 {
-    font-size: 0.9375rem; 
-    font-weight: 600;
-    line-height: 1.4;
-  }
-  p {
-    font-size: 0.9375rem; 
-    line-height: 1.65;
-  }
-}
-
+/* =========================================
+   EXISTING DARK THEME
+========================================= */
 
 html[data-theme="dark"] {
-
   filter: invert(0.92) hue-rotate(180deg);
   background-color: #fff;
 }
-
 
 html[data-theme="dark"] :is(img, picture, video, canvas, iframe),
 html[data-theme="dark"] [style*="background-image"] {
   filter: invert(1) hue-rotate(180deg);
 }
-
 
 html[data-theme="dark"] .keep-original {
   filter: invert(1) hue-rotate(180deg);
