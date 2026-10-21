@@ -17,11 +17,11 @@ export function ImageField({ field, value, onChange }) {
   const upload = async (file) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Sirf image file chuno (JPG, PNG, WEBP, GIF).");
+      setError("Please select an image file only (JPG, PNG, WEBP, or GIF)..");
       return;
     }
     if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
-      setError(`Image ${MAX_IMAGE_MB}MB se choti honi chahiye.`);
+    setError(`Image must be smaller than ${MAX_IMAGE_MB}MB.`);
       return;
     }
     setError("");
@@ -34,7 +34,7 @@ export function ImageField({ field, value, onChange }) {
       if (!res.ok) setError(data.error || "Upload fail ho gaya.");
       else setValue(data.url);
     } catch (err) {
-      setError("Server se connect nahi ho paya.");
+      setError("Unable to connect to the server.");
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -68,7 +68,7 @@ export function ImageField({ field, value, onChange }) {
 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-slate-700">
-            {uploading ? "Upload ho rahi hai..." : value ? "Image set hai" : "Image yahan drag & drop karo"}
+         {uploading ? "Uploading..." : value ? "Image selected" : "Drag & drop image here"}
           </p>
           <p className="text-[11px] text-slate-400">JPG, PNG, WEBP, GIF • max {MAX_IMAGE_MB}MB</p>
           <div className="mt-2 flex flex-wrap gap-2">

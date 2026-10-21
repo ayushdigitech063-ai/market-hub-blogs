@@ -146,7 +146,7 @@ export default function RelatedProfiles({ profile }) {
         </div>
       </div>
    
-{/* Navigation Arrows - Below Cards */}
+
 <div className="mt-5 flex items-center justify-center gap-3">
   <ArrowButton
     dir="prev"

@@ -4,7 +4,7 @@ import { sortLatestFirst } from "../utils/sortLatest";
 const BASE =
   "https://market-hub-blogs-backend.onrender.com/api/brands";
 
-// Fetch featured brands
+
 export const fetchFeatured = async () => {
   const res = await fetch(`${BASE}/featured`);
 

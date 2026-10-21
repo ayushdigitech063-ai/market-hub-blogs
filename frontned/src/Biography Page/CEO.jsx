@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { getSection } from "../data/biographyFilters";
 import { SOCIAL_ICONS, getSocialLinks } from "../data/Biographysocials.js";
 
-// Ek hi color theme (amber/gold) - saare sections me yahi use hota hai
-// Color badalna ho to sirf yahi object badlo
+
 const THEME = {
   bar: "bg-[#A87922]",
   dot: "bg-[#D6AC55]",
@@ -221,7 +220,6 @@ const bySection = (name) =>
     className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
   />
 
-  {/* Overlay matched with HeroBanner */}
   <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
   <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/65 via-transparent to-[#111D32]/20" />
 
@@ -251,7 +249,7 @@ const bySection = (name) =>
         </span>
       </div>
 
-      {/* Main Heading */}
+
       <h1 className="max-w-3xl text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl lg:text-[2.7rem]">
         Stories of{" "}
         <span className="bg-gradient-to-r from-[#F0D48A] via-[#D7A943] to-[#FFF0BD] bg-clip-text text-transparent">
@@ -260,14 +258,13 @@ const bySection = (name) =>
         & Founders
       </h1>
 
-      {/* Description */}
+  
       <p className="mt-4 max-w-2xl text-sm leading-6 text-white/85 sm:mt-5 sm:text-base sm:leading-7">
         Explore complete biographies, career journeys, defining achievements
         and leadership philosophies of influential business tycoons, sports
         champions, visionary startup founders and celebrated actors.
       </p>
 
-      {/* Action Buttons */}
       <div className="mt-6 flex flex-wrap gap-2.5 sm:mt-7 sm:gap-3">
         <Link
           to="/biography/view-all/ceo"
@@ -301,7 +298,7 @@ const bySection = (name) =>
     </div>
   </div>
 
-  {/* Bottom accent */}
+
   <div className="absolute inset-x-0 bottom-0 z-10 h-1 bg-gradient-to-r from-[#A87922] via-[#F0D48A] to-[#A87922]" />
 </section>
 

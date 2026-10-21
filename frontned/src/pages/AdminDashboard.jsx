@@ -633,7 +633,7 @@ function AuthScreen({ mode, onAuth }) {
         else onAuth(data.admin);
       }
     } catch (err) {
-      setError("Server se connect nahi ho paya.");
+      setError("Unable to connect to the server.");
     } finally {
       setLoading(false);
     }
@@ -777,7 +777,7 @@ function CrudSection({
       }
     } catch (err) {
       console.error("Error saving data:", err);
-      notify("Server se connect nahi ho paya.", "error");
+      notify("Unable to connect to the server.", "error");
     } finally {
       setLoading(false);
     }
@@ -802,7 +802,7 @@ function CrudSection({
       }
     } catch (err) {
       console.error("Error deleting:", err);
-      notify("Server se connect nahi ho paya.", "error");
+      notify("Unable to connect to the server.", "error");
     }
   };
 

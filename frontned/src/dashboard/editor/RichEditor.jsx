@@ -121,14 +121,14 @@ export default function RichEditor({
       />
 
       <style>{`
-        /* Editor ki total height fix. Toolbar upar, content neeche scroll hoga. */
+
         .rich-editor .quill {
           display: flex;
           flex-direction: column;
           height: var(--editor-height);
         }
 
-        /* Toolbar kabhi hide ya scroll nahi hoga */
+
         .rich-editor .ql-toolbar.ql-snow {
           display: block !important;
           visibility: visible !important;
@@ -156,7 +156,7 @@ export default function RichEditor({
           color: #1e293b;
         }
 
-        /* Sirf content scroll hoga */
+
         .rich-editor .ql-editor {
           height: 100%;
           overflow-y: auto;

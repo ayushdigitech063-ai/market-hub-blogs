@@ -37,7 +37,7 @@ export default function Dashboard({ admin, onLogout }) {
   };
   const setCount = (key) => (n) => setCounts((c) => ({ ...c, [key]: n }));
 
-  // Overview ke cards (biographies/brands/...) bhi ab Blog Posts page kholte hain
+
   const goTo = (key) => {
     if (BLOG_KEYS.includes(key)) {
       setBlogType(key);
@@ -100,7 +100,7 @@ export default function Dashboard({ admin, onLogout }) {
             <Overview counts={counts} admin={admin} goTo={goTo} />
           </div>
 
-          {/* ONE blog page: Biography / Brand / Sliding Company / Latest Article */}
+
           <Section id="blogs" tab={tab} counts={{ ...counts, blogs: blogsTotal }}>
             <UnifiedBlogs type={blogType} setType={setBlogType} counts={counts}
               notify={notify} setCount={setCount} />
@@ -158,12 +158,12 @@ export default function Dashboard({ admin, onLogout }) {
             />
           </Section>
    {tab === "notifications" && <NotificationsSection />}
-          {/* Settings: count box hide hota hai (ui.jsx change dekho) */}
+    
           <Section id="settings" tab={tab} counts={counts}>
             <SettingsSection admin={admin} counts={counts} onLogout={onLogout} />
           </Section>
           
-{/* WhatsApp Settings */}
+
 <Section id="whatsappSettings" tab={tab} counts={counts}>
   <WhatsAppSettings notify={notify} />
 </Section>

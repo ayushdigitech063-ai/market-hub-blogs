@@ -278,8 +278,7 @@ export default function SlidingCompanies() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            
-            {/* Header */}
+          
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900">Add New Company</h3>
               <button

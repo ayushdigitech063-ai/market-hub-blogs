@@ -147,7 +147,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Categories */}
+      
           <div>
             <h3 className={headingClass}>Explore Topics</h3>
             <div className={underlineClass} />
