@@ -1,4 +1,3 @@
-
 import {
   UserRound,
   Newspaper,
@@ -222,7 +221,7 @@ export const slidingCompanyFields = [
   },
   {
     name: "tagline",
-    label: "Card Tag (neeche wala text)",
+    label: "Card Tag (text shown at the bottom)",
     placeholder: "VERIFIED PARTNER",
   },
   {
@@ -236,7 +235,7 @@ export const slidingCompanyFields = [
     type: "textarea",
     rows: 2,
     span2: true,
-    placeholder: "Card par dikhne wali short line",
+    placeholder: "Short line displayed on the card.",
   },
   {
     name: "blog",
@@ -245,7 +244,7 @@ export const slidingCompanyFields = [
     rows: 10,
     span2: true,
     placeholder: "Detail page contant",
-    hint: "Naya paragraph = khali line chhodo.",
+    hint: "New paragraph = leave a blank line.",
   },
   {
     name: "features",
@@ -254,7 +253,7 @@ export const slidingCompanyFields = [
     rows: 5,
     span2: true,
     placeholder: "Cloud services\nAI tools",
-    hint: "Har point nayi line me.",
+    hint: "Each point on a new line..",
   },
 ];
 
@@ -276,7 +275,7 @@ export const companyFields = [
     name: "imageURL",
     type: "image",
     label: "Image",
-    placeholder: "Company card ki image ka link",
+    placeholder: "Link to the company card image",
     required: true,
     span2: true,
   },
@@ -301,7 +300,7 @@ export const companyFields = [
     rows: 3,
     span2: true,
     required: true,
-    placeholder: "Company ke baare me short description",
+    placeholder: "Short description about the company",
   },
 ];
 
@@ -356,7 +355,7 @@ export const blogAuthorFields = [
     label: "Expertise",
     placeholder: "Indian Mythology, Storytelling, Philosophy",
     span2: true,
-    hint: "Comma (,) laga kar alag-alag likho.",
+    hint: "Separate them with commas (,).",
   },
   {
     name: "twitter",
@@ -394,7 +393,7 @@ export const brandFields = [
     placeholder: "e.g. vivo-x200-pro",
     required: true,
     lockOnEdit: true,
-    hint: "Chhote akshar, bina space ke. Page ka link /brand/<slug> banta hai.",
+    hint: "Lowercase, no spaces. The page link becomes /brand/<slug>.",
   },
   {
     name: "brand",
@@ -422,11 +421,11 @@ export const brandFields = [
   },
   {
     name: "featured",
-    label: "Home page par dikhana hai?",
+    label: "Show on Home page?",
     type: "select",
     options: [
-      { value: "true", label: "Haan, Featured me dikhao" },
-      { value: "false", label: "Nahi" },
+      { value: "true", label: "Yes, show in Featured" },
+      { value: "false", label: "No" },
     ],
   },
   {
@@ -434,7 +433,7 @@ export const brandFields = [
     label: "Order (card position)",
     type: "number",
     placeholder: "e.g. 1",
-    hint: "Chota number pehle dikhega.",
+    hint: "Smaller number is shown first.",
   },
   {
     name: "description",
@@ -442,7 +441,7 @@ export const brandFields = [
     type: "textarea",
     rows: 2,
     span2: true,
-    placeholder: "Card par dikhne wali chhoti summary",
+    placeholder: "Short summary shown on the card",
   },
   {
     name: "blog",
@@ -450,8 +449,8 @@ export const brandFields = [
     type: "textarea",
     rows: 10,
     span2: true,
-    placeholder: "Poora blog yahan likho...",
-    hint: "Naya paragraph = khali line chhodo.",
+    placeholder: "Write the full blog here...",
+    hint: "New paragraph = leave a blank line.",
   },
   {
     name: "features",
@@ -460,7 +459,7 @@ export const brandFields = [
     rows: 5,
     span2: true,
     placeholder: "4G connectivity\n1000 mAh battery\nPhysical keypad",
-    hint: "Har feature nayi line me likho.",
+    hint: "Write each feature on a new line.",
   },
 ];
 

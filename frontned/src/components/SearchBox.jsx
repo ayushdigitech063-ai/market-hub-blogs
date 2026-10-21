@@ -12,7 +12,7 @@ const MAX_SUGGESTIONS = 8;
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// Title me jo letters type kiye hain unhe highlight karta hai
+
 function Highlight({ text, words }) {
   if (!words.length) return text;
   const re = new RegExp(`(${words.map(escapeRe).join("|")})`, "ig");

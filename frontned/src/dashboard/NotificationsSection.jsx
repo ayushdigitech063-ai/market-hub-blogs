@@ -53,7 +53,6 @@ export default function NotificationsSection() {
 
   const configs = useMemo(() => buildConfigs({ authors }), [authors]);
 
-  // Allow/Reject ka error us blog ke card me hi dikhta hai
   const setItemError = (id, msg) => setItemErrors((x) => ({ ...x, [id]: msg }));
 
   const load = useCallback(() => {
@@ -89,8 +88,6 @@ export default function NotificationsSection() {
     load();
     window.dispatchEvent(new Event("submissions-changed"));
   };
-
-  // Allow: admin panel wahi payload banata hai jo normally save par banta, phir sahi collection me save
   const approve = async (s) => {
     setBusyId(s._id);
     setItemError(s._id, "");
@@ -256,7 +253,7 @@ export default function NotificationsSection() {
                   )}
 
                   {open && (
-                    // contentHtml backend par sanitize hoke save hota hai, isliye yaha render karna safe hai
+              
                     <div
                       className="mt-3 max-h-96 overflow-y-auto rounded-lg border border-orange-100 bg-orange-50/30 p-4 text-sm text-slate-700 [&_a]:text-orange-600 [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h3]:mb-2 [&_h3]:font-bold [&_img]:max-w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
                       dangerouslySetInnerHTML={{ __html: f.contentHtml || "" }}

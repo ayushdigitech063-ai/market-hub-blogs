@@ -2,8 +2,6 @@ import {
   biographyConfig, brandConfig, slidingCompanyConfig, latestArticleConfig,
   articleConfig, companyConfig, buildBlogArticleConfig,
 } from "./postConfigs";
-
-// UnifiedBlogs jaisa hi config map - public popup aur admin Notifications dono yahi use karte hain
 export const buildConfigs = ({ authors = [], companies = [] } = {}) => {
   const companyOptions = companies.map((c) => ({ value: c.slug, label: c.name }));
   return {

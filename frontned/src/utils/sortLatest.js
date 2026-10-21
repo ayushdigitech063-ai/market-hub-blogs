@@ -1,17 +1,9 @@
-// src/utils/sortLatest.js
-// Global helper: kisi bhi list ko "sabse naya pehle" sort karta hai.
-// Biography, Brand, Sliding Company, Latest Article, Article, Company, Author Article, sab par chalta hai.
 
 const toNumber = (v) => {
   const n = parseInt(String(v ?? "").replace(/\D/g, ""), 10);
   return Number.isNaN(n) ? 0 : n;
 };
 
-// Item ka "banne ka time" nikalta hai. Jo pehle mile wahi use hota hai:
-// 1. publishDate  (admin panel ka naya field, ISO)
-// 2. createdAt    (backend timestamp)
-// 3. date         (purane items ka text, jaise "Oct 8, 2026")
-// 4. Mongo _id    (ObjectId ke pehle 8 hex = timestamp)
 export const getItemTime = (item) => {
   if (!item) return 0;
 
@@ -26,15 +18,8 @@ export const getItemTime = (item) => {
   return 0;
 };
 
-/**
- * Newest first.
- *
- * sortLatestFirst(items)                       -> sirf date se (naya sabse upar)
- * sortLatestFirst(items, { pinByOrder: true }) -> pehle admin ka "order" (chota number pehle),
- *                                                 same order wale items me naya pehle
- *
- * Original array change nahi hota, naya array milta hai.
- */
+
+
 export const sortLatestFirst = (items, { pinByOrder = false } = {}) => {
   if (!Array.isArray(items)) return [];
 
@@ -48,7 +33,7 @@ export const sortLatestFirst = (items, { pinByOrder = false } = {}) => {
     const diff = getItemTime(b) - getItemTime(a);
     if (diff !== 0) return diff;
 
-    // Same time ho to bade ID wala (naya) pehle: 101, art-078 waghera
+   
     return toNumber(b?.id) - toNumber(a?.id);
   });
 };

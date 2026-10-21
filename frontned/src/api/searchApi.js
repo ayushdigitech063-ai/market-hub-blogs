@@ -14,7 +14,7 @@ const API = "https://market-hub-blogs-backend.onrender.com/api";
 
 const CACHE_MS = 5 * 60 * 1000;
 
-// ---------- helpers ----------
+
 const decode = (s) => {
   try {
     return JSON.parse(decodeURIComponent(s));
@@ -170,7 +170,6 @@ export const TYPE_ICONS = {
   Author: UserRound,
 };
 
-// ---------- index ----------
 const toItem = (source, x, index) => {
   const title = cleanText(source.title(x));
   const url = source.url(x);
@@ -229,8 +228,6 @@ async function buildIndex() {
 
 let indexPromise = null;
 let loadedAt = 0;
-
-// Pehli baar (ya cache purana hone par) saara data laata hai, baaki baar turant wahi cache deta hai
 export const loadSearchIndex = () => {
   if (!indexPromise || Date.now() - loadedAt > CACHE_MS) {
     loadedAt = Date.now();
@@ -243,7 +240,7 @@ export const loadSearchIndex = () => {
   return indexPromise;
 };
 
-// ---------- search ----------
+
 export const searchWords = (query) =>
   String(query || "")
     .toLowerCase()

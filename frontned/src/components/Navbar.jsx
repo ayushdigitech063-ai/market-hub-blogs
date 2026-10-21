@@ -29,9 +29,9 @@ export default function Navbar() {
     <>
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-[0_4px_24px_-12px_rgba(15,23,42,0.16)] backdrop-blur-xl">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
-          {/* Main Navbar */}
+      
           <div className="flex min-h-[76px] items-center justify-between gap-3 lg:gap-5">
-            {/* Logo */}
+      
             <Link
               to="/"
               aria-label="Market Digital Insights home"
@@ -46,14 +46,12 @@ export default function Navbar() {
               </div>
             </Link>
 
-            {/* Desktop Search */}
             <div className="hidden min-w-[160px] flex-1 justify-center px-1 md:flex lg:px-3">
               <div className="w-full max-w-[340px]">
                 <SearchBox />
               </div>
             </div>
 
-            {/* Desktop Navigation */}
             <nav
               aria-label="Main navigation"
               className="hidden shrink-0 items-center gap-0.5 lg:flex"
@@ -77,7 +75,7 @@ export default function Navbar() {
               ))}
             </nav>
 
-            {/* Add To Blog + Mobile Menu */}
+     
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
@@ -101,7 +99,7 @@ export default function Navbar() {
                 <span className="whitespace-nowrap">Add To Blog</span>
               </button>
 
-              {/* Mobile Menu Button */}
+
               <button
                 type="button"
                 onClick={() => setMobileOpen(!mobileOpen)}
@@ -146,7 +144,7 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Tablet Navigation */}
+
           <nav
             aria-label="Tablet navigation"
             className="hidden items-center justify-center gap-1 overflow-x-auto border-t border-slate-100 py-2 md:flex lg:hidden"
@@ -163,12 +161,12 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Mobile Search */}
+
           <div className="pb-3 md:hidden">
             <SearchBox />
           </div>
 
-          {/* Mobile Navigation */}
+
           {mobileOpen && (
             <div className="mb-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/5 md:hidden">
               <nav aria-label="Mobile navigation" className="flex flex-col gap-1">
@@ -216,11 +214,10 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Bottom Accent */}
+
         <div className="h-[2px] bg-gradient-to-r from-orange-200 via-orange-500 to-rose-400" />
       </header>
 
-      {/* Blog Submission Modal */}
       {isSubscribeOpen && (
         <Suspense fallback={null}>
           <SubmitBlogModal
@@ -229,7 +226,7 @@ export default function Navbar() {
         </Suspense>
       )}
 
-      {/* Submission Status */}
+
       <SubmissionStatus />
     </>
   );

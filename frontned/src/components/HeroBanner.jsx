@@ -135,7 +135,7 @@ const toPlainText = (value) => {
     .trim();
 };
 
-// Full blog ko banner mein dikhane ke bajaye short summary.
+
 const getDescription = (item) => {
   const candidates = [
     item?.excerpt,
@@ -249,8 +249,7 @@ export default function HeroBanner() {
     setLoading(true);
 
     try {
-      // Har API ko alag fetch karo, taaki ek API fail ho to
-      // baaki categories ka data phir bhi banner mein aa sake.
+   
       const responses = await Promise.all(
         API_ENDPOINTS.map(async ({ type, url }) => {
           try {
@@ -281,7 +280,7 @@ export default function HeroBanner() {
         responses.map(({ type, items }) => [type, items])
       );
 
-      // Har category se exactly ek latest record.
+  
       const latestSlides = [
         ...getLatestOne(dataByType.article || [], "article"),
         ...getLatestOne(dataByType.biography || [], "biography"),
@@ -366,8 +365,6 @@ export default function HeroBanner() {
   }
 
   const slide = slides[currentIndex];
-
-  // Description kabhi title se hi shuru hoti hai (duplicate dikhta tha) — sirf display ke liye hata rahe hain.
   const bannerTitle = slide._bannerTitle || "";
   const rawDescription = slide._bannerDescription || "";
   const bannerDescription =
@@ -383,7 +380,7 @@ export default function HeroBanner() {
   return (
    <section className="w-full">
   <div className="relative isolate min-h-[460px] overflow-hidden bg-[#17243D] sm:min-h-[490px] lg:min-h-[520px]">
-        {/* Image: mobile par poore banner me, desktop par right side me */}
+     
         <div className="absolute inset-0 -z-20 lg:left-auto lg:w-[58%]">
           {slide._bannerImage && !imageFailed && (
             <img
@@ -396,7 +393,7 @@ export default function HeroBanner() {
           )}
         </div>
 
-        {/* Overlays: mobile par text padhne layak dark, desktop par left se smooth fade */}
+   
         <div className="absolute inset-0 -z-10 bg-[#111D32]/80 lg:hidden" />
         <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-[#17243D] from-[40%] to-transparent to-[75%] lg:block" />
         <div className="absolute inset-x-0 bottom-0 -z-10 h-1/3 bg-gradient-to-t from-[#111D32]/70 to-transparent" />

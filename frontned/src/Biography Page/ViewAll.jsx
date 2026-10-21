@@ -8,7 +8,7 @@ import { SOCIAL_ICONS, getSocialLinks } from "../data/Biographysocials.js";
 const hasAll = (haystack, needles) =>
   needles.length > 0 && needles.every((n) => haystack.includes(n));
 
-// Naya add hua profile sabse pehle (Mongo _id time ke hisaab se badhta hai)
+
 const newestFirst = (a, b) => String(b._id || "").localeCompare(String(a._id || ""));
 
 const SHOW_KEYS = ["twitter", "instagram", "linkedin"];
@@ -131,7 +131,6 @@ export default function ViewAll() {
         </div>
       </section>
 
-      {/* ===== PROFILES GRID SECTION ===== */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="mb-8 flex items-center justify-between border-b border-stone-200 pb-4">
           <div className="flex items-center gap-3">

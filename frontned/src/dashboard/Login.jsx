@@ -41,7 +41,7 @@ export default function Login({ mode, onAuth }) {
         else onAuth(data.admin);
       }
     } catch (err) {
-      setError("Server se connect nahi ho paya.");
+      setError("Unable to connect to the server.");
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function Login({ mode, onAuth }) {
           </span>
           <h1 className="mt-4 text-2xl font-bold">{isRegister ? "Create Admin Account" : "Admin Login"}</h1>
           <p className="mt-1 text-sm text-white/90">
-            {isRegister ? "Naya admin account banao" : "Please Login  Your Account"}
+           {isRegister ? "Create a New Admin Account" : "Please Log In to Your Account"}
           </p>
         </div>
 

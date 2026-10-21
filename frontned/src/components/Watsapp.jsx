@@ -36,14 +36,14 @@ const Watsapp = () => {
           });
         }
       } catch (error) {
-        // Keep the existing default number if the API is unavailable.
+
         console.error("WhatsApp settings error:", error);
       }
     };
 
     loadSettings();
 
-    // Refresh settings periodically while the page remains open.
+
     const intervalId = window.setInterval(loadSettings, 30000);
 
     return () => {

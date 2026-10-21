@@ -94,7 +94,7 @@ export default function PostSection({ config, notify, onCount }) {
       }
     } catch (err) {
       console.error("Error saving data:", err);
-      notify("Server se connect nahi ho paya.", "error");
+      notify("Unable to connect to the server.", "error");
     } finally {
       setSaving(false);
     }
@@ -112,7 +112,7 @@ export default function PostSection({ config, notify, onCount }) {
       }
     } catch (err) {
       console.error("Error deleting:", err);
-      notify("Server se connect nahi ho paya.", "error");
+      notify("Unable to connect to the server.", "error");
     }
   };
 
