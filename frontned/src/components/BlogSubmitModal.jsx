@@ -92,6 +92,7 @@ export default function BlogSubmitModal({ open, onClose }) {
                 <label className={labelClass}>Email Address *</label>
                 <input required type="email" value={form.email} onChange={set("email")} placeholder="Enter your email" className={inputClass} />
               </div>
+              
             </div>
 
             <div>

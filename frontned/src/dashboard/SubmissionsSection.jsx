@@ -3,7 +3,7 @@ import { Check, X, Bell } from "lucide-react";
 import { API, authFetch } from "./config";
 import { Card } from "./ui";
 
-// Sidebar badge ke liye pending count (30 sec me refresh)
+
 export function usePendingCount() {
   const [count, setCount] = useState(0);
 

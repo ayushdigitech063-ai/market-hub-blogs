@@ -101,7 +101,7 @@ export default function PostSection({ config, notify, onCount }) {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Kya aap sach mein is ${config.singular} ko delete karna chahte hain?`)) return;
+if (!window.confirm(`Are you sure you want to delete this ${config.singular}?`)) return;
     try {
       const res = await authFetch(config.deleteUrl(config.getKey(item)), { method: "DELETE" });
       if (res.ok) {

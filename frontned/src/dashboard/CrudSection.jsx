@@ -106,7 +106,7 @@ export default function CrudSection({
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Kya aap sach mein is ${singular} ko delete karna chahte hain?`)) return;
+    if (!window.confirm(`Are you sure you want to delete this ${singular}?`)) return;
     try {
       const res = await authFetch(deleteUrl(getKey(item)), { method: "DELETE" });
       if (res.ok) {
