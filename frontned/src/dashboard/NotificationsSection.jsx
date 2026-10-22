@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, X, ChevronDown, ChevronUp } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, X, Eye } from "lucide-react";
 import { API, authFetch } from "./config";
 import { inputClass } from "./ui";
 import { BLOG_TYPES } from "./UnifiedBlogs";
@@ -88,6 +89,15 @@ export default function NotificationsSection() {
     load();
     window.dispatchEvent(new Event("submissions-changed"));
   };
+
+  // Allow / Reject ke baad user ko mail
+  const notifyDecision = (id) =>
+    authFetch(`${API}/otp/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+
   const approve = async (s) => {
     setBusyId(s._id);
     setItemError(s._id, "");
@@ -118,6 +128,7 @@ export default function NotificationsSection() {
 
       const mark = await authFetch(`${API}/submissions/${s._id}/approve`, { method: "PUT" });
       if (!mark.ok) throw new Error("Post published, but status could not be updated.");
+      notifyDecision(s._id);
       refresh();
     } catch (err) {
       setItemError(s._id, err.message);
@@ -132,6 +143,7 @@ export default function NotificationsSection() {
     try {
       const res = await authFetch(`${API}/submissions/${s._id}/reject`, { method: "PUT" });
       if (!res.ok) throw new Error("Reject failed");
+      notifyDecision(s._id);
       refresh();
     } catch (err) {
       setItemError(s._id, err.message);
@@ -139,6 +151,21 @@ export default function NotificationsSection() {
       setBusyId(null);
     }
   };
+
+  const viewing = openId ? list.find((s) => s._id === openId) : null;
+  const vf = viewing?.form || {};
+  const detailRows = viewing
+    ? [
+        ["Name", viewing.name],
+        ["Email", viewing.email],
+        ["Address", viewing.address],
+        ["Post type", TYPE_META[viewing.postType]?.label],
+        ["Category", viewing.category],
+        ["Role", vf.role],
+        ["Slug", vf.slug],
+        ["Submitted on", viewing.createdAt ? new Date(viewing.createdAt).toLocaleString("en-IN") : ""],
+      ].filter(([, v]) => v)
+    : [];
 
   return (
     <div className="space-y-5">
@@ -171,7 +198,6 @@ export default function NotificationsSection() {
               const f = s.form || {};
               const st = STATUS[s.status] || STATUS.pending;
               const tm = TYPE_META[s.postType];
-              const open = openId === s._id;
               const needsAuthor = s.postType === "blogArticles";
               return (
                 <div key={s._id} className="py-4">
@@ -193,30 +219,23 @@ export default function NotificationsSection() {
                           {s.category ? ` · ${s.category}` : ""} · {new Date(s.createdAt).toLocaleString("en-IN")}
                         </p>
                         {f.excerpt && <p className="mt-1.5 line-clamp-2 text-xs text-slate-600">{f.excerpt}</p>}
-                        <button
-                          onClick={() => setOpenId(open ? null : s._id)}
-                          className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-orange-600"
-                        >
-                          {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                          {open ? "Hide content" : "View content"}
-                        </button>
                       </div>
                     </div>
 
-                    {s.status !== "approved" && (
-                      <div className="flex shrink-0 flex-col gap-2 sm:w-56">
-                        {needsAuthor && (
-                          <select
-                            value={picked[s._id] || ""}
-                            onChange={(e) => setPicked((x) => ({ ...x, [s._id]: e.target.value }))}
-                            className={inputClass}
-                          >
-                            <option value="">Select author to publish under</option>
-                            {authors.map((a) => (
-                              <option key={a.id} value={a.id}>{a.name}</option>
-                            ))}
-                          </select>
-                        )}
+                    <div className="flex shrink-0 flex-col gap-2 sm:w-56">
+                      {s.status !== "approved" && needsAuthor && (
+                        <select
+                          value={picked[s._id] || ""}
+                          onChange={(e) => setPicked((x) => ({ ...x, [s._id]: e.target.value }))}
+                          className={inputClass}
+                        >
+                          <option value="">Select author to publish under</option>
+                          {authors.map((a) => (
+                            <option key={a.id} value={a.id}>{a.name}</option>
+                          ))}
+                        </select>
+                      )}
+                      {s.status !== "approved" && (
                         <div className="flex gap-2">
                           <button
                             disabled={busyId === s._id || (needsAuthor && !picked[s._id])}
@@ -235,8 +254,14 @@ export default function NotificationsSection() {
                             </button>
                           )}
                         </div>
-                      </div>
-                    )}
+                      )}
+                      <button
+                        onClick={() => setOpenId(s._id)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-600 transition hover:bg-orange-100"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> View
+                      </button>
+                    </div>
                   </div>
 
                   {itemErrors[s._id] && s.status !== "approved" && (
@@ -251,20 +276,78 @@ export default function NotificationsSection() {
                       </button>
                     </div>
                   )}
-
-                  {open && (
-              
-                    <div
-                      className="mt-3 max-h-96 overflow-y-auto rounded-lg border border-orange-100 bg-orange-50/30 p-4 text-sm text-slate-700 [&_a]:text-orange-600 [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h3]:mb-2 [&_h3]:font-bold [&_img]:max-w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
-                      dangerouslySetInnerHTML={{ __html: f.contentHtml || "" }}
-                    />
-                  )}
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {viewing &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-stone-900/60 p-3 backdrop-blur-sm sm:p-6"
+            onClick={() => setOpenId(null)}
+          >
+            <div
+              className="relative my-4 w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setOpenId(null)}
+                aria-label="Close"
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-slate-600 transition hover:bg-amber-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="flex gap-3 pr-10">
+                {vf.image && (
+                  <img src={vf.image} alt="" className="h-16 w-16 shrink-0 rounded-xl border border-orange-100 object-cover" />
+                )}
+                <div className="min-w-0">
+                  <h3 className="text-lg font-extrabold text-slate-900">{viewing.title}</h3>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {TYPE_META[viewing.postType] && (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${TYPE_META[viewing.postType].badge}`}>
+                        {TYPE_META[viewing.postType].label}
+                      </span>
+                    )}
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${(STATUS[viewing.status] || STATUS.pending).cls}`}>
+                      {(STATUS[viewing.status] || STATUS.pending).label}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+                <p className="mb-3 text-xs font-extrabold uppercase tracking-wider text-orange-600">User Details</p>
+                <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                  {detailRows.map(([label, value]) => (
+                    <div key={label} className="min-w-0">
+                      <dt className="text-[11px] font-semibold text-slate-500">{label}</dt>
+                      <dd className="break-words text-sm font-semibold text-slate-900">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {vf.excerpt && (
+                  <div className="mt-3">
+                    <dt className="text-[11px] font-semibold text-slate-500">Summary</dt>
+                    <dd className="text-sm text-slate-700">{vf.excerpt}</dd>
+                  </div>
+                )}
+              </div>
+
+              <p className="mb-2 mt-5 text-xs font-extrabold uppercase tracking-wider text-orange-600">Blog Content</p>
+              <div
+                className="max-h-[50vh] overflow-y-auto rounded-xl border border-orange-100 p-4 text-sm text-slate-700 [&_a]:text-orange-600 [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h3]:mb-2 [&_h3]:font-bold [&_img]:max-w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{ __html: vf.contentHtml || "" }}
+              />
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

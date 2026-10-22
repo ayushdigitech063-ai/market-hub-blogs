@@ -1,13 +1,11 @@
 
-export const API = "https://market-hub-blogs-backend.onrender.com/api";
+export const API =  "http://localhost:5000/api";
 
 export const TOKEN_KEY = "admin_token";
-
 
 export const SITE_URL = (
   import.meta.env.VITE_SITE_URL || window.location.origin
 ).replace(/\/+$/, "");
-
 
 export const authFetch = (url, opts = {}) => {
   const token = localStorage.getItem(TOKEN_KEY);
