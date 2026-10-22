@@ -16,6 +16,13 @@ const API = "https://market-hub-blogs-backend.onrender.com/api";
 
 const isLive = (x) => x && x.status !== "draft";
 
+const ARTICLE_BASE = "/article";
+
+const articleLink = (a) =>
+  a.__source === "latest"
+    ? `/latest-article/${a.slug || a._id}`
+    : `${ARTICLE_BASE}/${a.id ?? a.slug ?? a._id}`;
+
 // API kabhi direct array aur kabhi { items: [...] } / { articles: [...] } return karti hai.
 const getList = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -161,15 +168,18 @@ export default function CompanyDetail() {
         try {
           // Articles alag-alag APIs mein ho sakte hain; dono sources check karo.
           const endpoints = [
-            `${API}/articles`,
-            `${API}/latest-articles?all=true`,
+            { url: `${API}/articles`, source: "article" },
+            { url: `${API}/latest-articles?all=true`, source: "latest" },
           ];
 
           const responses = await Promise.allSettled(
-            endpoints.map(async (url) => {
+            endpoints.map(async ({ url, source }) => {
               const res = await fetch(url);
               if (!res.ok) return [];
-              return getList(await res.json());
+              return getList(await res.json()).map((item) => ({
+                ...item,
+                __source: source,
+              }));
             })
           );
 
@@ -474,7 +484,7 @@ export default function CompanyDetail() {
                 return (
                   <Link
                     key={key}
-                    to={`/latest-article/${a.slug || a._id}`}
+                    to={articleLink(a)}
                     className="group flex w-[82%] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-200 hover:shadow-lg hover:shadow-sky-900/10 sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
                   >
                     <div className="relative aspect-[16/9] overflow-hidden bg-slate-100">

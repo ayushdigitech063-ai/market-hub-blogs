@@ -74,7 +74,7 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
                 type: "select",
                 options: companyOptions,
                 placeholder: "Select a company (optional)",
-                hint: "Jis company ko select karoge, us company ke page par ye article Related Articles me dikhega.",
+               hint: "The article will appear in the Related Articles section on the page of the company you select.",
               }
             : f
         ),

@@ -281,13 +281,12 @@ export default function HeroBanner() {
       );
 
   
-      const latestSlides = [
-        ...getLatestOne(dataByType.article || [], "article"),
-        ...getLatestOne(dataByType.biography || [], "biography"),
-        ...getLatestOne(dataByType.company || [], "company"),
-        ...getLatestOne(dataByType.brand || [], "brand"),
-      ];
-
+     const latestSlides = [
+  ...getLatestOne(dataByType.article || [], "article"),
+  ...getLatestOne(dataByType.biography || [], "biography"),
+  ...getLatestOne(dataByType.company || [], "company"),
+  ...getLatestOne(dataByType.brand || [], "brand"),
+].sort((a, b) => getDateValue(b) - getDateValue(a));
       setSlides(latestSlides);
       setCurrentIndex(0);
     } catch (error) {
@@ -378,9 +377,8 @@ export default function HeroBanner() {
     "flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/10 text-xl leading-none text-white backdrop-blur transition hover:bg-white hover:text-[#17243D]";
 
   return (
-   <section className="w-full">
-  <div className="relative isolate min-h-[460px] overflow-hidden bg-[#17243D] sm:min-h-[490px] lg:min-h-[520px]">
-     
+  <section className="w-full">
+  <div className="relative isolate min-h-[560px] overflow-hidden bg-[#17243D] sm:min-h-[640px] lg:min-h-[calc(100vh-250px)]">   
         <div className="absolute inset-0 -z-20 lg:left-auto lg:w-[58%]">
           {slide._bannerImage && !imageFailed && (
             <img
@@ -398,7 +396,7 @@ export default function HeroBanner() {
         <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-[#17243D] from-[40%] to-transparent to-[75%] lg:block" />
         <div className="absolute inset-x-0 bottom-0 -z-10 h-1/3 bg-gradient-to-t from-[#111D32]/70 to-transparent" />
 
-        <div className="flex min-h-[460px] items-center px-6 pb-24 pt-12 sm:min-h-[490px] sm:px-10 lg:min-h-[520px] lg:px-16">
+      <div className="flex min-h-[560px] items-center px-6 pb-24 pt-12 sm:min-h-[640px] sm:px-10 lg:min-h-[calc(100vh-250px)] lg:px-16">
           <div className="w-full max-w-3xl lg:max-w-[46%]">
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <span className="rounded-full bg-[#E47742] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
@@ -412,7 +410,7 @@ export default function HeroBanner() {
               )}
             </div>
 
-            <h1 className="line-clamp-3 text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-[2.6rem] xl:text-5xl">
+         <h1 className="line-clamp-2 text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
               {slide._bannerTitle}
             </h1>
 
