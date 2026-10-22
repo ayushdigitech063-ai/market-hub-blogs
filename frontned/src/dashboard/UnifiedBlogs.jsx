@@ -186,7 +186,7 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
 
   const handleDelete = async (t, item) => {
     const c = configs[t];
-    if (!window.confirm(`Kya aap sach mein is ${c.singular} ko delete karna chahte hain?`)) return;
+    if (!window.confirm(`Are you sure you want to delete this ${c.singular}?`)) return;
     try {
       const res = await authFetch(c.deleteUrl(c.getKey(item)), { method: "DELETE" });
       if (res.ok) {
