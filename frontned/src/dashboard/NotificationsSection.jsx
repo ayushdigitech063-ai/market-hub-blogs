@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, X, Eye } from "lucide-react";
 import { API, authFetch } from "./config";
@@ -51,17 +51,29 @@ export default function NotificationsSection() {
   const [error, setError] = useState("");
   const [itemErrors, setItemErrors] = useState({});
   const [loading, setLoading] = useState(true);
+  const loadingRef = useRef(false);
 
   const configs = useMemo(() => buildConfigs({ authors }), [authors]);
 
   const setItemError = (id, msg) => setItemErrors((x) => ({ ...x, [id]: msg }));
 
-  const load = useCallback(() => {
-    authFetch(`${API}/submissions`)
-      .then((r) => r.json())
-      .then((d) => setList(Array.isArray(d) ? d : []))
-      .catch(() => setError("Could not load submissions."))
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    // Prevent overlapping requests from initial load + interval refresh.
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+
+    try {
+      const res = await authFetch(`${API}/submissions`);
+      if (!res.ok) throw new Error("Could not load submissions.");
+      const data = await res.json();
+      setList(Array.isArray(data) ? data : []);
+      setError("");
+    } catch {
+      setError("Could not load submissions.");
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
   }, []);
 
   useEffect(() => {
@@ -85,8 +97,7 @@ export default function NotificationsSection() {
   );
   const visible = tab === "all" ? list : list.filter((s) => s.status === tab);
 
-  const refresh = () => {
-    load();
+  const refreshCounts = () => {
     window.dispatchEvent(new Event("submissions-changed"));
   };
 
@@ -128,8 +139,15 @@ export default function NotificationsSection() {
 
       const mark = await authFetch(`${API}/submissions/${s._id}/approve`, { method: "PUT" });
       if (!mark.ok) throw new Error("Post published, but status could not be updated.");
-      notifyDecision(s._id);
-      refresh();
+      // Update this row immediately; avoid waiting for another full-list request.
+      setList((current) =>
+        current.map((item) =>
+          item._id === s._id ? { ...item, status: "approved" } : item
+        )
+      );
+      refreshCounts();
+      // Email notification is background work and should not delay the UI.
+      void notifyDecision(s._id);
     } catch (err) {
       setItemError(s._id, err.message);
     } finally {
@@ -138,15 +156,33 @@ export default function NotificationsSection() {
   };
 
   const reject = async (s) => {
+    const previousStatus = s.status;
+
     setBusyId(s._id);
     setItemError(s._id, "");
+
+    // Optimistic UI: show rejection immediately while the server saves it.
+    setList((current) =>
+      current.map((item) =>
+        item._id === s._id ? { ...item, status: "rejected" } : item
+      )
+    );
+
     try {
-      const res = await authFetch(`${API}/submissions/${s._id}/reject`, { method: "PUT" });
+      const res = await authFetch(`${API}/submissions/${s._id}/reject`, {
+        method: "PUT",
+      });
       if (!res.ok) throw new Error("Reject failed");
-      notifyDecision(s._id);
-      refresh();
+
+      refreshCounts();
+      void notifyDecision(s._id);
     } catch (err) {
-      setItemError(s._id, err.message);
+      setList((current) =>
+        current.map((item) =>
+          item._id === s._id ? { ...item, status: previousStatus } : item
+        )
+      );
+      setItemError(s._id, err.message || "Reject failed");
     } finally {
       setBusyId(null);
     }
@@ -242,7 +278,11 @@ export default function NotificationsSection() {
                             onClick={() => approve(s)}
                             className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50"
                           >
-                            <Check className="h-3.5 w-3.5" /> Allow
+                            {busyId === s._id ? (
+                              <><span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-700/30 border-t-emerald-700" /> Publishing...</>
+                            ) : (
+                              <><Check className="h-3.5 w-3.5" /> Allow</>
+                            )}
                           </button>
                           {s.status === "pending" && (
                             <button
@@ -250,7 +290,11 @@ export default function NotificationsSection() {
                               onClick={() => reject(s)}
                               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
                             >
-                              <X className="h-3.5 w-3.5" /> Reject
+                              {busyId === s._id ? (
+                                <><span className="h-3 w-3 animate-spin rounded-full border-2 border-rose-700/30 border-t-rose-700" /> Rejecting...</>
+                              ) : (
+                                <><X className="h-3.5 w-3.5" /> Reject</>
+                              )}
                             </button>
                           )}
                         </div>

@@ -690,12 +690,31 @@ function CrudSection({
   singular, fields, emptyForm, listUrl, createUrl, updateUrl, deleteUrl,
   getKey, toForm, toPayload, getRow, onCount, notify, filters,
 }) {
-  const [items, setItems] = useState([]);
+   const cacheKey = `crud-cache:${listUrl}`;
+  const readCache = () => {
+    try {
+      const c = sessionStorage.getItem(cacheKey);
+      const parsed = c ? JSON.parse(c) : null;
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+  const saveCache = (list) => {
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify(list));
+    } catch {
+      
+    }
+  };
+
+  const [cached] = useState(readCache);
+  const [items, setItems] = useState(cached || []);
   const [form, setForm] = useState(emptyForm);
   const [editingKey, setEditingKey] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [listLoading, setListLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(!cached);
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState({});
 
@@ -705,7 +724,9 @@ function CrudSection({
     try {
       const res = await authFetch(listUrl);
       const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+          const list = Array.isArray(data) ? data : [];
+      setItems(list);
+      saveCache(list);
     } catch (err) {
       console.error(`Error fetching ${singular}:`, err);
     } finally {
@@ -794,7 +815,9 @@ function CrudSection({
     try {
       const res = await authFetch(deleteUrl(getKey(item)), { method: "DELETE" });
       if (res.ok) {
-        setItems((prev) => prev.filter((i) => getKey(i) !== getKey(item)));
+        const next = items.filter((i) => getKey(i) !== getKey(item));
+        setItems(next);
+        saveCache(next);
         if (editingKey === getKey(item)) closeForm();
         notify(`${singular} deleted successfully!`);
       } else {
@@ -929,7 +952,7 @@ function CrudSection({
           <p className="py-8 text-center text-sm font-semibold text-slate-500">Loading...</p>
         ) : filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-500">
-            {items.length === 0 ? "Abhi kuch nahi hai. Upar se pehla add karo!" : "No results match this search or filter."}
+            {items.length === 0 ?"Nothing here yet. Add your first one above!": "No results match this search or filter."}
           </p>
         ) : (
           <div className="divide-y divide-orange-100">
@@ -939,7 +962,7 @@ function CrudSection({
                 <div key={getKey(item)}
                   className="flex flex-col items-start justify-between gap-4 px-2 py-3 transition hover:bg-orange-50/60 sm:flex-row sm:items-center sm:rounded-lg">
                   <div className="flex min-w-0 items-center gap-4">
-                    <img src={row.image || "https://via.placeholder.com/150"} alt={row.title}
+                 <img src={row.image || "https://via.placeholder.com/150"} alt={row.title} loading="lazy" decoding="async"
                       className={`h-11 w-11 shrink-0 border border-orange-100 object-cover ${row.round ? "rounded-full" : "rounded-lg"}`} />
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-semibold text-slate-900">{row.title}</h3>
@@ -1466,8 +1489,25 @@ function Dashboard({ admin, onLogout }) {
 
 
 export default function AdminDashboard() {
-  const [admin, setAdmin] = useState(null);
-  const [checking, setChecking] = useState(true);
+  const readCachedAdmin = () => {
+    try {
+      if (!localStorage.getItem(TOKEN_KEY)) return null;
+      return JSON.parse(localStorage.getItem("admin_profile") || "null");
+    } catch {
+      return null;
+    }
+  };
+  const [admin, setAdmin] = useState(readCachedAdmin);
+  const [checking, setChecking] = useState(() => !readCachedAdmin());
+
+  useEffect(() => {
+    try {
+      if (admin) localStorage.setItem("admin_profile", JSON.stringify(admin));
+      else localStorage.removeItem("admin_profile");
+    } catch {
+      // ignore
+    }
+  }, [admin]);
 
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);

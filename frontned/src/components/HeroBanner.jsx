@@ -11,6 +11,31 @@ const API_ENDPOINTS = [
   { type: "brand", url: `${API_BASE}/brands` },
 ];
 
+const HERO_CACHE_KEY = "market-hub-hero-cache-v2";
+
+const readHeroCache = () => {
+  try {
+    const cached = localStorage.getItem(HERO_CACHE_KEY);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached);
+    return Array.isArray(parsed?.slides) ? parsed.slides : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveHeroCache = (slides) => {
+  try {
+    localStorage.setItem(
+      HERO_CACHE_KEY,
+      JSON.stringify({ savedAt: Date.now(), slides })
+    );
+  } catch {
+    // Cache save na ho to bhi banner chalega.
+  }
+};
+
 const getItems = (response, type) => {
   if (Array.isArray(response)) return response;
   if (!response || typeof response !== "object") return [];
@@ -135,7 +160,6 @@ const toPlainText = (value) => {
     .trim();
 };
 
-
 const getDescription = (item) => {
   const candidates = [
     item?.excerpt,
@@ -166,6 +190,22 @@ const getDateValue = (item) => {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 };
 
+function getLink(item, type) {
+  const slug = getSlug(item);
+
+  switch (type) {
+    case "biography":
+      return `/biography/${slug}`;
+    case "company":
+      return `/company/${slug}`;
+    case "brand":
+      return `/brand/${slug}`;
+    default:
+      return `/latest-article/${slug}`;
+  }
+}
+
+// Sirf wahi fields rakhte hain jo banner me chahiye (cache chhota rahe).
 const getLatestOne = (items, type) => {
   const validItems = items.filter((item) => {
     if (!item || !getSlug(item)) return false;
@@ -186,7 +226,9 @@ const getLatestOne = (items, type) => {
   return latest
     ? [
         {
-          ...latest,
+          slug: getSlug(latest),
+          author: latest.author,
+          date: getPublishedDate(latest),
           _bannerType: type,
           _bannerTitle: getTitle(latest),
           _bannerDescription: getDescription(latest),
@@ -197,21 +239,6 @@ const getLatestOne = (items, type) => {
       ]
     : [];
 };
-
-function getLink(item, type) {
-  const slug = getSlug(item);
-
-  switch (type) {
-    case "biography":
-      return `/biography/${slug}`;
-    case "company":
-      return `/company/${slug}`;
-    case "brand":
-      return `/brand/${slug}`;
-    default:
-      return `/latest-article/${slug}`;
-  }
-}
 
 const getCategoryLabel = (type) => {
   switch (type) {
@@ -240,61 +267,56 @@ const formatDate = (value) => {
 };
 
 export default function HeroBanner() {
-  const [slides, setSlides] = useState([]);
+  const [slides, setSlides] = useState(() => readHeroCache() || []);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !readHeroCache()?.length);
   const [imageFailed, setImageFailed] = useState(false);
 
   const fetchBannerData = useCallback(async () => {
-    setLoading(true);
+    const fresh = {}; // type -> us type ki latest slide
+    const cached = readHeroCache() || [];
+    let hadFailure = false;
 
-    try {
-   
-      const responses = await Promise.all(
-        API_ENDPOINTS.map(async ({ type, url }) => {
-          try {
-            const response = await fetch(url);
+    const rebuild = () => {
+      const merged = [
+        ...Object.values(fresh).flat(),
+        // jo type abhi tak nahi aaya, uski purani cached slide rakho
+        ...cached.filter((s) => !(s._bannerType in fresh)),
+      ].sort((a, b) => getDateValue(b) - getDateValue(a));
 
-            if (!response.ok) {
-              console.error(
-                `Failed to fetch ${type}:`,
-                response.status
-              );
-              return { type, items: [] };
-            }
+      if (merged.length > 0) {
+        setSlides(merged);
+        saveHeroCache(merged);
+        setLoading(false); // pehli slide aate hi loader hata do
+      }
+    };
 
-            const json = await response.json();
+    await Promise.all(
+      API_ENDPOINTS.map(async ({ type, url }) => {
+        try {
+          const response = await fetch(url);
 
-            return {
-              type,
-              items: getItems(json, type),
-            };
-          } catch (error) {
-            console.error(`Error fetching ${type}:`, error);
-            return { type, items: [] };
+          if (!response.ok) {
+            console.error(`Failed to fetch ${type}:`, response.status);
+            hadFailure = true;
+            return;
           }
-        })
-      );
 
-      const dataByType = Object.fromEntries(
-        responses.map(({ type, items }) => [type, items])
-      );
+          const json = await response.json();
 
-  
-     const latestSlides = [
-  ...getLatestOne(dataByType.article || [], "article"),
-  ...getLatestOne(dataByType.biography || [], "biography"),
-  ...getLatestOne(dataByType.company || [], "company"),
-  ...getLatestOne(dataByType.brand || [], "brand"),
-].sort((a, b) => getDateValue(b) - getDateValue(a));
-      setSlides(latestSlides);
-      setCurrentIndex(0);
-    } catch (error) {
-      console.error("Hero banner loading error:", error);
+          fresh[type] = getLatestOne(getItems(json, type), type);
+          rebuild(); // is type ki slide turant screen par
+        } catch (error) {
+          console.error(`Error fetching ${type}:`, error);
+          hadFailure = true;
+        }
+      })
+    );
+
+    if (Object.keys(fresh).length === 0 && !hadFailure) {
       setSlides([]);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -315,6 +337,13 @@ export default function HeroBanner() {
     setImageFailed(false);
   }, [currentIndex]);
 
+  // Naya data aane par index valid rakho.
+  useEffect(() => {
+    setCurrentIndex((index) =>
+      slides.length === 0 ? 0 : Math.min(index, slides.length - 1)
+    );
+  }, [slides.length]);
+
   const previousSlide = () => {
     setCurrentIndex((index) =>
       index === 0 ? slides.length - 1 : index - 1
@@ -325,7 +354,7 @@ export default function HeroBanner() {
     setCurrentIndex((index) => (index + 1) % slides.length);
   };
 
-  if (loading) {
+  if (loading && slides.length === 0) {
     return (
       <section className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex min-h-[400px] items-center justify-center rounded-3xl bg-[#F8F5F0]">
@@ -353,7 +382,10 @@ export default function HeroBanner() {
           </p>
           <button
             type="button"
-            onClick={fetchBannerData}
+            onClick={() => {
+              setLoading(true);
+              fetchBannerData();
+            }}
             className="mt-5 rounded-full bg-[#E47742] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#CF6332]"
           >
             Try Again
@@ -363,7 +395,7 @@ export default function HeroBanner() {
     );
   }
 
-  const slide = slides[currentIndex];
+  const slide = slides[currentIndex] || slides[0];
   const bannerTitle = slide._bannerTitle || "";
   const rawDescription = slide._bannerDescription || "";
   const bannerDescription =
@@ -377,8 +409,8 @@ export default function HeroBanner() {
     "flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/10 text-xl leading-none text-white backdrop-blur transition hover:bg-white hover:text-[#17243D]";
 
   return (
-  <section className="w-full">
-  <div className="relative isolate min-h-[560px] overflow-hidden bg-[#17243D] sm:min-h-[640px] lg:min-h-[calc(100vh-250px)]">   
+    <section className="w-full">
+      <div className="relative isolate min-h-[560px] overflow-hidden bg-[#17243D] sm:min-h-[640px] lg:min-h-[calc(100vh-250px)]">
         <div className="absolute inset-0 -z-20 lg:left-auto lg:w-[58%]">
           {slide._bannerImage && !imageFailed && (
             <img
@@ -386,17 +418,17 @@ export default function HeroBanner() {
               src={slide._bannerImage}
               alt={slide._bannerTitle}
               onError={() => setImageFailed(true)}
+              fetchPriority="high"
               className="h-full w-full object-cover object-[center_18%]"
             />
           )}
         </div>
 
-   
         <div className="absolute inset-0 -z-10 bg-[#111D32]/80 lg:hidden" />
         <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-[#17243D] from-[40%] to-transparent to-[75%] lg:block" />
         <div className="absolute inset-x-0 bottom-0 -z-10 h-1/3 bg-gradient-to-t from-[#111D32]/70 to-transparent" />
 
-      <div className="flex min-h-[560px] items-center px-6 pb-24 pt-12 sm:min-h-[640px] sm:px-10 lg:min-h-[calc(100vh-250px)] lg:px-16">
+        <div className="flex min-h-[560px] items-center px-6 pb-24 pt-12 sm:min-h-[640px] sm:px-10 lg:min-h-[calc(100vh-250px)] lg:px-16">
           <div className="w-full max-w-3xl lg:max-w-[46%]">
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <span className="rounded-full bg-[#E47742] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
@@ -410,7 +442,7 @@ export default function HeroBanner() {
               )}
             </div>
 
-         <h1 className="line-clamp-2 text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
+            <h1 className="line-clamp-2 text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
               {slide._bannerTitle}
             </h1>
 
