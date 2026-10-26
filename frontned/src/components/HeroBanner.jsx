@@ -205,7 +205,7 @@ function getLink(item, type) {
   }
 }
 
-// Sirf wahi fields rakhte hain jo banner me chahiye (cache chhota rahe).
+
 const getLatestOne = (items, type) => {
   const validItems = items.filter((item) => {
     if (!item || !getSlug(item)) return false;
@@ -328,7 +328,7 @@ export default function HeroBanner() {
 
     const timer = window.setInterval(() => {
       setCurrentIndex((index) => (index + 1) % slides.length);
-    }, 6000);
+    }, 1000);
 
     return () => window.clearInterval(timer);
   }, [slides.length]);
@@ -337,7 +337,7 @@ export default function HeroBanner() {
     setImageFailed(false);
   }, [currentIndex]);
 
-  // Naya data aane par index valid rakho.
+
   useEffect(() => {
     setCurrentIndex((index) =>
       slides.length === 0 ? 0 : Math.min(index, slides.length - 1)

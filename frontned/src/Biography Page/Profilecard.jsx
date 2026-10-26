@@ -26,9 +26,9 @@ export default function ProfileCard({ item }) {
     linkedin: rawSocials.linked || rawSocials.linkedin || item?.linkedin,
     website: rawSocials.website || item?.website,
   };
-
+    
   const hasSocials = Object.values(socialLinks).some((url) => Boolean(url));
-
+      
   return (
     <article className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-amber-500/50 hover:shadow-xl">
       <Link to={`/biography/${item.type}/${item.slug}`} className="flex flex-1 flex-col">

@@ -1,8 +1,7 @@
-
-import React from "react";
+import React, { memo } from "react";
 import { Link } from "react-router-dom";
 
-export default function ArticleCard({ article, basePath }) {
+function ArticleCard({ article, basePath }) {
   const url = basePath
     ? `${basePath}/${article.slug}`
     : `/article/${article.id}`;
@@ -18,9 +17,11 @@ export default function ArticleCard({ article, basePath }) {
           src={article.image}
           alt={article.title || "Article image"}
           loading="lazy"
+          decoding="async"
+          width="640"
+          height="416"
           className="h-48 w-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-105 sm:h-52"
         />
-
 
         <div className="pointer-events-none absolute inset-2.5 rounded-xl bg-gradient-to-t from-slate-950/30 via-transparent to-transparent" />
 
@@ -31,11 +32,9 @@ export default function ArticleCard({ article, basePath }) {
         )}
       </Link>
 
-
       <div className="flex flex-1 flex-col p-4 sm:p-5">
 
         <div className="mb-3 h-1 w-10 rounded-full bg-gradient-to-r from-teal-500 to-amber-400 transition-all duration-300 group-hover:w-16" />
-
 
         <Link to={url}>
           <h3 className="line-clamp-2 text-lg font-bold leading-snug tracking-tight text-[#12345A] transition-colors duration-300 group-hover:text-teal-700 sm:text-xl">
@@ -45,7 +44,6 @@ export default function ArticleCard({ article, basePath }) {
 
         <div className="mt-auto pt-5">
           <div className="mb-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-
 
             <div className="flex min-w-0 items-center gap-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-teal-200 bg-teal-50 text-sm font-bold text-teal-800 transition-colors group-hover:border-amber-300 group-hover:bg-amber-50">
@@ -67,7 +65,6 @@ export default function ArticleCard({ article, basePath }) {
             </span>
           </div>
 
-  
           <Link
             to={url}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#12345A] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-teal-600 hover:shadow-md hover:shadow-teal-600/20"
@@ -82,3 +79,5 @@ export default function ArticleCard({ article, basePath }) {
     </article>
   );
 }
+
+export default memo(ArticleCard);

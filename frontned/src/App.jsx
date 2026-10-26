@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,10 +6,11 @@ import {
   useLocation,
   matchPath,
 } from "react-router-dom";
+
+import Preloader from "./components/Preloader";
 import LatestArticleDetail from "./pages/latest-article/[slug]";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
-
 import Footer from "./components/Footer";
 import SlidingCompanyDetail from "./pages/sliding-company/[slug]";
 import AdminDashboard from "./dashboard";
@@ -33,25 +34,28 @@ import AuthorPage from "./pages/AuthorPage";
 function AppContent() {
   const { pathname: rawPathname } = useLocation();
 
-
   const pathname =
-    rawPathname.length > 1 ? rawPathname.replace(/\/+$/, "") : rawPathname;
+    rawPathname.length > 1
+      ? rawPathname.replace(/\/+$/, "")
+      : rawPathname;
 
-  const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isAdminPage =
+    pathname === "/admin" || pathname.startsWith("/admin/");
 
   const isBiographyDetailsPage =
-    !!matchPath("/biography/:type/:slug", pathname) &&
+    (!!matchPath("/biography/:type/:slug", pathname) ||
+      !!matchPath("/biography/:slug", pathname)) &&
     !pathname.startsWith("/biography/view-all/");
 
-
   const isArticleReadPage = !!matchPath("/articles/:slug", pathname);
-
 
   const isHomePage = pathname === "/";
   const isMainArticlesPage = pathname === "/articles";
   const isMainCompaniesPage = pathname === "/companies";
+
   const isMainBiographyPage =
     pathname === "/biography" || pathname === "/biography/ceo";
+
   const isAboutPage = pathname === "/about";
 
   const showNewsletter =
@@ -66,21 +70,18 @@ function AppContent() {
     <div className="flex min-h-screen flex-col bg-gray-50">
       <ScrollToTop />
 
-
       {!isAdminPage && <Navbar />}
 
       <main className="flex-grow">
         <Routes>
-
           <Route path="/" element={<Home />} />
 
-      
           <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/articles/:slug" element={<ArticleReadPage />} />
 
-
           <Route path="/authors" element={<AuthorPage />} />
           <Route path="/author/:authorId" element={<AuthorPage />} />
+
           <Route
             path="/latest-article/:slug"
             element={<LatestArticleDetail />}
@@ -95,39 +96,45 @@ function AppContent() {
             }
           />
 
-
           <Route path="/about" element={<About />} />
 
-  
           <Route path="/article/:id" element={<ArticleDetail />} />
           <Route path="/brand/:slug" element={<BrandDetail />} />
           <Route path="/company/:slug" element={<CompanyDetail />} />
           <Route path="/companies" element={<Companies />} />
 
-
           <Route path="/admin/*" element={<AdminDashboard />} />
 
-
+          {/* Biography homepage */}
           <Route path="/biography" element={<Biography />} />
           <Route path="/biography/ceo" element={<Biography />} />
 
-
-          <Route path="/biography/view-all/:type" element={<ViewAll />} />
+          {/* Biography category listings */}
           <Route
-            path="/sliding-company/:slug"
-            element={<SlidingCompanyDetail />}
+            path="/biography/view-all/:type"
+            element={<ViewAll />}
           />
-          <Route path="/search" element={<SearchResults />} />
 
+          {/* Biography details with category/type */}
           <Route
             path="/biography/:type/:slug"
             element={<Biographydetails />}
           />
+
+          {/* Biography details without category/type */}
+          <Route
+            path="/biography/:slug"
+            element={<Biographydetails />}
+          />
+
+          <Route
+            path="/sliding-company/:slug"
+            element={<SlidingCompanyDetail />}
+          />
+
+          <Route path="/search" element={<SearchResults />} />
         </Routes>
       </main>
-
-
-
 
       {!isAdminPage && <Watsapp />}
 
@@ -139,9 +146,23 @@ function AppContent() {
 }
 
 export default function App() {
+  const [showPreloader, setShowPreloader] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowPreloader(false);
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <>
+      {showPreloader && <Preloader />}
+
+      <Router>
+        <AppContent />
+      </Router>
+    </>
   );
 }
