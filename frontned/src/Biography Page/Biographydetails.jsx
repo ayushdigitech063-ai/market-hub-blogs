@@ -103,7 +103,9 @@ function Fact({ icon: Icon, label, value }) {
 }
 
 export default function BiographyDetails() {
-  const { slug, type: routeType } = useParams();
+const { slug, type: routeType } = useParams();
+
+const biographySlug = slug || routeType;
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -113,8 +115,8 @@ export default function BiographyDetails() {
       .then((data) => {
         const found = data.find(
           (item) =>
-            item.slug === slug ||
-            item.name?.toLowerCase().replace(/\s+/g, "-") === slug
+       item.slug === biographySlug ||
+item.name?.toLowerCase().replace(/\s+/g, "-") === biographySlug
         );
         setProfile(isLive(found) ? found : null);
         setLoading(false);
@@ -123,7 +125,7 @@ export default function BiographyDetails() {
         console.error("Error fetching biography details:", err);
         setLoading(false);
       });
-  }, [slug]);
+}, [biographySlug]);
 
   const rich = useMemo(() => (profile ? getRich(profile) : null), [profile]);
 

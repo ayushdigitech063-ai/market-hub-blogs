@@ -2,15 +2,50 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { fetchSlidingCompanies } from "../api/slidingCompanyApi";
 
+const CACHE_KEY = "sliding_companies_cache";
+let memoryCache = null;
+
+const readCache = () => {
+  if (memoryCache) return memoryCache;
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    memoryCache = Array.isArray(parsed) ? parsed : [];
+    return memoryCache;
+  } catch {
+    return [];
+  }
+};
+
+const writeCache = (data) => {
+  memoryCache = data;
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {}
+};
+
+// Cloudinary image ho to chhota + optimized version use karo (baaki URLs same rahenge)
+const optimizeImage = (url, width = 400) => {
+  if (!url || typeof url !== "string") return url;
+  if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) return url;
+  if (url.includes("/upload/w_") || url.includes("/upload/q_")) return url;
+  return url.replace("/upload/", `/upload/w_${width},q_auto,f_auto/`);
+};
+
 export default function SlidingCompanies() {
   const sliderRef = useRef(null);
   const [active, setActive] = useState(0);
-  const [companies, setCompanies] = useState([]);
+  const [companies, setCompanies] = useState(() => readCache());
 
   useEffect(() => {
     fetchSlidingCompanies()
       .then((data) => {
-        setCompanies(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        // Data same hai to dobara render mat karo
+        setCompanies((prev) =>
+          JSON.stringify(prev) === JSON.stringify(list) ? prev : list
+        );
+        writeCache(list);
       })
       .catch((err) =>
         console.error("Error fetching sliding companies:", err)
@@ -80,7 +115,7 @@ export default function SlidingCompanies() {
 
         return nextIndex;
       });
-    }, 1000);
+    }, 4000);
 
     return () => clearInterval(timer);
   }, [companies.length]);
@@ -160,7 +195,7 @@ export default function SlidingCompanies() {
               msOverflowStyle: "none",
             }}
           >
-            {companies.map((company) => (
+            {companies.map((company, index) => (
               <Link
                 to={`/sliding-company/${company.slug}`}
                 key={company._id}
@@ -172,9 +207,10 @@ export default function SlidingCompanies() {
 
                   {company.imageURL ? (
                     <img
-                      src={company.imageURL}
+                      src={optimizeImage(company.imageURL)}
                       alt={`${company.name} logo`}
-                      loading="lazy"
+                      loading={index < 3 ? "eager" : "lazy"}
+                      decoding="async"
                       className="relative z-10 max-h-[90px] max-w-[78%] object-contain transition-transform duration-500 group-hover:scale-110"
                     />
                   ) : (

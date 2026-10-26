@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getSection } from "../data/biographyFilters";
 import { SOCIAL_ICONS, getSocialLinks } from "../data/Biographysocials.js";
+
+const API_URL = "https://market-hub-blogs-backend.onrender.com/api/biographies/homepage";
+
+const CACHE_KEY = "biographies_homepage_cache_v2";
 
 
 const THEME = {
@@ -31,6 +35,31 @@ const cleanText = (v) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const optimizeImage = (url, width = 600) => {
+  if (!url || typeof url !== "string") return url;
+  if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) return url;
+  if (url.includes("/upload/w_") || url.includes("/upload/q_")) return url;
+  return url.replace("/upload/", `/upload/w_${width},q_auto,f_auto/`);
+};
+
+const readCache = () => {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeCache = (data) => {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {
+
+  }
+};
+
 function BiographyCard({
   item,
   basePath,
@@ -49,10 +78,15 @@ function BiographyCard({
       className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-sm transition-all duration-500 hover:-translate-y-1 ${a.cardHover}`}
     >
       <Link to={`${basePath}/${item.slug}`} className="flex flex-1 flex-col">
+      {console.log("Biography item:", item)}
+{console.log("Biography slug:", item.slug)}
+{console.log("Biography URL:", `${basePath}/${item.slug}`)}
         <div className="relative h-[260px] shrink-0 overflow-hidden bg-stone-100">
           <img
-            src={item.image}
+            src={optimizeImage(item.image)}
             alt={item.name}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-stone-950/70 via-stone-950/20 to-transparent" />
@@ -121,6 +155,39 @@ function BiographyCard({
   );
 }
 
+function CardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-3xl border border-stone-200/80 bg-white shadow-sm">
+      <div className="h-[260px] animate-pulse bg-stone-200" />
+      <div className="space-y-3 p-5">
+        <div className="h-5 w-3/4 animate-pulse rounded bg-stone-200" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-stone-200" />
+        <div className="h-3 w-full animate-pulse rounded bg-stone-200" />
+        <div className="h-3 w-5/6 animate-pulse rounded bg-stone-200" />
+      </div>
+    </div>
+  );
+}
+
+function LoadingSection({ slow }) {
+  return (
+    <section className="bg-gradient-to-b from-[#FBF6E9] via-[#F8F2E3] to-white">
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-12 lg:py-24">
+        {slow && (
+          <p className="mb-6 text-sm text-stone-500">
+   The server is starting up. This may take a little while..
+          </p>
+        )}
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((n) => (
+            <CardSkeleton key={n} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CategorySection({
   title,
   subtitle,
@@ -132,7 +199,6 @@ function CategorySection({
   fallbackCategory,
   fallbackRole,
   fallbackCompany,
-  tinted = false,
 }) {
   const a = ACCENTS[accent];
 
@@ -141,14 +207,14 @@ function CategorySection({
   return (
     <section className="bg-gradient-to-b from-[#FBF6E9] via-[#F8F2E3] to-white">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-12 lg:py-24">
-        <div className="mb-12 flex flex-col justify-between gap-6 sm:flex-row sm:items-end border-b border-stone-200/80 pb-6">
+        <div className="mb-12 flex flex-col justify-between gap-6 border-b border-stone-200/80 pb-6 sm:flex-row sm:items-end">
           <div className="flex gap-4">
             <span className={`mt-1.5 h-12 w-1.5 shrink-0 rounded-full ${a.bar}`} />
             <div>
               <h2 className="font-serif text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
                 {title}
               </h2>
-              <p className="mt-1 text-sm sm:text-base text-stone-500 font-normal">
+              <p className="mt-1 text-sm font-normal text-stone-500 sm:text-base">
                 {subtitle}
               </p>
             </div>
@@ -182,178 +248,221 @@ function CategorySection({
 }
 
 export default function CEO() {
-  const [biographies, setBiographies] = useState([]);
+  // Pehle cache se turant data dikhao, phir peeche se fresh data le aao
+  const [biographies, setBiographies] = useState(readCache);
+  const [loading, setLoading] = useState(() => readCache().length === 0);
+  const [slow, setSlow] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch("https://market-hub-blogs-backend.onrender.com/api/biographies")
-      .then((res) => res.json())
-      .then((data) => setBiographies(data))
-      .catch((err) => console.error("Error fetching biographies:", err));
+    const controller = new AbortController();
+    // 4 sec se zyada lage to user ko batao (Render cold start)
+    const slowTimer = setTimeout(() => setSlow(true), 4000);
+
+    fetch(API_URL, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (!Array.isArray(data)) throw new Error("Unexpected response");
+        setBiographies(data);
+        setError(false);
+        writeCache(data);
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.error("Error fetching biographies:", err);
+        setError(true);
+      })
+      .finally(() => {
+        clearTimeout(slowTimer);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setSlow(false);
+        }
+      });
+
+    return () => {
+      clearTimeout(slowTimer);
+      controller.abort();
+    };
   }, []);
 
+  // Sirf tab dobara calculate ho jab biographies badle
+  const { businessData, sportsData, entrepreneurData, actorsData } = useMemo(() => {
+    const bySection = (name) =>
+      biographies
+        .filter((item) => getSection(item) === name)
+        .sort((a, b) =>
+          String(b._id || b.id || "").localeCompare(String(a._id || a.id || ""))
+        )
+        .slice(0, 3);
 
-const bySection = (name) =>
-  biographies
-    .filter((item) => getSection(item) === name)
-    .sort((a, b) =>
-      String(b._id || b.id || "").localeCompare(
-        String(a._id || a.id || "")
-      )
-    )
-    .slice(0, 3);
+    return {
+      businessData: bySection("business"),
+      sportsData: bySection("sports"),
+      entrepreneurData: bySection("entrepreneur"),
+      actorsData: bySection("actors"),
+    };
+  }, [biographies]);
 
-
-  const businessData = bySection("business");
-  const sportsData = bySection("sports");
-  const entrepreneurData = bySection("entrepreneur");
-  const actorsData = bySection("actors");
+  const hasData = biographies.length > 0;
 
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
+      <section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
+        <img
+          src="https://venturexindia.com/wp-content/uploads/2025/06/WhatsApp-Image-2025-06-25-at-15.52.37_f6ea0630-1.jpg"
+          alt="Biography of leaders, legends and founders"
+         fetchPriority="high"
+          decoding="async"
+          className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
+        />
 
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/65 via-transparent to-[#111D32]/20" />
 
+        <div className="mx-auto flex min-h-[360px] w-full max-w-[1600px] items-center px-5 py-10 sm:min-h-[400px] sm:px-8 sm:py-12 lg:min-h-[440px] lg:px-14 lg:py-14 xl:min-h-[460px] xl:px-16">
+          <div className="w-full max-w-3xl">
+            {/* Category Labels */}
+            <div className="mb-4 flex flex-wrap items-center gap-2 sm:mb-5 sm:gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
+                <span className={`h-2 w-2 rounded-full ${ACCENTS.ceo.dot}`} />
+                Business & CEOs
+              </span>
 
-<section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
-  <img
-    src="https://venturexindia.com/wp-content/uploads/2025/06/WhatsApp-Image-2025-06-25-at-15.52.37_f6ea0630-1.jpg"
-    alt="Biography of leaders, legends and founders"
-    className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
-  />
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
+                <span className={`h-2 w-2 rounded-full ${ACCENTS.sports.dot}`} />
+                Sports Legends
+              </span>
 
-  <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
-  <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/65 via-transparent to-[#111D32]/20" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
+                <span className={`h-2 w-2 rounded-full ${ACCENTS.entrepreneur.dot}`} />
+                Entrepreneurs
+              </span>
 
-  <div className="mx-auto flex min-h-[360px] w-full max-w-[1600px] items-center px-5 py-10 sm:min-h-[400px] sm:px-8 sm:py-12 lg:min-h-[440px] lg:px-14 lg:py-14 xl:min-h-[460px] xl:px-16">
-    <div className="w-full max-w-3xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
+                <span className={`h-2 w-2 rounded-full ${ACCENTS.actors.dot}`} />
+                Actors
+              </span>
+            </div>
 
-      {/* Category Labels */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 sm:mb-5 sm:gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
-          <span className={`h-2 w-2 rounded-full ${ACCENTS.ceo.dot}`} />
-          Business & CEOs
-        </span>
+            <h1 className="max-w-3xl text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl lg:text-[2.7rem]">
+              Stories of{" "}
+              <span className="bg-gradient-to-r from-[#F0D48A] via-[#D7A943] to-[#FFF0BD] bg-clip-text text-transparent">
+                Leaders, Legends
+              </span>{" "}
+              & Founders
+            </h1>
 
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
-          <span className={`h-2 w-2 rounded-full ${ACCENTS.sports.dot}`} />
-          Sports Legends
-        </span>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/85 sm:mt-5 sm:text-base sm:leading-7">
+              Explore complete biographies, career journeys, defining achievements
+              and leadership philosophies of influential business tycoons, sports
+              champions, visionary startup founders and celebrated actors.
+            </p>
 
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
-          <span className={`h-2 w-2 rounded-full ${ACCENTS.entrepreneur.dot}`} />
-          Entrepreneurs
-        </span>
+            <div className="mt-6 flex flex-wrap gap-2.5 sm:mt-7 sm:gap-3">
+              <Link
+                to="/biography/view-all/ceo"
+                className="inline-flex items-center gap-2 rounded-full bg-[#E47742] px-5 py-2.5 text-sm font-semibold text-white transition duration-300 hover:-translate-y-0.5 hover:bg-[#CF6332] sm:px-6 sm:py-3"
+              >
+                Explore Business
+                <span aria-hidden="true">→</span>
+              </Link>
 
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md">
-          <span className={`h-2 w-2 rounded-full ${ACCENTS.actors.dot}`} />
-          Actors
-        </span>
-      </div>
+              <Link
+                to="/biography/view-all/sportsperson"
+                className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
+              >
+                Sports Legends
+              </Link>
 
+              <Link
+                to="/biography/view-all/entrepreneur"
+                className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
+              >
+                Entrepreneurs
+              </Link>
 
-      <h1 className="max-w-3xl text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl lg:text-[2.7rem]">
-        Stories of{" "}
-        <span className="bg-gradient-to-r from-[#F0D48A] via-[#D7A943] to-[#FFF0BD] bg-clip-text text-transparent">
-          Leaders, Legends
-        </span>{" "}
-        & Founders
-      </h1>
+              <Link
+                to="/biography/view-all/actor"
+                className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
+              >
+                Actors
+              </Link>
+            </div>
+          </div>
+        </div>
 
-  
-      <p className="mt-4 max-w-2xl text-sm leading-6 text-white/85 sm:mt-5 sm:text-base sm:leading-7">
-        Explore complete biographies, career journeys, defining achievements
-        and leadership philosophies of influential business tycoons, sports
-        champions, visionary startup founders and celebrated actors.
-      </p>
+        <div className="absolute inset-x-0 bottom-0 z-10 h-1 bg-gradient-to-r from-[#A87922] via-[#F0D48A] to-[#A87922]" />
+      </section>
 
-      <div className="mt-6 flex flex-wrap gap-2.5 sm:mt-7 sm:gap-3">
-        <Link
-          to="/biography/view-all/ceo"
-          className="inline-flex items-center gap-2 rounded-full bg-[#E47742] px-5 py-2.5 text-sm font-semibold text-white transition duration-300 hover:-translate-y-0.5 hover:bg-[#CF6332] sm:px-6 sm:py-3"
-        >
-          Explore Business
-          <span aria-hidden="true">→</span>
-        </Link>
+      {/* Data aane tak skeleton dikhao */}
+      {loading && !hasData && <LoadingSection slow={slow} />}
 
-        <Link
-          to="/biography/view-all/sportsperson"
-          className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
-        >
-          Sports Legends
-        </Link>
+      {/* Error aaye aur cache bhi na ho */}
+      {!loading && !hasData && error && (
+        <section className="mx-auto max-w-7xl px-5 py-24 text-center sm:px-8 lg:px-12">
+          <p className="text-base text-stone-600">
+         Biographies could not be loaded. Please refresh the page and try again.
+          </p>
+        </section>
+      )}
 
-        <Link
-          to="/biography/view-all/entrepreneur"
-          className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
-        >
-          Entrepreneurs
-        </Link>
+      {hasData && (
+        <>
+          <CategorySection
+            title="Business & CEO Biographies"
+            subtitle="Industry leaders, executives and business icons"
+            viewAllTo="/biography/view-all/ceo"
+            viewAllText="View All Business"
+            accent="ceo"
+            items={businessData}
+            basePath="/biography/ceo"
+            fallbackCategory="Business"
+          />
 
-        <Link
-          to="/biography/view-all/actor"
-          className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white hover:text-[#17243D] sm:px-6 sm:py-3"
-        >
-          Actors
-        </Link>
-      </div>
-    </div>
-  </div>
+          <CategorySection
+            title="Sports Legends Biographies"
+            subtitle="World-class athletes, champions and sports icons"
+            viewAllTo="/biography/view-all/sportsperson"
+            viewAllText="View All Sports"
+            accent="sports"
+            items={sportsData}
+            basePath="/biography/sports"
+            fallbackCategory="Sports"
+            fallbackRole="Athlete"
+            fallbackCompany="International Sports"
+          />
 
+          <CategorySection
+            title="Entrepreneur Biographies"
+            subtitle="Visionary founders and groundbreaking startup builders"
+            viewAllTo="/biography/view-all/entrepreneur"
+            viewAllText="View All Entrepreneurs"
+            accent="entrepreneur"
+            items={entrepreneurData}
+            basePath="/biography/entrepreneur"
+            fallbackCategory="Entrepreneur"
+            fallbackRole="Founder"
+            fallbackCompany="Startup"
+          />
 
-  <div className="absolute inset-x-0 bottom-0 z-10 h-1 bg-gradient-to-r from-[#A87922] via-[#F0D48A] to-[#A87922]" />
-</section>
-
-
-
-      <CategorySection
-        title="Business & CEO Biographies"
-        subtitle="Industry leaders, executives and business icons"
-        viewAllTo="/biography/view-all/ceo"
-        viewAllText="View All Business"
-        accent="ceo"
-        items={businessData}
-        basePath="/biography/ceo"
-        fallbackCategory="Business"
-      />
-
-      <CategorySection
-        title="Sports Legends Biographies"
-        subtitle="World-class athletes, champions and sports icons"
-        viewAllTo="/biography/view-all/sportsperson"
-        viewAllText="View All Sports"
-        accent="sports"
-        items={sportsData}
-        basePath="/biography/sports"
-        fallbackCategory="Sports"
-        fallbackRole="Athlete"
-        fallbackCompany="International Sports"
-        tinted
-      />
-
-      <CategorySection
-        title="Entrepreneur Biographies"
-        subtitle="Visionary founders and groundbreaking startup builders"
-        viewAllTo="/biography/view-all/entrepreneur"
-        viewAllText="View All Entrepreneurs"
-        accent="entrepreneur"
-        items={entrepreneurData}
-        basePath="/biography/entrepreneur"
-        fallbackCategory="Entrepreneur"
-        fallbackRole="Founder"
-        fallbackCompany="Startup"
-      />
-
-      <CategorySection
-        title="Actors Biographies"
-        subtitle="Celebrated film stars, performers and screen legends"
-        viewAllTo="/biography/view-all/actor"
-        viewAllText="View All Actors"
-        accent="actors"
-        items={actorsData}
-        basePath="/biography/actor"
-        fallbackCategory="Actors"
-        fallbackRole="Actor"
-        fallbackCompany="Cinema"
-      />
+          <CategorySection
+            title="Actors Biographies"
+            subtitle="Celebrated film stars, performers and screen legends"
+            viewAllTo="/biography/view-all/actor"
+            viewAllText="View All Actors"
+            accent="actors"
+            items={actorsData}
+            basePath="/biography/actor"
+            fallbackCategory="Actors"
+            fallbackRole="Actor"
+            fallbackCompany="Cinema"
+          />
+        </>
+      )}
     </main>
   );
 }

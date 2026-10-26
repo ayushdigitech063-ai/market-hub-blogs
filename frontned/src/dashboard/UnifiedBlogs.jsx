@@ -9,7 +9,7 @@ import {
 } from "./postConfigs";
 import { toLocalInput } from "./seo/seoUtils";
 
-// Ek hi blog page: category dropdown se type select hota hai
+
 export const BLOG_TYPES = [
   { key: "biographies", label: "Biography", badge: "bg-orange-50 text-orange-700" },
   { key: "brands", label: "Brand", badge: "bg-sky-50 text-sky-700" },
@@ -25,7 +25,7 @@ const META_OF = Object.fromEntries(BLOG_TYPES.map((t) => [t.key, t]));
 const selectClass =
   "w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-300/40 disabled:cursor-not-allowed disabled:bg-orange-50 disabled:text-slate-500";
 
-// Naya form: type badalne par common fields (title, content, seo...) carry ho jate hain
+
 const newForm = (cfg, prev) => {
   const base = {
     ...emptyPost,
@@ -54,7 +54,7 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  // Author Article ka config authors par depend karta hai
+
   const configs = useMemo(() => {
     const companyOptions = data.companies.map((c) => ({ value: c.slug, label: c.name }));
     return {
@@ -62,7 +62,7 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
       brands: brandConfig,
       slidingCompanies: slidingCompanyConfig,
       latestArticles: latestArticleConfig,
-      // Company Article: company ek dropdown se select hoti hai
+
       articles: {
         ...articleConfig,
         singular: "Company Article",
@@ -79,7 +79,7 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
             : f
         ),
       },
-      // Company form me Start/End Article ID ab nahi aati
+
       companies: { ...companyConfig, extraFields: [] },
       blogArticles: buildBlogArticleConfig(authors),
     };
@@ -109,7 +109,7 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
     fetchAuthors();
   }, []);
 
-  // Sidebar / Overview ke counts update
+
   useEffect(() => {
     BLOG_KEYS.forEach((k) => setCount(k)(data[k].length));
   }, [data]);

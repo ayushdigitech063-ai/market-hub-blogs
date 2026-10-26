@@ -5,9 +5,7 @@ import ArticleCard from '../components/ArticleCard';
 import SeoHead from '../components/SeoHead';
 import ArticleBody from '../components/ArticleBody';
 
-// =====================================================
-// **bold** ko <strong> me convert karta hai
-// =====================================================
+
 const renderInline = (text) => {
   return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
     part.startsWith('**') && part.endsWith('**') ? (
@@ -23,10 +21,7 @@ const renderInline = (text) => {
   );
 };
 
-// =====================================================
-// ARTICLE COMPANY MATCH
-// 1) Article ka Company Slug  2) Article ki Category  3) Start/End ID range
-// =====================================================
+
 const toSlug = (s) =>
   String(s || '')
     .trim()
@@ -41,22 +36,18 @@ const slugMatches = (value, c) => {
 };
 
 const belongsTo = (item, c) => {
-  // Article me Company Slug bhara ho to wahi final hai
+
   if (String(item.company || '').trim()) return slugMatches(item.company, c);
-  // Warna category company ke naam/slug se match ho (jaise category "Microsoft")
+
   if (slugMatches(item.category, c)) return true;
-  // Last me purani Start/End Article ID range
+
   return item.id >= c.startId && item.id <= c.endId;
 };
 
-// Draft articles public site par nahi dikhte
-// (purane articles me status nahi hota, wo published maane jaate hain)
+
 const isLive = (item) => item.status !== 'draft';
 
-// =====================================================
-// CONTENT RENDERER (purane articles ke liye)
-// Headings / Lists / Paragraphs
-// =====================================================
+
 function ArticleContent({ content }) {
   if (!content) return null;
 
@@ -102,15 +93,13 @@ function ArticleContent({ content }) {
   );
 }
 
-// =====================================================
-// LIST / PARAGRAPH
-// =====================================================
+
 function ListOrPara({ lines }) {
   if (!lines || lines.length === 0) {
     return null;
   }
 
-  // Unordered list
+  
   if (lines.every((line) => line.startsWith('- '))) {
     return (
       <ul className="list-disc pl-6 space-y-2">
@@ -146,9 +135,7 @@ function ListOrPara({ lines }) {
   );
 }
 
-// =====================================================
-// ARTICLE DETAIL
-// =====================================================
+
 export default function ArticleDetail() {
   const { id } = useParams();
   const scrollRef = useRef(null);
@@ -157,9 +144,7 @@ export default function ArticleDetail() {
   const [companiesData, setCompaniesData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // =====================================================
-  // PAGE TOP
-  // =====================================================
+
   useEffect(() => {
     window.scrollTo({
       top: 0,
@@ -167,9 +152,6 @@ export default function ArticleDetail() {
     });
   }, [id]);
 
-  // =====================================================
-  // BACKEND SE ARTICLES + COMPANIES
-  // =====================================================
   useEffect(() => {
     Promise.all([
       fetch('https://market-hub-blogs-backend.onrender.com/api/articles').then((r) => r.json()),
@@ -186,9 +168,7 @@ export default function ArticleDetail() {
       });
   }, []);
 
-  // =====================================================
-  // LOADING
-  // =====================================================
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
@@ -199,16 +179,11 @@ export default function ArticleDetail() {
     );
   }
 
-  // =====================================================
-  // CURRENT ARTICLE
-  // =====================================================
+
   const article = articles.find(
     (item) => String(item.id) === String(id)
   );
 
-  // =====================================================
-  // ARTICLE NOT FOUND (draft bhi "not found" hai)
-  // =====================================================
   if (!article || !isLive(article)) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
@@ -226,39 +201,24 @@ export default function ArticleDetail() {
     );
   }
 
-  // =====================================================
-  // SEO ARTICLES
-  // ID 135 - 140
-  // =====================================================
   const isSEOArticle =
     Number(article.id) >= 135 &&
     Number(article.id) <= 140;
 
-  // =====================================================
-  // BDA ARTICLES
-  // ID 141 - 145
-  // =====================================================
+
   const isBDAArticle =
     article.category === 'Business Development' &&
     Number(article.id) >= 141 &&
     Number(article.id) <= 145;
 
-  // =====================================================
-  // COMPANY (backend wali companies se)
-  // =====================================================
   const company = companiesData.find((c) => belongsTo(article, c));
 
-  // =====================================================
-  // ALL OTHER ARTICLES
-  // Current article aur drafts ko remove karta hai
-  // =====================================================
+
   const others = articles.filter(
     (item) => String(item.id) !== String(article.id) && isLive(item)
   );
 
-  // =====================================================
-  // RELATED ARTICLES
-  // =====================================================
+
   let relatedArticles;
 
   if (isSEOArticle) {
