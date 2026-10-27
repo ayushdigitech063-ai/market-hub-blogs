@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import BrandCard from "../../components/BrandCard";
 import SeoHead from "../../components/SeoHead";
 import ArticleBody from "../../components/ArticleBody";
 import { fetchBrand } from "../../api/brandApi";
@@ -56,7 +55,7 @@ export default function BrandDetail() {
         const related = (data.related || []).filter(isLive);
         setRelatedItems(related);
 
-        // Same brand ka koi aur product na ho to baaki live products dikhao
+
         if (related.length === 0) {
           fetch(`${API}/brands`)
             .then((r) => r.json())
@@ -309,47 +308,103 @@ export default function BrandDetail() {
 
 
         {relatedItems.length > 0 && (
-          <section className="border-t border-stone-200 pt-10 mt-12">
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-widest text-amber-700">
-                  {relatedFallback ? "You May Also Like" : `More From ${brand}`}
-                </span>
-                <h2 className="mt-1 text-xl sm:text-2xl font-serif font-bold text-stone-900">
-                  Related Articles & Products
-                </h2>
-              </div>
+          <section className="mt-12 pt-10">
+            <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-orange-700 shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+              {relatedFallback ? "You may also like" : "Keep exploring"}
+            </span>
 
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => scroll(-300)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-800 transition-all hover:border-amber-500 hover:bg-amber-50 hover:text-amber-600 cursor-pointer shadow-xs"
-                  aria-label="Previous products"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => scroll(300)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-800 transition-all hover:border-amber-500 hover:bg-amber-50 hover:text-amber-600 cursor-pointer shadow-xs"
-                  aria-label="Next products"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
+            <h2 className="mt-3 text-2xl font-extrabold text-[#12335a] sm:text-3xl">
+              Related <span className="text-orange-600">Articles</span>
+            </h2>
+            <p className="mt-1.5 text-xs text-stone-500 sm:text-sm">
+              Discover more insights, ideas and guides selected for you.
+            </p>
+            <div className="mt-5 border-t border-stone-200" />
 
             <div
               ref={scrollRef}
-              className="flex gap-5 overflow-x-auto pb-4 pt-1 no-scrollbar"
+              className="no-scrollbar mt-6 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-4 pt-1"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {relatedItems.map((product) => (
-                <div key={product._id || product.id} className="min-w-[260px] sm:min-w-[280px] max-w-[280px] flex-shrink-0">
-                  <BrandCard item={product} />
-                </div>
-              ))}
+              {relatedItems.map((product) => {
+                const cardTitle = product.name || product.articleTitle || product.title;
+                const badge = product.brand || product.category;
+                const author = product.author?.name || product.author || "Admin";
+                const rt = product.readTime;
+                const readText = rt
+                  ? /^\d+$/.test(String(rt)) ? `${rt} min read` : String(rt)
+                  : "4 min read";
+                const link = window.location.pathname.replace(slug, product.slug);
+
+                return (
+                  <Link
+                    key={product._id || product.id}
+                    to={link}
+                    className="group flex w-[270px] flex-shrink-0 snap-start flex-col rounded-2xl border border-stone-200 bg-white p-2 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg sm:w-[300px]"
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-stone-100">
+                      {product.imageUrl && (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.imageAlt || cardTitle}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      )}
+                      {badge && (
+                        <span className="absolute bottom-2.5 left-2.5 rounded-full border border-stone-200 bg-white/95 px-3 py-1 text-[9px] font-extrabold uppercase tracking-[0.14em] text-teal-800 shadow-sm">
+                          {badge}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-1 flex-col px-3.5 pb-3.5 pt-4">
+                      <span className="mb-3 block h-[3px] w-8 rounded-full bg-gradient-to-r from-teal-500 to-amber-400" />
+
+                      <h3 className="line-clamp-2 min-h-[2.75rem] text-[15px] font-bold leading-snug text-[#12335a] transition-colors group-hover:text-teal-700">
+                        {cardTitle}
+                      </h3>
+
+                      <div className="mt-4 flex items-center justify-between gap-3 border-t border-stone-100 pt-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-teal-200 bg-teal-50 text-[11px] font-bold text-teal-800">
+                            {String(author).charAt(0).toUpperCase()}
+                          </span>
+                          <div className="leading-tight">
+                            <p className="text-[8px] font-bold uppercase tracking-wider text-stone-400">Written by</p>
+                            <p className="text-xs font-bold text-stone-900">{author}</p>
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-500">
+                          {readText}
+                        </span>
+                      </div>
+
+                      <span className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-[#12335a] py-3 text-xs font-bold text-white transition-colors group-hover:bg-[#0c2745]">
+                        Read Article <span aria-hidden>→</span>
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 flex justify-center gap-3">
+              <button
+                onClick={() => scroll(-320)}
+                aria-label="Previous articles"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-600 shadow-sm transition-all hover:bg-orange-100"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => scroll(320)}
+                aria-label="Next articles"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-600 shadow-sm transition-all hover:bg-orange-100"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           </section>
         )}

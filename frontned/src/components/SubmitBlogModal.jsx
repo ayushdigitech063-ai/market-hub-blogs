@@ -186,7 +186,6 @@ export default function SubmitBlogModal({ onClose }) {
     setShowDetails(true);
   };
 
-  // Step 2: popup se final submit
   const submitAll = async (e) => {
     e?.preventDefault?.();
     setDetailsError("");
