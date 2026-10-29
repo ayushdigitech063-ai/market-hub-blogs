@@ -1,26 +1,45 @@
-export const API = "https://market-hub-blogs-backend.onrender.com/api";
+
+// src/config.js
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+if (!API_BASE_URL) {
+  throw new Error("VITE_API_BASE_URL is missing from the .env file");
+}
+
+export const API = API_BASE_URL.replace(/\/+$/, "");
 
 export const TOKEN_KEY = "admin_token";
 
-export const SITE_URL = (
-  import.meta.env.VITE_SITE_URL || window.location.origin
-).replace(/\/+$/, "");
+export const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
 
-export const authFetch = (url, opts = {}) => {
-  const token = localStorage.getItem(TOKEN_KEY);
+export const authFetch = async (url, options = {}) => {
+  const headers = new Headers(options.headers || {});
 
-  return fetch(url, {
-    ...opts,
-    headers: {
-      ...(opts.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  }).then((res) => {
-    if (res.status === 401) {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  } catch {
+    // Continue if localStorage is unavailable.
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    try {
       localStorage.removeItem(TOKEN_KEY);
-      window.dispatchEvent(new Event("admin-logout"));
+    } catch {
+      // Ignore storage errors.
     }
 
-    return res;
-  });
+    window.dispatchEvent(new Event("admin-logout"));
+  }
+
+  return response;
 };

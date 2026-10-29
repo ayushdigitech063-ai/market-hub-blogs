@@ -1,14 +1,24 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, Pencil, Trash2, Plus } from "lucide-react";
+
 import { API, authFetch } from "./config";
 import { uniqueOptions } from "./fields";
 import PostEditor from "./editor/PostEditor";
-import {
-  emptyPost, biographyConfig, brandConfig, slidingCompanyConfig,
-  latestArticleConfig, articleConfig, companyConfig, buildBlogArticleConfig,
-} from "./postConfigs";
 import { toLocalInput } from "./seo/seoUtils";
+import {
+  emptyPost,
+  biographyConfig,
+  brandConfig,
+  slidingCompanyConfig,
+  latestArticleConfig,
+  articleConfig,
+  companyConfig,
+  buildBlogArticleConfig,
+} from "./postConfigs";
 
+/* ------------------------------------------------------------------
+   Content types (these two exports are used by other files)
+------------------------------------------------------------------ */
 
 export const BLOG_TYPES = [
   { key: "biographies", label: "Biography", badge: "bg-orange-50 text-orange-700" },
@@ -19,123 +29,371 @@ export const BLOG_TYPES = [
   { key: "blogArticles", label: "Author Article", badge: "bg-lime-50 text-lime-700" },
   { key: "companies", label: "Company", badge: "bg-amber-50 text-amber-700" },
 ];
-export const BLOG_KEYS = BLOG_TYPES.map((t) => t.key);
-const META_OF = Object.fromEntries(BLOG_TYPES.map((t) => [t.key, t]));
 
-const selectClass =
-  "w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-300/40 disabled:cursor-not-allowed disabled:bg-orange-50 disabled:text-slate-500";
+export const BLOG_KEYS = BLOG_TYPES.map((item) => item.key);
 
+const META_OF = Object.fromEntries(BLOG_TYPES.map((item) => [item.key, item]));
 
-const newForm = (cfg, prev) => {
-  const base = {
-    ...emptyPost,
-    ...cfg.extraDefaults,
-    publishDate: toLocalInput(),
-    seo: { ...emptyPost.seo },
-  };
-  if (!prev) return base;
-  const carry = {};
-  Object.keys(emptyPost).forEach((k) => {
-    if (k !== "category" && k !== "seo") carry[k] = prev[k];
-  });
-  return { ...base, ...carry, seo: prev.seo || base.seo };
+// Static configs. Used for list URLs, which never change.
+const BASE_CONFIGS = {
+  biographies: biographyConfig,
+  brands: brandConfig,
+  slidingCompanies: slidingCompanyConfig,
+  latestArticles: latestArticleConfig,
+  articles: articleConfig,
+  companies: companyConfig,
+  blogArticles: buildBlogArticleConfig([]),
 };
 
-export default function UnifiedBlogs({ type, setType, counts, notify, setCount }) {
-  const [data, setData] = useState(() =>
-    Object.fromEntries(BLOG_KEYS.map((k) => [k, []]))
+/* ------------------------------------------------------------------
+   Styles
+------------------------------------------------------------------ */
+
+const FALLBACK_IMAGE =
+  "data:image/svg+xml;charset=UTF-8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+      <rect width="100%" height="100%" fill="#fff7ed"/>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+        fill="#c2410c" font-size="12">No Image</text>
+    </svg>`
   );
+
+const selectClass =
+  "w-full min-w-0 rounded-lg border border-orange-200 bg-white px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-300/40 disabled:cursor-not-allowed disabled:bg-orange-50 disabled:text-slate-500";
+
+const buttonBase =
+  "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
+/* ------------------------------------------------------------------
+   Helpers
+------------------------------------------------------------------ */
+
+const text = (value) => (value == null ? "" : String(value));
+
+const emptyData = () => Object.fromEntries(BLOG_KEYS.map((key) => [key, []]));
+
+async function errorMessage(response, fallback) {
+  try {
+    const body = await response.json();
+    return body?.error || body?.message || fallback;
+  } catch {
+    return fallback; // empty or non-JSON response
+  }
+}
+
+// Fetches a JSON array from any list URL. Throws a readable error on failure.
+async function requestArray(url, label) {
+  const response = await authFetch(url);
+
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, `Failed to load ${label}.`));
+  }
+
+  const result = await response.json();
+
+  if (!Array.isArray(result)) {
+    throw new Error(`Unexpected response format for ${label}.`);
+  }
+
+  return result;
+}
+
+const requestList = (key) =>
+  requestArray(BASE_CONFIGS[key].listUrl, META_OF[key].label);
+
+// New form for the "Add" screen. When the category type is switched, shared
+// fields (title, content, SEO...) are carried over from the previous form.
+function newForm(config, previous) {
+  const base = {
+    ...emptyPost,
+    ...(config?.extraDefaults || {}),
+    publishDate: toLocalInput(),
+    seo: { ...(emptyPost.seo || {}) },
+  };
+
+  if (!previous) return base;
+
+  const carried = {};
+  Object.keys(emptyPost).forEach((key) => {
+    if (key !== "category" && key !== "seo") carried[key] = previous[key];
+  });
+
+  return { ...base, ...carried, seo: { ...base.seo, ...(previous.seo || {}) } };
+}
+
+/* ------------------------------------------------------------------
+   Small UI pieces
+------------------------------------------------------------------ */
+
+function LoadingState() {
+  return (
+    <div className="py-10 text-center" role="status" aria-live="polite">
+      <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+      <p className="text-sm font-semibold text-slate-500">Loading content...</p>
+    </div>
+  );
+}
+
+function EmptyState({ hasPosts, hasSearch, onClearSearch }) {
+  return (
+    <div className="py-10 text-center">
+      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-orange-50">
+        <Search aria-hidden="true" className="h-5 w-5 text-orange-400" />
+      </div>
+
+      <p className="text-sm font-semibold text-slate-700">
+        {hasPosts
+          ? "No results match this search or category."
+          : "Nothing here yet. Add your first item above!"}
+      </p>
+
+      {hasSearch && (
+        <button
+          type="button"
+          onClick={onClearSearch}
+          className="mt-3 text-xs font-semibold text-orange-600 hover:text-orange-700"
+        >
+          Clear search
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PostRow({ meta, item, row, isDeleting, busy, onEdit, onDelete }) {
+  const isDraft = item.status === "draft";
+  const title = text(row?.title).trim() || "Untitled";
+  const subtitle = text(row?.subtitle);
+
+  return (
+    <article className="flex flex-col items-start justify-between gap-4 px-2 py-4 transition hover:bg-orange-50/60 sm:flex-row sm:items-center sm:rounded-lg">
+      <div className="flex w-full min-w-0 items-center gap-3 sm:gap-4">
+        <img
+          src={text(row?.image).trim() || FALLBACK_IMAGE}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = FALLBACK_IMAGE;
+          }}
+          className="h-11 w-11 shrink-0 rounded-lg border border-orange-100 bg-orange-50 object-cover"
+        />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="max-w-full break-words text-sm font-semibold text-slate-900">
+              {title}
+            </h3>
+
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.badge}`}>
+              {meta.label}
+            </span>
+
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                isDraft ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"
+              }`}
+            >
+              {isDraft ? "Draft" : "Published"}
+            </span>
+          </div>
+
+          {subtitle && (
+            <p className="mt-1 break-words text-xs leading-5 text-slate-500">{subtitle}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex w-full shrink-0 justify-end gap-2 sm:w-auto">
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={busy}
+          aria-label={`Edit ${title}`}
+          className={`${buttonBase} bg-amber-100 text-amber-800 hover:bg-amber-200`}
+        >
+          <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
+          Edit
+        </button>
+
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={busy}
+          aria-label={`Delete ${title}`}
+          className={`${buttonBase} bg-rose-50 text-rose-700 hover:bg-rose-100`}
+        >
+          {isDeleting ? (
+            <span
+              className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-300 border-t-rose-700"
+              aria-hidden="true"
+            />
+          ) : (
+            <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+          )}
+          {isDeleting ? "Deleting..." : "Delete"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+/* ------------------------------------------------------------------
+   Main component
+------------------------------------------------------------------ */
+
+export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCount }) {
+  const [data, setData] = useState(emptyData);
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
-  const [view, setView] = useState("list");
+
+  const [view, setView] = useState("list"); // "list" | "edit"
   const [activeType, setActiveType] = useState("biographies");
   const [editingKey, setEditingKey] = useState(null);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [deletingKey, setDeletingKey] = useState(null);
 
+  const editing = editingKey !== null;
+  const filterType = BLOG_KEYS.includes(type) ? type : null;
+
+  const showToast = useCallback(
+    (message, variant = "success") => {
+      if (typeof notify === "function") notify(message, variant);
+    },
+    [notify]
+  );
+
+  /* ---------- Configs (only the ones that depend on live data) ---------- */
 
   const configs = useMemo(() => {
-    const companyOptions = data.companies.map((c) => ({ value: c.slug, label: c.name }));
+    const companyOptions = (data.companies || [])
+      .filter((company) => company?.slug && company?.name)
+      .map((company) => ({ value: company.slug, label: company.name }));
+
     return {
-      biographies: biographyConfig,
-      brands: brandConfig,
-      slidingCompanies: slidingCompanyConfig,
-      latestArticles: latestArticleConfig,
+      ...BASE_CONFIGS,
 
       articles: {
         ...articleConfig,
         singular: "Company Article",
-        extraFields: articleConfig.extraFields.map((f) =>
-          f.name === "company"
+        extraFields: (articleConfig.extraFields || []).map((field) =>
+          field.name === "company"
             ? {
-                ...f,
+                ...field,
                 label: "Company",
                 type: "select",
                 options: companyOptions,
                 placeholder: "Select a company (optional)",
-               hint: "The article will appear in the Related Articles section on the page of the company you select.",
+                hint: "The article will appear in the Related Articles section on the page of the company you select.",
               }
-            : f
+            : field
         ),
       },
 
       companies: { ...companyConfig, extraFields: [] },
+
       blogArticles: buildBlogArticleConfig(authors),
     };
-  }, [authors, data.companies]);
+  }, [data.companies, authors]);
 
-  const editing = editingKey !== null;
   const cfg = configs[activeType];
 
-  const fetchType = async (k) => {
-    try {
-      const res = await authFetch(configs[k].listUrl);
-      const d = await res.json();
-      setData((p) => ({ ...p, [k]: Array.isArray(d) ? d : [] }));
-    } catch (err) {
-      console.error(`Error fetching ${configs[k].singular}:`, err);
-    }
-  };
+  /* ---------- Loading data ---------- */
 
-  const fetchAuthors = () =>
-    authFetch(`${API}/blog-authors`)
-      .then((r) => r.json())
-      .then((d) => setAuthors(Array.isArray(d) ? d : []))
-      .catch((err) => console.error("Error fetching authors:", err));
-
-  useEffect(() => {
-    Promise.all(BLOG_KEYS.map(fetchType)).finally(() => setLoading(false));
-    fetchAuthors();
+  const loadAuthors = useCallback(() => {
+    requestArray(`${API}/blog-authors`, "authors")
+      .then(setAuthors)
+      .catch((error) => console.error("Unable to load authors:", error));
   }, []);
 
-
+  // Load every content type once, when the component opens.
   useEffect(() => {
-    BLOG_KEYS.forEach((k) => setCount(k)(data[k].length));
-  }, [data]);
+    let cancelled = false;
 
-  const categories = useMemo(
-    () => uniqueOptions(data[activeType].map((i) => i.category)),
-    [data, activeType]
-  );
+    (async () => {
+      const results = await Promise.allSettled(BLOG_KEYS.map(requestList));
 
-  const openCreate = () => {
-    fetchAuthors();
-    const t = BLOG_KEYS.includes(type) ? type : "biographies";
-    setActiveType(t);
-    setEditingKey(null);
-    setForm(newForm(configs[t]));
-    setView("edit");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+      if (cancelled) return;
+
+      const nextData = {};
+      const failed = [];
+
+      results.forEach((result, index) => {
+        const key = BLOG_KEYS[index];
+
+        if (result.status === "fulfilled") {
+          nextData[key] = result.value; // already an array
+        } else {
+          nextData[key] = [];
+          failed.push(META_OF[key].label);
+          console.error(`Failed to load ${key}:`, result.reason);
+        }
+      });
+
+      setData(nextData);
+
+      if (failed.length > 0) {
+        setLoadError(`Unable to load: ${failed.join(", ")}. Please refresh and try again.`);
+      }
+
+      setLoading(false);
+    })();
+
+    loadAuthors();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadAuthors]);
+
+  // Reload one content type (after save).
+  const reloadType = async (key) => {
+    const result = await requestList(key);
+    setData((previous) => ({ ...previous, [key]: result }));
   };
 
-  const openEdit = (t, item) => {
-    fetchAuthors();
-    setActiveType(t);
-    setEditingKey(configs[t].getKey(item));
-    setForm(configs[t].toForm(item));
+  // Tell the dashboard how many posts each type has.
+  useEffect(() => {
+    if (typeof setCount !== "function") return;
+
+    BLOG_KEYS.forEach((key) => {
+      const update = setCount(key);
+      if (typeof update === "function") update(data[key].length);
+    });
+    // setCount is intentionally not a dependency: the parent creates it on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  /* ---------- Open / close the editor ---------- */
+
+  const openEditor = (targetType, key, nextForm) => {
+    setActiveType(targetType);
+    setEditingKey(key);
+    setForm(nextForm);
     setView("edit");
     window.scrollTo({ top: 0, behavior: "smooth" });
+    loadAuthors(); // keep the author dropdown fresh
+  };
+
+  const openCreate = () => {
+    const targetType = filterType || "biographies";
+    openEditor(targetType, null, newForm(configs[targetType]));
+  };
+
+  const openEdit = (targetType, item) => {
+    const config = configs[targetType];
+
+    try {
+      openEditor(targetType, config.getKey(item), config.toForm(item));
+    } catch (error) {
+      console.error("Unable to open editor:", error);
+      showToast("Unable to open this item for editing.", "error");
+    }
   };
 
   const closeEditor = () => {
@@ -144,102 +402,157 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
     setForm(null);
   };
 
-  const changeType = (t) => {
-    if (t === "blogArticles") fetchAuthors();
-    setActiveType(t);
-    setForm((prev) => newForm(configs[t], prev));
+  const changeType = (targetType) => {
+    if (editing || !BLOG_KEYS.includes(targetType)) return;
+
+    setActiveType(targetType);
+    setForm((previous) => newForm(configs[targetType], previous));
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!form.category.trim()) {
-      notify("Category select karo.", "error");
+  /* ---------- Save ---------- */
+
+  const handleSave = async (event) => {
+    event.preventDefault();
+
+    if (saving || !cfg || !form) return;
+
+    if (!text(form.category).trim()) {
+      showToast("Please select a category.", "error");
       return;
     }
+
     setSaving(true);
+
     try {
-      const res = await authFetch(editing ? cfg.updateUrl(editingKey) : cfg.createUrl, {
+      const url = editing ? cfg.updateUrl(editingKey) : cfg.createUrl;
+
+      const response = await authFetch(url, {
         method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cfg.toPayload(form, data[activeType])),
       });
-      if (res.ok) {
-        notify(editing ? `${cfg.singular} updated successfully!` : `${cfg.singular} saved successfully!`);
-        const saved = activeType;
-        closeEditor();
-        fetchType(saved);
-      } else {
-        let msg = "Operation failed! Please check backend.";
-        try {
-          const d = await res.json();
-          if (d.error) msg = d.error;
-        } catch (_) {}
-        notify(msg, "error");
+
+      if (!response.ok) {
+        showToast(
+          await errorMessage(response, "Operation failed. Please check the backend."),
+          "error"
+        );
+        return;
       }
-    } catch (err) {
-      console.error("Error saving data:", err);
-      notify("Unable to connect to the server.", "error");
+
+      showToast(`${cfg.singular} ${editing ? "updated" : "saved"} successfully!`);
+
+      const savedType = activeType;
+      closeEditor();
+
+      try {
+        await reloadType(savedType);
+      } catch (error) {
+        console.error("Saved, but the list could not refresh:", error);
+        showToast("Saved, but the list could not refresh. Please refresh the page.", "warning");
+      }
+    } catch (error) {
+      console.error("Error saving content:", error);
+      showToast("Unable to connect to the server or save the content.", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (t, item) => {
-    const c = configs[t];
-    if (!window.confirm(`Are you sure you want to delete this ${c.singular}?`)) return;
+  /* ---------- Delete ---------- */
+
+  const handleDelete = async (targetType, item) => {
+    const config = configs[targetType];
+    const itemKey = config.getKey(item);
+
+    if (deletingKey !== null) return;
+
+    if (itemKey == null || itemKey === "") {
+      showToast("This item does not have a valid identifier.", "error");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete this ${config.singular}?`)) return;
+
+    setDeletingKey(`${targetType}:${itemKey}`);
+
     try {
-      const res = await authFetch(c.deleteUrl(c.getKey(item)), { method: "DELETE" });
-      if (res.ok) {
-        setData((p) => ({ ...p, [t]: p[t].filter((i) => c.getKey(i) !== c.getKey(item)) }));
-        notify(`${c.singular} deleted successfully!`);
-      } else {
-        notify("Delete failed!", "error");
+      const response = await authFetch(config.deleteUrl(itemKey), { method: "DELETE" });
+
+      if (!response.ok) {
+        showToast(await errorMessage(response, "Delete failed. Please try again."), "error");
+        return;
       }
-    } catch (err) {
-      console.error("Error deleting:", err);
-      notify("Unable to connect to the server.", "error");
+
+      setData((previous) => ({
+        ...previous,
+        [targetType]: previous[targetType].filter((entry) => config.getKey(entry) !== itemKey),
+      }));
+
+      showToast(`${config.singular} deleted successfully!`);
+    } catch (error) {
+      console.error("Error deleting content:", error);
+      showToast("Unable to connect to the server.", "error");
+    } finally {
+      setDeletingKey(null);
     }
   };
 
+  /* ---------- Filtered list ---------- */
+
+  const total = BLOG_KEYS.reduce((sum, key) => sum + data[key].length, 0);
+
   const entries = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const keys = BLOG_KEYS.includes(type) ? [type] : BLOG_KEYS;
+    const query = search.trim().toLowerCase();
+    const keys = filterType ? [filterType] : BLOG_KEYS;
+
     return keys
-      .flatMap((k) => data[k].map((item) => ({ t: k, item })))
-      .filter(({ t, item }) => {
-        if (!q) return true;
-        const r = configs[t].getRow(item);
-        return `${r.title} ${r.subtitle}`.toLowerCase().includes(q);
-      });
-  }, [data, type, search, configs]);
+      .flatMap((key) => data[key].map((item) => ({ key, item })))
+      .map((entry) => ({ ...entry, row: configs[entry.key].getRow(entry.item) }))
+      .filter(({ row }) =>
+        query ? `${text(row?.title)} ${text(row?.subtitle)}`.toLowerCase().includes(query) : true
+      );
+  }, [data, filterType, search, configs]);
 
-  const total = BLOG_KEYS.reduce((s, k) => s + data[k].length, 0);
+  const categories = useMemo(
+    () => uniqueOptions((data[activeType] || []).map((item) => item?.category)),
+    [data, activeType]
+  );
 
-  /* ---------------- EDITOR VIEW ---------------- */
+  /* ---------- Editor screen ---------- */
+
   if (view === "edit" && form) {
     return (
       <div>
         <div className="mb-4 flex flex-col gap-3 rounded-xl border border-orange-100 bg-white px-5 py-4 sm:flex-row sm:items-center">
           <div className="sm:w-64">
-            <label className="mb-1 block text-xs font-semibold text-slate-600">
+            <label
+              htmlFor="post-category-type"
+              className="mb-1 block text-xs font-semibold text-slate-600"
+            >
               Post Category <span className="text-orange-500">*</span>
             </label>
+
             <select
+              id="post-category-type"
               value={activeType}
-              disabled={editing}
-              onChange={(e) => changeType(e.target.value)}
+              disabled={editing || saving}
+              onChange={(event) => changeType(event.target.value)}
               className={selectClass}
             >
-              {BLOG_TYPES.map((t) => (
-                <option key={t.key} value={t.key}>{t.label}</option>
+              {BLOG_TYPES.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.label}
+                </option>
               ))}
             </select>
           </div>
-          <p className="text-[11px] text-slate-400">
-  {editing
-    ? "The category cannot be changed while editing."
-    : "Select a category to update the additional fields below accordingly. The title, content, and SEO settings remain the same."}
-</p>
+
+          <p className="text-[11px] leading-5 text-slate-400">
+            {editing
+              ? "The category cannot be changed while editing."
+              : "Select a category to update the additional fields below accordingly. The title, content, and SEO settings remain the same."}
+          </p>
         </div>
 
         <PostEditor
@@ -257,42 +570,65 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
     );
   }
 
-  /* ---------------- LIST VIEW ---------------- */
+  /* ---------- List screen ---------- */
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-orange-100 bg-white px-5 py-4 sm:flex-row sm:items-center">
         <h2 className="text-sm font-bold text-slate-900">Do you want to add a new post?</h2>
+
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-600"
+          className={`${buttonBase} bg-orange-500 text-white shadow-sm hover:bg-orange-600`}
         >
-          <Plus className="h-3.5 w-3.5" /> Add New Post
+          <Plus aria-hidden="true" className="h-3.5 w-3.5" />
+          Add New Post
         </button>
       </div>
 
-      <div className="rounded-xl border border-orange-100 bg-white p-5 md:p-6">
+      <section className="rounded-xl border border-orange-100 bg-white p-4 sm:p-5 md:p-6">
         <div className="mb-5 flex flex-col gap-3 border-b border-orange-100 pb-5 lg:flex-row lg:items-center lg:justify-between">
           <h2 className="text-sm font-bold text-slate-900">
-            Manage Existing ({entries.length}{BLOG_KEYS.includes(type) ? ` of ${total}` : ""})
+            Manage Existing ({entries.length}
+            {filterType ? ` of ${total}` : ""})
           </h2>
+
           <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+            <label className="sr-only" htmlFor="blog-type-filter">
+              Filter by category
+            </label>
+
             <select
-              value={BLOG_KEYS.includes(type) ? type : "all"}
-              onChange={(e) => setType(e.target.value)}
+              id="blog-type-filter"
+              value={filterType || "all"}
+              onChange={(event) => setType(event.target.value)}
               className={`${selectClass} sm:w-56`}
             >
               <option value="all">All Categories ({total})</option>
-              {BLOG_TYPES.map((t) => (
-                <option key={t.key} value={t.key}>{t.label} ({counts[t.key] ?? 0})</option>
+
+              {BLOG_TYPES.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.label} ({counts[item.key] ?? 0})
+                </option>
               ))}
             </select>
+
             <div className="relative w-full sm:w-64">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-400" />
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-400"
+              />
+
+              <label className="sr-only" htmlFor="blog-search">
+                Search posts
+              </label>
+
               <input
-                type="text"
+                id="blog-search"
+                type="search"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search..."
                 className="w-full rounded-lg border border-orange-200 bg-white py-2 pl-9 pr-4 text-[13px] outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-300/40"
               />
@@ -300,67 +636,53 @@ export default function UnifiedBlogs({ type, setType, counts, notify, setCount }
           </div>
         </div>
 
+        {loadError && (
+          <div
+            role="alert"
+            className="mb-4 flex flex-col gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p>{loadError}</p>
+
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="shrink-0 font-bold underline"
+            >
+              Refresh page
+            </button>
+          </div>
+        )}
+
         {loading ? (
-          <p className="py-8 text-center text-sm font-semibold text-slate-500">Loading...</p>
+          <LoadingState />
         ) : entries.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-500">
-            {total === 0 ? "Abhi kuch nahi hai. Upar se pehla add karo!" : "No results match this search or category."}
-          </p>
+          <EmptyState
+            hasPosts={total > 0}
+            hasSearch={Boolean(search)}
+            onClearSearch={() => setSearch("")}
+          />
         ) : (
           <div className="divide-y divide-orange-100">
-            {entries.map(({ t, item }) => {
-              const c = configs[t];
-              const row = c.getRow(item);
-              const draft = item.status === "draft";
-              const tm = META_OF[t];
+            {entries.map(({ key, item, row }) => {
+              const itemKey = configs[key].getKey(item);
+              const requestKey = `${key}:${itemKey}`;
+
               return (
-                <div
-                  key={`${t}:${c.getKey(item)}`}
-                  className="flex flex-col items-start justify-between gap-4 px-2 py-3 transition hover:bg-orange-50/60 sm:flex-row sm:items-center sm:rounded-lg"
-                >
-                  <div className="flex min-w-0 items-center gap-4">
-                    <img
-                      src={row.image || "https://via.placeholder.com/150"}
-                      alt={row.title}
-                      className="h-11 w-11 shrink-0 rounded-lg border border-orange-100 object-cover"
-                    />
-                    <div className="min-w-0">
-                      <h3 className="flex items-center gap-2 truncate text-sm font-semibold text-slate-900">
-                        <span className="truncate">{row.title}</span>
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${tm.badge}`}>
-                          {tm.label}
-                        </span>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            draft ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"
-                          }`}
-                        >
-                          {draft ? "Draft" : "Published"}
-                        </span>
-                      </h3>
-                      <p className="truncate text-xs text-slate-500">{row.subtitle}</p>
-                    </div>
-                  </div>
-                  <div className="flex w-full justify-end gap-2 sm:w-auto">
-                    <button
-                      onClick={() => openEdit(t, item)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-200"
-                    >
-                      <Pencil className="h-3.5 w-3.5" /> Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(t, item)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
-                    </button>
-                  </div>
-                </div>
+                <PostRow
+                  key={requestKey}
+                  meta={META_OF[key]}
+                  item={item}
+                  row={row}
+                  isDeleting={deletingKey === requestKey}
+                  busy={deletingKey !== null}
+                  onEdit={() => openEdit(key, item)}
+                  onDelete={() => handleDelete(key, item)}
+                />
               );
             })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

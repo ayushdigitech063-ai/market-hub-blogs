@@ -1,51 +1,35 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { viewAllPath } from "../data/biographyTypes";
+import { apiUrl } from "../api/apiConfig";
 import ProfileCard from "./Profilecard";
-import { getSection, words } from "../data/biographyFilters";
 
+const API_URL = apiUrl("/biographies");
 const MAX_RELATED = 9;
 
+const getCategory = (item = {}) => {
+  const text = [
+    item.category,
+    item.type,
+    item.role,
+    item.slug,
+  ]
+    .join(" ")
+    .toLowerCase();
 
-const key = (v) => words(v).join("");
+  if (/actor|actress|bollywood|hollywood|cinema|film/.test(text))
+    return "actors";
 
+  if (/entrepreneur|founder|startup/.test(text))
+    return "entrepreneur";
 
-const ROLE_STOP = new Set(["of", "and", "the", "for", "in", "co", "former", "international", "professional"]);
+  if (/sport|cricket|cricketer|football|tennis|athlete|player|badminton|hockey/.test(text))
+    return "sports";
 
+  if (/ceo|business|chairman|executive|corporate|director|president/.test(text))
+    return "business";
 
-const score = (item, profile, section) => {
-  if (section && getSection(item) !== section) return 0;
-
-  let s = section ? 1 : 0;
-
-  const company = key(item.company);
-  if (company && company === key(profile.company)) s += 2;
-
-  const role = key(item.role);
-  if (role && role === key(profile.role)) {
-    s += 2;
-  } else {
-    const profileRole = words(profile.role);
-    if (words(item.role).some((w) => !ROLE_STOP.has(w) && profileRole.includes(w))) s += 1;
-  }
-  return s;
+  return "";
 };
-
-function ArrowButton({ dir, onClick, disabled }) {
-  const Icon = dir === "prev" ? ChevronLeft : ChevronRight;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={dir === "prev" ? "Previous profiles" : "Next profiles"}
-      className="flex h-11 w-11 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 shadow-sm transition-all duration-300 hover:border-amber-500 hover:bg-amber-500 hover:text-stone-950 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-stone-300 disabled:hover:bg-white disabled:hover:text-stone-700"
-    >
-      <Icon className="h-5 w-5" />
-    </button>
-  );
-}
 
 export default function RelatedProfiles({ profile }) {
   const [related, setRelated] = useState([]);
@@ -54,75 +38,90 @@ export default function RelatedProfiles({ profile }) {
   const trackRef = useRef(null);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile) {
+      setRelated([]);
+      return;
+    }
 
-    fetch("https://market-hub-blogs-backend.onrender.com/api/biographies")
-      .then((res) => res.json())
-      .then((data) => {
-        // Never show the current person, even if the same name was added twice
-        const section = getSection(profile);
-        const seen = new Set([key(profile.name)]);
+    const controller = new AbortController();
 
-        const list = (Array.isArray(data) ? data : [])
-          .map((item) => ({ item, s: score(item, profile, section) }))
-          .filter((x) => x.s > 0)
+    async function loadRelated() {
+      try {
+        const response = await fetch(API_URL, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) throw new Error("Failed to load biographies");
+
+        const data = await response.json();
+        const category = getCategory(profile);
+
+        const results = (Array.isArray(data) ? data : [])
+          .filter(
+            (item) =>
+              item.slug !== profile.slug &&
+              category &&
+              getCategory(item) === category
+          )
           .sort(
             (a, b) =>
-              b.s - a.s || String(a.item.name).localeCompare(String(b.item.name))
+              new Date(b.createdAt || b.updatedAt || 0) -
+              new Date(a.createdAt || a.updatedAt || 0)
           )
-          .filter(({ item }) => {
-            const k = key(item.name) || item.slug;
-            if (item.slug === profile.slug || seen.has(k)) return false;
-            seen.add(k);
-            return true;
-          })
-          .slice(0, MAX_RELATED)
-          .map((x) => x.item);
+          .slice(0, MAX_RELATED);
 
-        setRelated(list);
-      })
-      .catch((err) => console.error("Error fetching related profiles:", err));
+        if (!controller.signal.aborted) setRelated(results);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Related profiles error:", error);
+          setRelated([]);
+        }
+      }
+    }
+
+    loadRelated();
+
+    return () => controller.abort();
   }, [profile]);
 
-  const updateArrows = useCallback(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    setCanPrev(el.scrollLeft > 4);
-    setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  }, []);
+  function updateArrows() {
+    const element = trackRef.current;
+    if (!element) return;
+
+    setCanPrev(element.scrollLeft > 4);
+    setCanNext(
+      element.scrollLeft + element.clientWidth < element.scrollWidth - 4
+    );
+  }
+
+  function scroll(direction) {
+    const element = trackRef.current;
+    if (!element) return;
+
+    element.scrollBy({
+      left: (direction === "next" ? 1 : -1) * element.clientWidth * 0.9,
+      behavior: "smooth",
+    });
+  }
 
   useEffect(() => {
     updateArrows();
     window.addEventListener("resize", updateArrows);
+
     return () => window.removeEventListener("resize", updateArrows);
-  }, [related, updateArrows]);
+  }, [related]);
 
-  const scrollByDir = (dir) => {
-    const el = trackRef.current;
-    if (!el) return;
-    el.scrollBy({ left: (dir === "next" ? 1 : -1) * el.clientWidth * 0.9, behavior: "smooth" });
-  };
-
-  if (related.length === 0) return null;
+  if (!related.length) return null;
 
   return (
     <section className="relative overflow-hidden border-t border-amber-100 bg-gradient-to-b from-amber-50/70 via-amber-50/40 to-yellow-50/60 py-12 sm:py-14 lg:py-16">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="h-8 w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
-            <div>
-              <h2 className="font-serif text-xl font-bold tracking-tight text-stone-900 sm:text-2xl">
-                Related profiles
-              </h2>
-            
-            </div>
-          </div>
-
-         
+        <div className="mb-8 flex items-center gap-3">
+          <span className="h-8 w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
+          <h2 className="font-serif text-xl font-bold tracking-tight text-stone-900 sm:text-2xl">
+            Related Biographies
+          </h2>
         </div>
-
 
         <div
           ref={trackRef}
@@ -133,37 +132,35 @@ export default function RelatedProfiles({ profile }) {
           {related.map((item) => (
             <div
               key={item._id || item.slug}
-              className="flex w-[85%] shrink-0 snap-start sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+              className="w-[85%] shrink-0 snap-start sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] [&>article]:h-full"
             >
-              <div className="flex w-full">
-                <div className="w-full [&>article]:h-full">
-                  <ProfileCard item={item} />
-                </div>
-              </div>
-              
+              <ProfileCard item={item} />
             </div>
           ))}
         </div>
+
+        <div className="mt-5 flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => scroll("prev")}
+            disabled={!canPrev}
+            aria-label="Previous biographies"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => scroll("next")}
+            disabled={!canNext}
+            aria-label="Next biographies"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
       </div>
-   
-
-<div className="mt-5 flex items-center justify-center gap-3">
-  <ArrowButton
-    dir="prev"
-    onClick={() => scrollByDir("prev")}
-    disabled={!canPrev}
-    className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-  />
-
-  <ArrowButton
-    dir="next"
-    onClick={() => scrollByDir("next")}
-    disabled={!canNext}
-    className="flex h-11 w-11 items-center justify-center rounded-full border border-[#F0D6A0] bg-gradient-to-br from-[#FFF9E9] to-[#FFE8C2] text-[#B96A32] shadow-sm transition-all duration-300 hover:border-[#E9B96D] hover:from-[#FFE8C2] hover:to-[#F7D58A] hover:text-[#8F4D25] hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-  />
-</div>
-
     </section>
-    
   );
 }

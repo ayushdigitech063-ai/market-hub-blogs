@@ -1,140 +1,153 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from "react";
+import { useParams, Link } from "react-router-dom";
 
-import ArticleCard from '../components/ArticleCard';
-import SeoHead from '../components/SeoHead';
-import ArticleBody from '../components/ArticleBody';
+import ArticleCard from "../../components/ArticleCard";
+import SeoHead from "../../components/SeoHead";
+import ArticleBody from "../../components/ArticleBody";
 
 
-const renderInline = (text) => {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith('**') && part.endsWith('**') ? (
-      <strong
-        key={i}
-        className="text-gray-900"
-      >
-        {part.slice(2, -2)}
-      </strong>
-    ) : (
-      part
-    )
+// -------------------------------
+// Helpers
+// -------------------------------
+
+const renderInline = (text = "") =>
+  String(text)
+    .split(/(\*\*[^*]+\*\*)/g)
+    .map((part, index) =>
+      part.startsWith("**") && part.endsWith("**") ? (
+        <strong key={index} className="font-bold text-gray-900">
+          {part.slice(2, -2)}
+        </strong>
+      ) : (
+        part
+      )
+    );
+
+const toSlug = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const slugMatches = (value, company) => {
+  const key = toSlug(value);
+  const slug = String(company?.slug || "").toLowerCase();
+
+  return Boolean(key && (key === slug || slug.startsWith(`${key}-`)));
+};
+
+const belongsTo = (article, company) => {
+  if (String(article?.company || "").trim()) {
+    return slugMatches(article.company, company);
+  }
+
+  if (slugMatches(article?.category, company)) {
+    return true;
+  }
+
+  const articleId = Number(article?.id);
+  const startId = Number(company?.startId);
+  const endId = Number(company?.endId);
+
+  return (
+    Number.isFinite(articleId) &&
+    Number.isFinite(startId) &&
+    Number.isFinite(endId) &&
+    articleId >= startId &&
+    articleId <= endId
   );
 };
 
+const isLive = (article) =>
+  String(article?.status || "").toLowerCase() !== "draft";
 
-const toSlug = (s) =>
-  String(s || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+const getArray = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.articles)) return data.articles;
+  if (Array.isArray(data?.companies)) return data.companies;
 
-const slugMatches = (value, c) => {
-  const key = toSlug(value);
-  const slug = String(c.slug || '').toLowerCase();
-  return !!key && (key === slug || slug.startsWith(`${key}-`));
+  return [];
 };
 
-const belongsTo = (item, c) => {
-
-  if (String(item.company || '').trim()) return slugMatches(item.company, c);
-
-  if (slugMatches(item.category, c)) return true;
-
-  return item.id >= c.startId && item.id <= c.endId;
-};
-
-
-const isLive = (item) => item.status !== 'draft';
-
+// -------------------------------
+// Article content renderer
+// -------------------------------
 
 function ArticleContent({ content }) {
   if (!content) return null;
 
-  const blocks = content.trim().split(/\n\s*\n/);
+  const blocks = String(content)
+    .trim()
+    .split(/\n\s*\n/)
+    .filter(Boolean);
 
   return (
-    <div className="space-y-4">
-      {blocks.map((block, i) => {
+    <div className="space-y-5">
+      {blocks.map((block, index) => {
         const lines = block
-          .split('\n')
+          .split("\n")
           .map((line) => line.trim())
           .filter(Boolean);
 
-        if (lines.length === 0) return null;
+        if (!lines.length) return null;
 
         const first = lines[0];
 
-        // Heading
-        if (first.startsWith('### ')) {
-          const rest = lines.slice(1);
-
+        if (first.startsWith("### ")) {
           return (
-            <div key={i}>
-              <h3 className="text-xl font-extrabold text-gray-900 mt-8 mb-3">
+            <div key={index}>
+              <h3 className="mb-3 mt-8 text-xl font-extrabold text-gray-900">
                 {first.slice(4)}
               </h3>
 
-              {rest.length > 0 && (
-                <ListOrPara lines={rest} />
-              )}
+              {lines.length > 1 && <ListOrPara lines={lines.slice(1)} />}
             </div>
           );
         }
 
-        return (
-          <ListOrPara
-            key={i}
-            lines={lines}
-          />
-        );
+        return <ListOrPara key={index} lines={lines} />;
       })}
     </div>
   );
 }
 
-
 function ListOrPara({ lines }) {
-  if (!lines || lines.length === 0) {
-    return null;
-  }
+  if (!lines?.length) return null;
 
-  
-  if (lines.every((line) => line.startsWith('- '))) {
+  if (lines.every((line) => line.startsWith("- "))) {
     return (
-      <ul className="list-disc pl-6 space-y-2">
-        {lines.map((line, i) => (
-          <li key={i}>
-            {renderInline(line.slice(2))}
-          </li>
+      <ul className="list-disc space-y-2 pl-6">
+        {lines.map((line, index) => (
+          <li key={index}>{renderInline(line.slice(2))}</li>
         ))}
       </ul>
     );
   }
 
-  // Numbered list
   if (lines.every((line) => /^\d+\.\s/.test(line))) {
     return (
-      <ol className="list-decimal pl-6 space-y-2">
-        {lines.map((line, i) => (
-          <li key={i}>
-            {renderInline(
-              line.replace(/^\d+\.\s/, '')
-            )}
+      <ol className="list-decimal space-y-2 pl-6">
+        {lines.map((line, index) => (
+          <li key={index}>
+            {renderInline(line.replace(/^\d+\.\s/, ""))}
           </li>
         ))}
       </ol>
     );
   }
 
-  // Normal paragraph
   return (
-    <p>
-      {renderInline(lines.join(' '))}
+    <p className="whitespace-pre-line">
+      {renderInline(lines.join(" "))}
     </p>
   );
 }
 
+// -------------------------------
+// Main Article Detail
+// -------------------------------
 
 export default function ArticleDetail() {
   const { id } = useParams();
@@ -143,42 +156,91 @@ export default function ArticleDetail() {
   const [articles, setArticles] = useState([]);
   const [companiesData, setCompaniesData] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [id]);
 
   useEffect(() => {
-    Promise.all([
-      fetch('https://market-hub-blogs-backend.onrender.com/api/articles').then((r) => r.json()),
-      fetch('https://market-hub-blogs-backend.onrender.com/api/companies').then((r) => r.json()),
-    ])
-      .then(([articlesList, companiesList]) => {
-        setArticles(articlesList);
-        setCompaniesData(companiesList);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error fetching:', err);
-        setLoading(false);
-      });
-  }, []);
+    const controller = new AbortController();
 
+    async function fetchData() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const [articlesResponse, companiesResponse] = await Promise.all([
+          fetch(apiUrl("/articles"), {
+            headers: { Accept: "application/json" },
+            signal: controller.signal,
+          }),
+          fetch(apiUrl("/companies"), {
+            headers: { Accept: "application/json" },
+            signal: controller.signal,
+          }),
+        ]);
+
+        if (!articlesResponse.ok) {
+          throw new Error(`Articles API failed: ${articlesResponse.status}`);
+        }
+
+        if (!companiesResponse.ok) {
+          throw new Error(`Companies API failed: ${companiesResponse.status}`);
+        }
+
+        const [articlesResult, companiesResult] = await Promise.all([
+          articlesResponse.json(),
+          companiesResponse.json(),
+        ]);
+
+        setArticles(getArray(articlesResult));
+        setCompaniesData(getArray(companiesResult));
+      } catch (err) {
+        if (err.name === "AbortError") return;
+
+        console.error("Article detail API error:", err);
+        setError("Unable to load article data. Please try again.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchData();
+
+    return () => controller.abort();
+  }, []);
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-600 font-semibold text-lg">
+      <div className="mx-auto max-w-7xl px-4 py-20 text-center">
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-red-600" />
+        <p className="mt-4 text-lg font-semibold text-gray-600">
           Loading article...
         </p>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-20 text-center">
+        <h2 className="mb-3 text-2xl font-bold text-gray-900">
+          Something went wrong
+        </h2>
+        <p className="mb-6 text-gray-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="rounded-lg bg-red-600 px-5 py-2.5 font-semibold text-white transition hover:bg-red-700"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   const article = articles.find(
     (item) => String(item.id) === String(id)
@@ -186,14 +248,16 @@ export default function ArticleDetail() {
 
   if (!article || !isLive(article)) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+      <div className="mx-auto max-w-7xl px-4 py-20 text-center">
+        <h2 className="mb-4 text-2xl font-bold text-gray-800">
           Article Not Found
         </h2>
-
+        <p className="mb-6 text-gray-600">
+          This article may have been removed or is not available.
+        </p>
         <Link
           to="/"
-          className="text-red-600 underline font-semibold"
+          className="font-semibold text-red-600 underline hover:text-red-700"
         >
           Go back to Home
         </Link>
@@ -201,41 +265,45 @@ export default function ArticleDetail() {
     );
   }
 
-  const isSEOArticle =
-    Number(article.id) >= 135 &&
-    Number(article.id) <= 140;
+  const articleId = Number(article.id);
 
+  const isSEOArticle = articleId >= 135 && articleId <= 140;
 
   const isBDAArticle =
-    article.category === 'Business Development' &&
-    Number(article.id) >= 141 &&
-    Number(article.id) <= 145;
+    article.category === "Business Development" &&
+    articleId >= 141 &&
+    articleId <= 145;
 
-  const company = companiesData.find((c) => belongsTo(article, c));
-
-
-  const others = articles.filter(
-    (item) => String(item.id) !== String(article.id) && isLive(item)
+  const company = companiesData.find((item) =>
+    belongsTo(article, item)
   );
 
+  const others = articles.filter(
+    (item) =>
+      String(item.id) !== String(article.id) && isLive(item)
+  );
 
-  let relatedArticles;
+  let relatedArticles = [];
 
   if (isSEOArticle) {
-    relatedArticles = others.filter(
-      (item) =>
-        Number(item.id) >= 135 &&
-        Number(item.id) <= 140
-    );
+    relatedArticles = others.filter((item) => {
+      const relatedId = Number(item.id);
+      return relatedId >= 135 && relatedId <= 140;
+    });
   } else if (isBDAArticle) {
-    relatedArticles = others.filter(
-      (item) =>
-        item.category === 'Business Development' &&
-        Number(item.id) >= 141 &&
-        Number(item.id) <= 145
-    );
+    relatedArticles = others.filter((item) => {
+      const relatedId = Number(item.id);
+
+      return (
+        item.category === "Business Development" &&
+        relatedId >= 141 &&
+        relatedId <= 145
+      );
+    });
   } else if (company) {
-    relatedArticles = others.filter((item) => belongsTo(item, company));
+    relatedArticles = others.filter((item) =>
+      belongsTo(item, company)
+    );
   } else {
     relatedArticles = [
       ...others.filter(
@@ -247,44 +315,43 @@ export default function ArticleDetail() {
     ];
   }
 
-  // =====================================================
-  // SCROLL
-  // =====================================================
   const scrollByAmount = (amount) => {
     scrollRef.current?.scrollBy({
       left: amount,
-      behavior: 'smooth',
+      behavior: "smooth",
     });
   };
 
-  // =====================================================
-  // UI
-  // =====================================================
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      {/* title, meta, canonical, OG, Twitter, JSON-LD (Article + FAQ schema) */}
+    <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
       <SeoHead post={article} />
 
       <Link
         to="/"
-        className="text-sm font-semibold text-gray-500 hover:text-red-600 transition mb-6 inline-block"
+        className="mb-6 inline-block text-sm font-semibold text-gray-500 transition hover:text-red-600"
       >
         ← Back to Home
       </Link>
 
-      <div className="mb-6">
-        <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-          {article.category}
-        </span>
+      <header className="mb-6">
+        {article.category && (
+          <span className="inline-block rounded-full bg-red-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
+            {article.category}
+          </span>
+        )}
 
-        <h1 className="text-3xl lg:text-4xl font-black text-gray-900 mt-4 mb-4 leading-tight">
+        <h1 className="mb-4 mt-4 text-3xl font-black leading-tight text-gray-900 sm:text-4xl">
           {article.title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 border-b border-gray-200 pb-6 mb-6">
-          <span className="font-bold text-gray-900">
-            By {article.author}
-          </span>
+        <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-gray-200 pb-6 text-sm text-gray-600">
+          {article.author && (
+            <span className="font-bold text-gray-900">
+              By {typeof article.author === "string"
+                ? article.author
+                : article.author.name || article.author.fullName || ""}
+            </span>
+          )}
 
           {article.date && (
             <>
@@ -293,92 +360,98 @@ export default function ArticleDetail() {
             </>
           )}
 
-          <span>•</span>
-          <span>{article.readTime}</span>
+          {article.readTime && (
+            <>
+              <span>•</span>
+              <span>{article.readTime}</span>
+            </>
+          )}
         </div>
-      </div>
+      </header>
 
-      <div className="rounded-3xl overflow-hidden shadow-lg mb-8 max-h-[450px]">
-        <img
-          src={article.image}
-          alt={article.imageAlt || article.title}
-          className="w-full h-full object-cover"
-        />
-      </div>
+      {article.image && (
+        <div className="mb-8 max-h-[450px] overflow-hidden rounded-3xl bg-gray-100 shadow-lg">
+          <img
+            src={article.image}
+            alt={article.imageAlt || article.title || "Article image"}
+            loading="eager"
+            fetchPriority="high"
+            className="max-h-[450px] w-full object-cover"
+          />
+        </div>
+      )}
 
-      <div className="text-gray-700 leading-relaxed text-base space-y-4 mb-16">
+      <article className="mb-16 space-y-4 text-base leading-relaxed text-gray-700">
         {article.contentHtml ? (
-          // Naya article: HTML content + Table of Contents + FAQ accordion
           <ArticleBody post={article} />
         ) : (
-          // Purana article (contentHtml nahi hai): pehle jaisa hi dikhega
           <>
             {(article.excerpt || article.description) && (
-              <p className="font-semibold text-lg text-gray-900">
+              <p className="text-lg font-semibold text-gray-900">
                 {article.excerpt || article.description}
               </p>
             )}
 
             {article.content && (
-              <ArticleContent
-                content={article.content}
-              />
+              <ArticleContent content={article.content} />
             )}
           </>
         )}
-      </div>
+      </article>
 
       {relatedArticles.length > 0 && (
-        <div className="border-t border-gray-200 pt-10">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-black text-gray-900">
+        <section className="border-t border-gray-200 pt-10">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <h2 className="text-xl font-black text-gray-900 sm:text-2xl">
               {isBDAArticle
-                ? 'Related BDA Articles'
+                ? "Related BDA Articles"
                 : isSEOArticle
-                  ? 'Related SEO Articles'
-                  : 'Related Articles'}
-            </h3>
+                  ? "Related SEO Articles"
+                  : "Related Articles"}
+            </h2>
 
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => scrollByAmount(-350)}
-                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-300 flex items-center justify-center text-gray-800 font-bold transition cursor-pointer shadow-sm"
-                aria-label="Scroll Left"
-              >
-                ←
-              </button>
+            {relatedArticles.length > 1 && (
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollByAmount(-320)}
+                  aria-label="Scroll related articles left"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-gray-100 font-bold text-gray-800 shadow-sm transition hover:bg-gray-200"
+                >
+                  ←
+                </button>
 
-              <button
-                onClick={() => scrollByAmount(350)}
-                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-300 flex items-center justify-center text-gray-800 font-bold transition cursor-pointer shadow-sm"
-                aria-label="Scroll Right"
-              >
-                →
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => scrollByAmount(320)}
+                  aria-label="Scroll related articles right"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-gray-100 font-bold text-gray-800 shadow-sm transition hover:bg-gray-200"
+                >
+                  →
+                </button>
+              </div>
+            )}
           </div>
 
           <div
             ref={scrollRef}
-            className="flex space-x-6 overflow-x-auto pb-4 scroll-smooth"
+            className="flex gap-6 overflow-x-auto scroll-smooth pb-4"
             style={{
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
             }}
           >
-            {relatedArticles.map((rel) => (
+            {relatedArticles.map((relatedArticle, index) => (
               <div
-                key={rel.id}
-                className="min-w-[300px] max-w-[300px] flex-shrink-0"
+                key={relatedArticle.id || relatedArticle._id || index}
+                className="w-[300px] min-w-[300px] flex-shrink-0"
               >
-                <ArticleCard
-                  article={rel}
-                />
+                <ArticleCard article={relatedArticle} />
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
-    </div>
+    </main>
   );
 }

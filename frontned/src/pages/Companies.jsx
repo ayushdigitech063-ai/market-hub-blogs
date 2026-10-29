@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, ArrowRight, Sparkles, TrendingUp, Globe2 } from 'lucide-react';
-
+import { apiUrl } from "../api/apiConfig";
 const HERO_IMAGE =
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUBi4f2-W_fsawEy1mqYQCZN7A0On8Pg0_RO3Sn-q0uQ&s=10";
 
@@ -70,27 +70,47 @@ const SLIDE_THEMES = {
     ring: "ring-[#78B58E]",
   },
 };
-
 export default function Companies() {
   const [companiesData, setCompaniesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
-    fetch('https://market-hub-blogs-backend.onrender.com/api/companies')
+    let isMounted = true;
+
+    fetch(apiUrl("/companies"))
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch companies');
+        if (!res.ok) throw new Error("Failed to fetch companies");
         return res.json();
       })
-      .then((data) => setCompaniesData(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Error fetching companies:", err))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (isMounted) {
+          setCompaniesData(Array.isArray(data) ? data : []);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error("Error fetching companies:", err);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % FEATURE_SLIDES.length);
+      setActiveSlide(
+        (current) => (current + 1) % FEATURE_SLIDES.length
+      );
     }, 5000);
+
     return () => window.clearInterval(timer);
   }, []);
 
@@ -98,14 +118,20 @@ export default function Companies() {
   const theme = SLIDE_THEMES[slide.theme];
 
   const goToSlide = (index) => setActiveSlide(index);
+
   const previousSlide = () =>
-    setActiveSlide((current) => (current - 1 + FEATURE_SLIDES.length) % FEATURE_SLIDES.length);
+    setActiveSlide(
+      (current) =>
+        (current - 1 + FEATURE_SLIDES.length) % FEATURE_SLIDES.length
+    );
+
   const nextSlide = () =>
-    setActiveSlide((current) => (current + 1) % FEATURE_SLIDES.length);
+    setActiveSlide(
+      (current) => (current + 1) % FEATURE_SLIDES.length
+    );
 
   return (
     <main className="min-h-screen bg-[#F8FAFD] text-slate-900">
-
 {/* HERO BANNER */}
 <section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
   {/* Background Image */}

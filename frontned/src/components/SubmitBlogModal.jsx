@@ -9,12 +9,11 @@ import { emptyPost } from "../dashboard/postConfigs";
 import { BLOG_TYPES } from "../dashboard/UnifiedBlogs";
 import { buildConfigs } from "../dashboard/submissionConfigs";
 import { toLocalInput } from "../dashboard/seo/seoUtils";
+import { saveSubmissionMeta } from "./SubmissionStatus";
 
 const STORAGE_KEY = "blogSubmissionIds";
 
-
 const baseConfigs = buildConfigs();
-
 
 const strip = (cfg) => ({
   ...cfg,
@@ -38,11 +37,15 @@ const newForm = (cfg, prev) => {
   return { ...base, ...carry, seo: prev.seo || base.seo };
 };
 
-const readIds = () => {
+const saveSubmissionId = (id) => {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    const ids = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([...(Array.isArray(ids) ? ids : []), id])
+    );
   } catch {
-    return [];
+    // Storage may be unavailable.
   }
 };
 
@@ -206,7 +209,8 @@ export default function SubmitBlogModal({ onClose }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return setDetailsError(data.error || "Submit failed. Please try again.");
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...readIds(), data.id]));
+      saveSubmissionId(data.id);
+      saveSubmissionMeta(data.id, form);
       window.dispatchEvent(new Event("submission-added"));
       fetch(`${API}/otp/submitted`, {
         method: "POST",
@@ -229,11 +233,11 @@ export default function SubmitBlogModal({ onClose }) {
   };
 
   return (
-   <div
-  ref={overlayRef}
-  className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-stone-900/60 p-3 backdrop-blur-sm sm:p-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
->
-    <div className="relative mx-auto max-w-6xl rounded-3xl bg-orange-50 p-4 shadow-2xl sm:p-6">
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-stone-900/60 p-3 backdrop-blur-sm sm:p-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      <div className="relative mx-auto max-w-6xl rounded-3xl bg-orange-50 p-4 shadow-2xl sm:p-6">
         <button
           type="button"
           onClick={onClose}

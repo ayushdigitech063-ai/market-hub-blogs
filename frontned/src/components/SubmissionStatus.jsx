@@ -1,12 +1,41 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Clock, XCircle, X } from "lucide-react";
 import { API } from "../dashboard/config";
 
 const STORAGE_KEY = "blogSubmissionIds";
 const DISMISSED_KEY = "dismissedBlogSubmissionIds";
 const POLL_MS = 20000;
-const TIMEOUT_MS = 8000;
+const TIMEOUT_MS = 15000;
 const MAX_TRACKED = 5;
+const IMAGE_KEY = /image|thumb|cover|banner|photo/i;
+const META_KEY = "blogSubmissionMeta";
+
+const MESSAGES = {
+  pending: {
+    sub: "Your submission is being reviewed.",
+    Icon: Clock,
+    accent: "bg-amber-400",
+    chip: "bg-amber-50 text-amber-600",
+    badge: "text-amber-500",
+    label: "Under review",
+  },
+  approved: {
+    sub: "Your blog has been posted.",
+    Icon: CheckCircle2,
+    accent: "bg-emerald-500",
+    chip: "bg-emerald-50 text-emerald-600",
+    badge: "text-emerald-500",
+    label: "Blog posted",
+  },
+  rejected: {
+    sub: "Your blog wasn't approved. You can review and submit it again.",
+    Icon: XCircle,
+    accent: "bg-rose-500",
+    chip: "bg-rose-50 text-rose-600",
+    badge: "text-rose-500",
+    label: "Not approved",
+  },
+};
 
 const readStorage = (key) => {
   try {
@@ -20,64 +49,58 @@ const readStorage = (key) => {
 const writeStorage = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error("Unable to save notification data:", error);
+  } catch {
+    // Storage may be unavailable.
   }
 };
 
-const readIds = () => readStorage(STORAGE_KEY);
-
-const writeIds = (ids) => writeStorage(STORAGE_KEY, ids);
-
-const MESSAGES = {
-  pending: {
-    text: "Your blog post is being processed",
-    sub: "Our team will contact you soon",
-    Icon: Clock,
-    bar: "bg-amber-400",
-    chip: "bg-amber-50 text-amber-600",
-    badge: "text-amber-500",
-  },
-  approved: {
-    text: "Your blog is posted",
-    sub: "It is now live on Market Hub",
-    Icon: CheckCircle2,
-    bar: "bg-green-500",
-    chip: "bg-green-50 text-green-600",
-    badge: "text-green-500",
-  },
-  rejected: {
-    text: "Your blog post was not approved",
-    sub: "You can review it and submit again",
-    Icon: XCircle,
-    bar: "bg-rose-500",
-    chip: "bg-rose-50 text-rose-600",
-    badge: "text-rose-500",
-  },
+// Submission, uske form ya published post me se pehli valid image URL.
+export const pickImage = (item) => {
+  for (const source of [item, item?.form, item?.post]) {
+    if (!source || typeof source !== "object") continue;
+    for (const [key, value] of Object.entries(source)) {
+      if (IMAGE_KEY.test(key) && typeof value === "string" && /^(https?:)?\/\/|^data:|^\//.test(value.trim())) {
+        return value.trim();
+      }
+    }
+  }
+  return "";
 };
 
-const fetchStatus = async (id) => {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-
+// Submit ke time save kiya title + image, taaki API na bheje tab bhi notification me dikhe.
+export const saveSubmissionMeta = (id, form) => {
   try {
-    const res = await fetch(`${API}/submissions/${id}`, {
-      signal: ctrl.signal,
+    const meta = JSON.parse(localStorage.getItem(META_KEY) || "{}");
+    meta[id] = { title: form.title || "", image: pickImage(form) };
+    localStorage.setItem(META_KEY, JSON.stringify(meta));
+  } catch {
+    // Storage may be unavailable.
+  }
+};
+
+// Status ke saath dismiss: "Under review" band karne se baad ka "posted" notification na chhupe.
+const dismissKey = (item) => `${item.id}:${item.status}`;
+
+const readMeta = (id) => {
+  try {
+    return JSON.parse(localStorage.getItem(META_KEY) || "{}")[id] || {};
+  } catch {
+    return {};
+  }
+};
+
+const fetchStatus = async (id, signal) => {
+  try {
+    const response = await fetch(`${API}/submissions/${encodeURIComponent(id)}`, {
+      signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
     });
 
-    if (res.status === 404) {
-      return { id, gone: true };
-    }
+    if (response.status === 404) return { id, gone: true };
+    if (!response.ok) return null;
 
-    if (!res.ok) {
-      return null;
-    }
-
-    return { id, ...(await res.json()) };
+    return { ...(await response.json()), id };
   } catch {
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 };
 
@@ -86,57 +109,66 @@ export default function SubmissionStatus() {
   const itemsRef = useRef([]);
   const busy = useRef(false);
   const mounted = useRef(false);
+  const controllerRef = useRef(null);
 
-  const apply = (next) => {
+  const apply = useCallback((next) => {
     itemsRef.current = next;
     setItems(next);
-  };
+  }, []);
 
-  const load = async () => {
-    if (busy.current || !mounted.current) return;
+  const load = useCallback(async () => {
+    if (!mounted.current || busy.current) return;
 
     busy.current = true;
+    const controller = new AbortController();
+    controllerRef.current = controller;
 
     try {
-      const ids = readIds().slice(-MAX_TRACKED);
+      const ids = readStorage(STORAGE_KEY).slice(-MAX_TRACKED);
       const known = itemsRef.current;
 
       const results = await Promise.all(
-        ids.map((id) => {
+        ids.map(async (id) => {
           const old = known.find((item) => item.id === id);
 
-          if (old && old.status !== "pending") {
-            return Promise.resolve(old);
-          }
+          if (old && old.status !== "pending") return old;
 
-          return fetchStatus(id).then((result) => result || old || null);
+          const fresh = await fetchStatus(id, controller.signal);
+          if (!fresh || fresh.gone) return fresh || old || null;
+
+          const meta = readMeta(id);
+          return {
+            ...fresh,
+            title: fresh.title || meta.title || old?.title || "",
+            image: pickImage(fresh) || meta.image || old?.image || "",
+          };
         })
       );
 
-      if (!mounted.current) return;
+      if (!mounted.current || controller.signal.aborted) return;
 
-      const gone = results
-        .filter((result) => result?.gone)
-        .map((result) => result.id);
+      const goneIds = results.filter((item) => item?.gone).map((item) => item.id);
 
-      if (gone.length) {
-        writeIds(readIds().filter((id) => !gone.includes(id)));
+      if (goneIds.length) {
+        writeStorage(
+          STORAGE_KEY,
+          readStorage(STORAGE_KEY).filter((id) => !goneIds.includes(id))
+        );
       }
 
-      const dismissedIds = readStorage(DISMISSED_KEY);
+      const dismissed = readStorage(DISMISSED_KEY);
 
       apply(
         results.filter(
-          (result) =>
-            result &&
-            !result.gone &&
-            !dismissedIds.includes(result.id)
+          (item) => item && !item.gone && !dismissed.includes(dismissKey(item))
         )
       );
+    } catch (error) {
+      console.error("Unable to load submission notifications:", error);
     } finally {
-      busy.current = false;
+      if (controllerRef.current === controller) busy.current = false;
     }
-  };
+  }, [apply]);
 
   useEffect(() => {
     mounted.current = true;
@@ -147,79 +179,78 @@ export default function SubmissionStatus() {
       if (!document.hidden) load();
     }, POLL_MS);
 
-    const handleSubmissionAdded = () => {
-      load();
-    };
-
-    window.addEventListener("submission-added", handleSubmissionAdded);
+    window.addEventListener("submission-added", load);
 
     return () => {
       mounted.current = false;
       clearInterval(interval);
-      window.removeEventListener(
-        "submission-added",
-        handleSubmissionAdded
-      );
+      window.removeEventListener("submission-added", load);
+      controllerRef.current?.abort();
+      busy.current = false;
     };
-  }, []);
+  }, [load]);
 
-  const dismiss = (id) => {
-    const dismissedIds = readStorage(DISMISSED_KEY);
+  const dismiss = (target) => {
+    const key = dismissKey(target);
+    const dismissed = readStorage(DISMISSED_KEY);
 
-    if (!dismissedIds.includes(id)) {
-      writeStorage(
-        DISMISSED_KEY,
-        [...dismissedIds, id].slice(-100)
-      );
+    if (!dismissed.includes(key)) {
+      writeStorage(DISMISSED_KEY, [...dismissed, key].slice(-100));
     }
 
-    apply(itemsRef.current.filter((item) => item.id !== id));
+    apply(itemsRef.current.filter((item) => item.id !== target.id));
   };
 
-  if (items.length === 0) return null;
+  if (!items.length) return null;
 
   return (
     <div
       role="region"
-      aria-label="Blog submission notifications"
-      className="
-        fixed top-24 left-1/2 -translate-x-1/2
-        z-[9999] flex w-[calc(100%-2rem)] max-w-md
-        flex-col gap-3 pointer-events-none
-      "
+      aria-label="Blog notifications"
+      className="pointer-events-none fixed left-1/2 top-24 z-[9999] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 flex-col gap-3"
     >
-      <style>{`@keyframes toastIn{from{opacity:0;transform:translateY(-14px) scale(.97)}to{opacity:1;transform:none}}`}</style>
+      <style>{`
+        @keyframes blogToastIn {
+          from { opacity: 0; transform: translateY(-12px) scale(.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
 
       {items.map((item) => {
         const message = MESSAGES[item.status] || MESSAGES.pending;
         const Icon = message.Icon;
-        const image = item.image || item.form?.image;
+        const image = pickImage(item);
+        const title = item.title?.trim() || "Your blog submission";
 
         return (
           <div
             key={item.id}
             role="status"
-            style={{ animation: "toastIn .35s ease-out" }}
-            className="pointer-events-auto relative overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-2xl"
+            style={{ animation: "blogToastIn .3s ease-out" }}
+            className="pointer-events-auto relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10"
           >
-            <span className={`absolute inset-y-0 left-0 w-1.5 ${message.bar}`} />
+            <span className={`absolute inset-y-0 left-0 w-1 ${message.accent}`} />
 
-            <div className="flex items-center gap-3 py-3 pl-5 pr-3">
-              <div className="relative h-14 w-14 shrink-0">
+            <div className="flex items-start gap-3 p-3.5 pl-4">
+              <div className="relative h-[68px] w-[68px] shrink-0">
                 {image ? (
                   <img
                     src={image}
                     alt=""
-                    className="h-14 w-14 rounded-xl object-cover ring-1 ring-black/5"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
+                    loading="lazy"
+                    className="h-[68px] w-[68px] rounded-xl bg-slate-100 object-cover ring-1 ring-black/5"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
                     }}
                   />
                 ) : (
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${message.chip}`}>
-                    <Icon className="h-6 w-6" />
+                  <div
+                    className={`flex h-[68px] w-[68px] items-center justify-center rounded-xl ${message.chip}`}
+                  >
+                    <Icon className="h-7 w-7" />
                   </div>
                 )}
+
                 {image && (
                   <span className="absolute -bottom-1 -right-1 rounded-full bg-white p-0.5 shadow">
                     <Icon className={`h-4 w-4 ${message.badge}`} />
@@ -227,26 +258,27 @@ export default function SubmissionStatus() {
                 )}
               </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-extrabold leading-5 text-slate-900">
-                  {message.text}
-                </p>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <Icon className={`h-4 w-4 shrink-0 ${message.badge}`} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    {message.label}
+                  </span>
+                </div>
 
-                <p className="mt-0.5 line-clamp-2 break-words text-xs font-semibold leading-4 text-slate-600">
-                  {item.title}
-                </p>
+                <h3 className="line-clamp-2 break-words text-sm font-bold leading-5 text-slate-900">
+                  {title}
+                </h3>
 
-                <p className="mt-1 text-[11px] leading-4 text-slate-400">
-                  {message.sub}
-                </p>
+                <p className="mt-1 text-xs leading-4 text-slate-500">{message.sub}</p>
               </div>
 
               <button
                 type="button"
-                onClick={() => dismiss(item.id)}
+                onClick={() => dismiss(item)}
                 aria-label="Close notification"
                 title="Close notification"
-                className="flex h-7 w-7 shrink-0 items-center justify-center self-start rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-300"
               >
                 <X className="h-4 w-4" />
               </button>

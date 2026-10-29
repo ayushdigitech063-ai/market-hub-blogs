@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, MapPin, Globe2 } from "lucide-react";
 
 const quickLinks = [
   { label: "Home", to: "/" },
-  { label: "Latest Articles", to: "/articles" },
+ { label: "Privacy Policy", to: "/privacy-policy" },
   { label: "Companies", to: "/companies" },
   { label: "Authors", to: "/articles" },
   { label: "Biography", to: "/Biography" },
@@ -95,16 +94,13 @@ export default function Footer() {
             <Link
               to="/"
               aria-label="Market Digital Insights home"
-              className="inline-flex items-center gap-2"
+              className="group inline-flex items-center"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-md shadow-orange-200/60">
-                <Globe2 className="h-5 w-5" />
-              </span>
-
-              <span className="text-base font-extrabold tracking-tight text-slate-900">
-                Market
-                <span className="text-orange-600"> Digital Insights</span>
-              </span>
+              <img
+                src="/logo.png"
+                alt="Market Digital Insights"
+                className="block max-h-[50px] max-w-full object-contain object-left transition-transform duration-300 group-hover:scale-[1.03]"
+              />
             </Link>
 
             <p className="mt-4 max-w-xs text-[13px] leading-6 text-slate-600">
@@ -147,7 +143,7 @@ export default function Footer() {
             </ul>
           </div>
 
-      
+          {/* Explore topics */}
           <div>
             <h3 className={headingClass}>Explore Topics</h3>
             <div className={underlineClass} />

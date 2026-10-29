@@ -1,27 +1,36 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
-const API_BASE =
-  "https://market-hub-blogs-backend.onrender.com/api";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { apiUrl } from "../api/apiConfig";
 
 const API_ENDPOINTS = [
-  { type: "article", url: `${API_BASE}/latest-articles` },
-  { type: "biography", url: `${API_BASE}/biographies` },
-  { type: "company", url: `${API_BASE}/companies` },
-  { type: "brand", url: `${API_BASE}/brands` },
+  { type: "article", url: apiUrl("/latest-articles") },
+  { type: "biography", url: apiUrl("/biographies") },
+  { type: "company", url: apiUrl("/companies") },
+  { type: "brand", url: apiUrl("/brands") },
 ];
 
 const HERO_CACHE_KEY = "market-hub-hero-cache-v2";
 
+const RESPONSE_KEYS = {
+  article: ["articles", "latestArticles", "data", "results"],
+  biography: ["biographies", "data", "results"],
+  company: ["companies", "data", "results"],
+  brand: ["brands", "data", "results"],
+};
+
+/* -------------------- Cache -------------------- */
+
 const readHeroCache = () => {
   try {
     const cached = localStorage.getItem(HERO_CACHE_KEY);
-    if (!cached) return null;
+    if (!cached) return [];
 
     const parsed = JSON.parse(cached);
-    return Array.isArray(parsed?.slides) ? parsed.slides : null;
+
+    return Array.isArray(parsed?.slides) ? parsed.slides : [];
   } catch {
-    return null;
+    return [];
   }
 };
 
@@ -29,30 +38,30 @@ const saveHeroCache = (slides) => {
   try {
     localStorage.setItem(
       HERO_CACHE_KEY,
-      JSON.stringify({ savedAt: Date.now(), slides })
+      JSON.stringify({
+        savedAt: Date.now(),
+        slides,
+      })
     );
   } catch {
-    // Cache save na ho to bhi banner chalega.
+    // Cache unavailable hone par bhi banner kaam karega.
   }
 };
+
+/* -------------------- API Response -------------------- */
 
 const getItems = (response, type) => {
   if (Array.isArray(response)) return response;
   if (!response || typeof response !== "object") return [];
 
-  const keys = {
-    article: ["articles", "latestArticles", "data", "results"],
-    biography: ["biographies", "data", "results"],
-    company: ["companies", "data", "results"],
-    brand: ["brands", "data", "results"],
-  };
-
-  for (const key of keys[type] || ["data", "results"]) {
+  for (const key of RESPONSE_KEYS[type] || ["data", "results"]) {
     if (Array.isArray(response[key])) return response[key];
   }
 
   return [];
 };
+
+/* -------------------- Data Helpers -------------------- */
 
 const getSlug = (item) =>
   item?.slug ||
@@ -106,20 +115,21 @@ const getImage = (item) => {
         const url = extractUrl(entry);
         if (url) return url;
       }
+
       return "";
     }
 
     if (value && typeof value === "object") {
-      return (
+      return extractUrl(
         value.url ||
-        value.secure_url ||
-        value.src ||
-        value.imageUrl ||
-        value.image ||
-        value.path ||
-        value.location ||
-        value.href ||
-        ""
+          value.secure_url ||
+          value.src ||
+          value.imageUrl ||
+          value.image ||
+          value.path ||
+          value.location ||
+          value.href ||
+          ""
       );
     }
 
@@ -141,7 +151,17 @@ const getPublishedDate = (item) =>
   item?.createdAt ||
   item?.updatedAt ||
   item?.date ||
+  item?._bannerDate ||
   null;
+
+const getDateValue = (item) => {
+  const value = getPublishedDate(item);
+  if (!value) return 0;
+
+  const timestamp = new Date(value).getTime();
+
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
 
 const toPlainText = (value) => {
   if (typeof value !== "string") return "";
@@ -177,20 +197,14 @@ const getDescription = (item) => {
     return "Discover the latest stories, insights and updates on Market Hub.";
   }
 
-  if (description.length <= 180) return description;
-
-  return `${description.slice(0, 177).trimEnd()}...`;
+  return description.length <= 180
+    ? description
+    : `${description.slice(0, 177).trimEnd()}...`;
 };
 
-const getDateValue = (item) => {
-  const value = getPublishedDate(item);
-  if (!value) return 0;
+/* -------------------- Links -------------------- */
 
-  const timestamp = new Date(value).getTime();
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-};
-
-function getLink(item, type) {
+const getLink = (item, type) => {
   const slug = getSlug(item);
 
   switch (type) {
@@ -203,8 +217,9 @@ function getLink(item, type) {
     default:
       return `/latest-article/${slug}`;
   }
-}
+};
 
+/* -------------------- Latest Record -------------------- */
 
 const getLatestOne = (items, type) => {
   const validItems = items.filter((item) => {
@@ -223,22 +238,25 @@ const getLatestOne = (items, type) => {
 
   const latest = validItems[0];
 
-  return latest
-    ? [
-        {
-          slug: getSlug(latest),
-          author: latest.author,
-          date: getPublishedDate(latest),
-          _bannerType: type,
-          _bannerTitle: getTitle(latest),
-          _bannerDescription: getDescription(latest),
-          _bannerImage: getImage(latest),
-          _bannerDate: getPublishedDate(latest),
-          _bannerLink: getLink(latest, type),
-        },
-      ]
-    : [];
+  if (!latest) return [];
+
+  return [
+    {
+      ...latest,
+      slug: getSlug(latest),
+      author: latest.author,
+      date: getPublishedDate(latest),
+      _bannerType: type,
+      _bannerTitle: getTitle(latest),
+      _bannerDescription: getDescription(latest),
+      _bannerImage: getImage(latest),
+      _bannerDate: getPublishedDate(latest),
+      _bannerLink: getLink(latest, type),
+    },
+  ];
 };
+
+/* -------------------- Display Helpers -------------------- */
 
 const getCategoryLabel = (type) => {
   switch (type) {
@@ -266,63 +284,96 @@ const formatDate = (value) => {
   });
 };
 
+/* -------------------- Hero Banner -------------------- */
+
 export default function HeroBanner() {
-  const [slides, setSlides] = useState(() => readHeroCache() || []);
+  const [slides, setSlides] = useState(readHeroCache);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(() => !readHeroCache()?.length);
+  const [loading, setLoading] = useState(() => !readHeroCache().length);
   const [imageFailed, setImageFailed] = useState(false);
 
+  const requestController = useRef(null);
+
   const fetchBannerData = useCallback(async () => {
-    const fresh = {}; // type -> us type ki latest slide
-    const cached = readHeroCache() || [];
+    // Previous request ko cancel karo, agar koi request chal rahi hai.
+    requestController.current?.abort();
+
+    const controller = new AbortController();
+    requestController.current = controller;
+
+    const { signal } = controller;
+    const fresh = {};
+    const cached = readHeroCache();
     let hadFailure = false;
 
     const rebuild = () => {
+      if (signal.aborted) return;
+
       const merged = [
         ...Object.values(fresh).flat(),
-        // jo type abhi tak nahi aaya, uski purani cached slide rakho
-        ...cached.filter((s) => !(s._bannerType in fresh)),
+        ...cached.filter((slide) => !(slide._bannerType in fresh)),
       ].sort((a, b) => getDateValue(b) - getDateValue(a));
 
       if (merged.length > 0) {
         setSlides(merged);
         saveHeroCache(merged);
-        setLoading(false); // pehli slide aate hi loader hata do
+        setLoading(false);
       }
     };
 
-    await Promise.all(
-      API_ENDPOINTS.map(async ({ type, url }) => {
-        try {
-          const response = await fetch(url);
+    setLoading(true);
 
-          if (!response.ok) {
-            console.error(`Failed to fetch ${type}:`, response.status);
+    try {
+      await Promise.all(
+        API_ENDPOINTS.map(async ({ type, url }) => {
+          try {
+            const response = await fetch(url, { signal });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const json = await response.json();
+
+            if (signal.aborted) return;
+
+            // Successful response mein empty category bhi valid hai.
+            fresh[type] = getLatestOne(getItems(json, type), type);
+
+            // Har category ka data aate hi banner update karo.
+            rebuild();
+          } catch (error) {
+            if (error.name === "AbortError") return;
+
             hadFailure = true;
-            return;
+            console.error(`Hero Banner API error (${type}):`, error);
           }
+        })
+      );
 
-          const json = await response.json();
+      if (signal.aborted) return;
 
-          fresh[type] = getLatestOne(getItems(json, type), type);
-          rebuild(); // is type ki slide turant screen par
-        } catch (error) {
-          console.error(`Error fetching ${type}:`, error);
-          hadFailure = true;
-        }
-      })
-    );
-
-    if (Object.keys(fresh).length === 0 && !hadFailure) {
-      setSlides([]);
+      // Sab APIs successfully respond karen aur koi slide na mile.
+      if (Object.keys(fresh).length === 0 && !hadFailure) {
+        setSlides([]);
+        saveHeroCache([]);
+      }
+    } finally {
+      if (!signal.aborted) {
+        setLoading(false);
+      }
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchBannerData();
+
+    return () => {
+      requestController.current?.abort();
+    };
   }, [fetchBannerData]);
 
+  /* Auto-slide: existing 1-second interval preserved. */
   useEffect(() => {
     if (slides.length <= 1) return undefined;
 
@@ -336,7 +387,6 @@ export default function HeroBanner() {
   useEffect(() => {
     setImageFailed(false);
   }, [currentIndex]);
-
 
   useEffect(() => {
     setCurrentIndex((index) =>
@@ -354,6 +404,8 @@ export default function HeroBanner() {
     setCurrentIndex((index) => (index + 1) % slides.length);
   };
 
+  /* -------------------- Loading State -------------------- */
+
   if (loading && slides.length === 0) {
     return (
       <section className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
@@ -369,6 +421,8 @@ export default function HeroBanner() {
     );
   }
 
+  /* -------------------- Empty State -------------------- */
+
   if (slides.length === 0) {
     return (
       <section className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
@@ -376,30 +430,34 @@ export default function HeroBanner() {
           <h2 className="text-2xl font-bold text-[#17243D]">
             Discover Market Hub
           </h2>
+
           <p className="mt-3 max-w-lg text-sm leading-6 text-[#5D6472]">
             The latest articles, biographies, companies and brands will appear
             here when data is available.
           </p>
+
           <button
             type="button"
-            onClick={() => {
-              setLoading(true);
-              fetchBannerData();
-            }}
-            className="mt-5 rounded-full bg-[#E47742] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#CF6332]"
+            onClick={fetchBannerData}
+            disabled={loading}
+            className="mt-5 rounded-full bg-[#E47742] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#CF6332] disabled:opacity-60"
           >
-            Try Again
+            {loading ? "Loading..." : "Try Again"}
           </button>
         </div>
       </section>
     );
   }
 
+  /* -------------------- Active Slide -------------------- */
+
   const slide = slides[currentIndex] || slides[0];
   const bannerTitle = slide._bannerTitle || "";
   const rawDescription = slide._bannerDescription || "";
+
   const bannerDescription =
-    bannerTitle && rawDescription.toLowerCase().startsWith(bannerTitle.toLowerCase())
+    bannerTitle &&
+    rawDescription.toLowerCase().startsWith(bannerTitle.toLowerCase())
       ? rawDescription
           .slice(bannerTitle.length)
           .replace(/^[\s:\-–—.,]+/, "") || rawDescription
@@ -425,7 +483,9 @@ export default function HeroBanner() {
         </div>
 
         <div className="absolute inset-0 -z-10 bg-[#111D32]/80 lg:hidden" />
+
         <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-[#17243D] from-[40%] to-transparent to-[75%] lg:block" />
+
         <div className="absolute inset-x-0 bottom-0 -z-10 h-1/3 bg-gradient-to-t from-[#111D32]/70 to-transparent" />
 
         <div className="flex min-h-[560px] items-center px-6 pb-24 pt-12 sm:min-h-[640px] sm:px-10 lg:min-h-[calc(100vh-250px)] lg:px-16">
@@ -464,9 +524,7 @@ export default function HeroBanner() {
                   By{" "}
                   {typeof slide.author === "string"
                     ? slide.author
-                    : slide.author?.name ||
-                      slide.author?.fullName ||
-                      ""}
+                    : slide.author?.name || slide.author?.fullName || ""}
                 </span>
               )}
             </div>

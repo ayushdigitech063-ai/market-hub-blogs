@@ -1,42 +1,60 @@
+
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { apiUrl } from "../api/apiConfig";
 
-const AUTHORS_URL = "https://market-hub-blogs-backend.onrender.com/api/blog-authors";
+let authorsPromise;
 
-
-let authorsPromise = null;
 const loadAuthors = () => {
   if (!authorsPromise) {
-    authorsPromise = fetch(AUTHORS_URL)
-      .then((r) => r.json())
-      .then((d) => (Array.isArray(d) ? d : []))
-      .catch(() => {
-        authorsPromise = null; 
+    authorsPromise = fetch(apiUrl("/blog-authors"))
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load authors");
+        return res.json();
+      })
+      .then((data) => (Array.isArray(data) ? data : []))
+      .catch((err) => {
+        authorsPromise = null;
+        console.error("Authors API error:", err);
         return [];
       });
   }
+
   return authorsPromise;
 };
 
-
-export default function BlogArticleCard({ article, showAuthor = true }) {
+export default function BlogArticleCard({
+  article,
+  showAuthor = true,
+}) {
   const [author, setAuthor] = useState(null);
 
   useEffect(() => {
-    let alive = true;
-    if (!showAuthor || !article.authorId) {
+    let active = true;
+
+    if (!showAuthor || !article?.authorId) {
       setAuthor(null);
-      return;
+      return () => {
+        active = false;
+      };
     }
-    loadAuthors().then((list) => {
-      if (alive) {
-        setAuthor(list.find((a) => a.id === article.authorId) || null);
+
+    loadAuthors().then((authors) => {
+      if (active) {
+        setAuthor(
+          authors.find(
+            (item) => String(item.id) === String(article.authorId)
+          ) || null
+        );
       }
     });
+
     return () => {
-      alive = false;
+      active = false;
     };
-  }, [article.authorId, showAuthor]);
+  }, [article?.authorId, showAuthor]);
+
+  if (!article) return null;
 
   const articlePath = `/articles/${article.slug}`;
 
@@ -45,13 +63,16 @@ export default function BlogArticleCard({ article, showAuthor = true }) {
       <Link to={articlePath} className="block overflow-hidden">
         <img
           src={article.image}
-          alt={article.title}
+          alt={article.title || "Blog article"}
+          loading="lazy"
           className="aspect-[16/10] w-full object-cover transition-transform duration-500 hover:scale-105"
         />
       </Link>
 
       <div className="flex flex-1 flex-col p-5">
-        <span className="text-sm font-semibold text-red-600">{article.category}</span>
+        <span className="text-sm font-semibold text-red-600">
+          {article.category}
+        </span>
 
         <h3 className="mt-2 text-lg font-bold leading-snug text-slate-900">
           <Link to={articlePath} className="transition hover:text-red-600">
@@ -59,7 +80,9 @@ export default function BlogArticleCard({ article, showAuthor = true }) {
           </Link>
         </h3>
 
-        <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{article.excerpt}</p>
+        <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">
+          {article.excerpt}
+        </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-slate-100 pt-4 text-sm text-slate-500">
           {showAuthor && author && (
@@ -70,13 +93,15 @@ export default function BlogArticleCard({ article, showAuthor = true }) {
               <img
                 src={author.image || "https://via.placeholder.com/150"}
                 alt=""
+                loading="lazy"
                 className="h-7 w-7 rounded-full object-cover"
               />
               {author.name}
             </Link>
           )}
-          <span>{article.readTime}</span>
-          <span>{article.date}</span>
+
+          {article.readTime && <span>{article.readTime}</span>}
+          {article.date && <span>{article.date}</span>}
         </div>
       </div>
     </article>

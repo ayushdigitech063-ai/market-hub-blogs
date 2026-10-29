@@ -58,7 +58,7 @@ export default function NotificationsSection() {
   const setItemError = (id, msg) => setItemErrors((x) => ({ ...x, [id]: msg }));
 
   const load = useCallback(async () => {
-    // Prevent overlapping requests from initial load + interval refresh.
+
     if (loadingRef.current) return;
     loadingRef.current = true;
 
