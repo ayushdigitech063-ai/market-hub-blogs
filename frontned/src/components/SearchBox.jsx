@@ -1,7 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, LoaderCircle, ArrowRight } from "lucide-react";
 import {
+  getCachedIndex,
   loadSearchIndex,
   searchItems,
   searchWords,
@@ -9,14 +17,14 @@ import {
 } from "../api/searchApi";
 
 const MAX_SUGGESTIONS = 8;
+const LISTBOX_ID = "search-suggestions";
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+function Highlight({ text, pattern }) {
+  if (!pattern) return text;
 
-function Highlight({ text, words }) {
-  if (!words.length) return text;
-  const re = new RegExp(`(${words.map(escapeRe).join("|")})`, "ig");
-  return text.split(re).map((part, i) =>
+  return text.split(pattern).map((part, i) =>
     i % 2 === 1 ? (
       <mark key={i} className="rounded bg-amber-100 px-0.5 text-stone-900">
         {part}
@@ -32,66 +40,81 @@ export default function SearchBox() {
   const wrapRef = useRef(null);
 
   const [query, setQuery] = useState("");
-  const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
-  const [data, setData] = useState({ items: [], loading: false, ready: false });
+  const [data, setData] = useState(() => {
+    const cached = getCachedIndex();
+    return { items: cached || [], ready: Boolean(cached) };
+  });
 
-  const ensureLoaded = () => {
-    if (data.ready || data.loading) return;
-    setData((d) => ({ ...d, loading: true }));
+  // Typing smooth rehti hai, search deferred value par chalta hai (debounce ki zaroorat nahi).
+  const deferredQuery = useDeferredValue(query);
+
+  // Index load (cached ho to dobara network nahi); fail hone par purana index nahi mitata.
+  const load = useCallback(() => {
     loadSearchIndex()
-      .then(({ items }) => setData({ items, loading: false, ready: true }))
-      .catch(() => setData({ items: [], loading: false, ready: true }));
-  };
-
+      .then(({ items, failed }) =>
+        setData((prev) => (failed.length && prev.ready ? prev : { items, ready: true }))
+      )
+      .catch(() => setData((prev) => ({ ...prev, ready: true })));
+  }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(query), 120);
-    return () => clearTimeout(timer);
-  }, [query]);
+    const idle = window.requestIdleCallback
+      ? window.requestIdleCallback(load)
+      : window.setTimeout(load, 300);
 
+    return () => {
+      if (window.requestIdleCallback) window.cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
+    };
+  }, [load]);
 
   useEffect(() => {
     const onDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
     };
+
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
-  const words = useMemo(() => searchWords(debounced), [debounced]);
+  const words = useMemo(() => searchWords(deferredQuery), [deferredQuery]);
+
+  const pattern = useMemo(
+    () => (words.length ? new RegExp(`(${words.map(escapeRe).join("|")})`, "ig") : null),
+    [words]
+  );
 
   const allMatches = useMemo(
-    () => searchItems(data.items, debounced),
-    [data.items, debounced]
+    () => searchItems(data.items, deferredQuery),
+    [data.items, deferredQuery]
   );
-  const suggestions = allMatches.slice(0, MAX_SUGGESTIONS);
+
+  const suggestions = useMemo(() => allMatches.slice(0, MAX_SUGGESTIONS), [allMatches]);
 
   useEffect(() => {
     setActive(-1);
-  }, [debounced]);
+  }, [deferredQuery]);
 
   const goTo = (url) => {
     setOpen(false);
     setQuery("");
-    setDebounced("");
     navigate(url);
   };
 
   const goToAll = () => {
     const value = query.trim();
     if (!value) return;
+
     setOpen(false);
     navigate(`/search?q=${encodeURIComponent(value)}`);
   };
 
   const onKeyDown = (e) => {
-    if (e.key === "Escape") {
+    if (e.key === "Escape" || e.key === "Tab") {
       setOpen(false);
-      return;
-    }
-    if (e.key === "ArrowDown") {
+    } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setOpen(true);
       setActive((i) => (suggestions.length ? (i + 1) % suggestions.length : -1));
@@ -107,8 +130,8 @@ export default function SearchBox() {
     }
   };
 
-  const hasQuery = query.trim().length > 0;
-  const showPanel = open && hasQuery;
+  const showPanel = open && query.trim().length > 0;
+  const activeId = active >= 0 && suggestions[active] ? `${LISTBOX_ID}-${active}` : undefined;
 
   return (
     <div ref={wrapRef} className="relative w-full max-w-sm">
@@ -122,13 +145,15 @@ export default function SearchBox() {
           }}
           onFocus={() => {
             setOpen(true);
-            ensureLoaded();
+            load();
           }}
           onKeyDown={onKeyDown}
           placeholder="Search articles, companies..."
           aria-label="Search articles, companies, brands and people"
           role="combobox"
           aria-expanded={showPanel}
+          aria-controls={LISTBOX_ID}
+          aria-activedescendant={activeId}
           aria-autocomplete="list"
           autoComplete="off"
           className="w-full rounded-full border border-amber-200/80 bg-white/90 py-2.5 pl-10 pr-4 text-xs text-stone-800 outline-none transition-all duration-300 placeholder:text-stone-400 focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-400/10"
@@ -141,7 +166,7 @@ export default function SearchBox() {
 
       {showPanel && (
         <div className="absolute left-0 top-full z-[60] mt-2 w-full overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl shadow-stone-900/15 md:w-[30rem]">
-          {data.loading || !data.ready ? (
+          {!data.ready ? (
             <div className="flex items-center justify-center gap-2 px-4 py-8 text-xs font-medium text-amber-700">
               <LoaderCircle className="h-4 w-4 animate-spin" />
               Searching your content...
@@ -155,15 +180,25 @@ export default function SearchBox() {
             </div>
           ) : (
             <>
-              <ul role="listbox" className="max-h-[22rem] overflow-y-auto py-1.5">
+              <ul
+                id={LISTBOX_ID}
+                role="listbox"
+                className="max-h-[22rem] overflow-y-auto py-1.5"
+              >
                 {suggestions.map((item, index) => {
                   const Icon = TYPE_ICONS[item.type] || Search;
                   const isActive = index === active;
 
                   return (
-                    <li key={item.id} role="option" aria-selected={isActive}>
+                    <li
+                      key={item.id}
+                      id={`${LISTBOX_ID}-${index}`}
+                      role="option"
+                      aria-selected={isActive}
+                    >
                       <button
                         type="button"
+                        tabIndex={-1}
                         onMouseEnter={() => setActive(index)}
                         onClick={() => goTo(item.url)}
                         className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
@@ -185,7 +220,7 @@ export default function SearchBox() {
 
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[13px] font-semibold text-stone-900">
-                            <Highlight text={item.title} words={words} />
+                            <Highlight text={item.title} pattern={pattern} />
                           </span>
                           {item.subtitle && (
                             <span className="mt-0.5 block truncate text-[11px] text-stone-500">
@@ -210,7 +245,8 @@ export default function SearchBox() {
                 className="flex w-full items-center justify-between border-t border-amber-100 bg-amber-50/60 px-4 py-3 text-xs font-bold text-amber-800 transition hover:bg-amber-100/70"
               >
                 <span>
-                  See all {allMatches.length} result{allMatches.length === 1 ? "" : "s"} for "{query.trim()}"
+                  See all {allMatches.length} result{allMatches.length === 1 ? "" : "s"} for "
+                  {query.trim()}"
                 </span>
                 <ArrowRight className="h-4 w-4" />
               </button>

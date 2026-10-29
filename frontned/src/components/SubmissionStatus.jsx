@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Clock, XCircle, X } from "lucide-react";
 import { API } from "../dashboard/config";
+import { cleanText, getCachedIndex, loadSearchIndex } from "../api/searchApi";
 
 const STORAGE_KEY = "blogSubmissionIds";
 const DISMISSED_KEY = "dismissedBlogSubmissionIds";
@@ -71,7 +73,7 @@ export const pickImage = (item) => {
 export const saveSubmissionMeta = (id, form) => {
   try {
     const meta = JSON.parse(localStorage.getItem(META_KEY) || "{}");
-    meta[id] = { title: form.title || "", image: pickImage(form) };
+    meta[id] = { title: form.title || "", image: pickImage(form), slug: form.slug || "" };
     localStorage.setItem(META_KEY, JSON.stringify(meta));
   } catch {
     // Storage may be unavailable.
@@ -87,6 +89,46 @@ const readMeta = (id) => {
   } catch {
     return {};
   }
+};
+
+const pick = (...values) =>
+  values.find((value) => typeof value === "string" && value.trim())?.trim() || "";
+
+// Approved blog ka page. Direct URL > postType + slug (searchApi wale routes) > search page.
+const blogUrl = (item) => {
+  const post = item.post || {};
+  const form = item.form || {};
+
+  const direct = pick(item.url, item.link, item.publishedUrl, post.url);
+  if (direct.startsWith("/")) return direct;
+
+  try {
+    const parsed = new URL(direct);
+    if (parsed.origin === window.location.origin) return parsed.pathname + parsed.search;
+  } catch {
+    // direct URL nahi hai, aage badho.
+  }
+
+  const type = String(item.postType || "").toLowerCase();
+  const slug = pick(item.slug, post.slug, form.slug);
+
+  if (slug) {
+    if (/latest/.test(type)) return `/latest-article/${slug}`;
+    if (/sliding/.test(type)) return `/sliding-company/${slug}`;
+    if (/compan/.test(type)) return `/company/${slug}`;
+    if (/brand|product/.test(type)) return `/brand/${slug}`;
+    if (/bio|ceo|sport|entrepreneur/.test(type)) {
+      const kind = `${type} ${pick(post.type, form.type, post.category, form.category)}`.toLowerCase();
+      const group = kind.includes("sport") ? "sports" : kind.includes("entrepreneur") ? "entrepreneur" : "ceo";
+      return `/biography/${group}/${slug}`;
+    }
+    if (/author|blog/.test(type)) return `/articles/${slug}`;
+  }
+
+  const id = item.postId ?? post.id;
+  if (/article/.test(type) && id !== undefined && id !== null) return `/article/${id}`;
+
+  return `/search?q=${encodeURIComponent(item.title || "")}`;
 };
 
 const fetchStatus = async (id, signal) => {
@@ -105,9 +147,11 @@ const fetchStatus = async (id, signal) => {
 };
 
 export default function SubmissionStatus() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const itemsRef = useRef([]);
   const busy = useRef(false);
+  const opening = useRef(false);
   const mounted = useRef(false);
   const controllerRef = useRef(null);
 
@@ -141,6 +185,7 @@ export default function SubmissionStatus() {
             ...fresh,
             title: fresh.title || meta.title || old?.title || "",
             image: pickImage(fresh) || meta.image || old?.image || "",
+            slug: fresh.slug || meta.slug || old?.slug || "",
           };
         })
       );
@@ -201,6 +246,40 @@ export default function SubmissionStatus() {
     apply(itemsRef.current.filter((item) => item.id !== target.id));
   };
 
+  // Title se site ke search index me asli detail page dhundho; na mile to blogUrl.
+  const openBlog = async (item) => {
+    if (opening.current) return;
+    opening.current = true;
+
+    try {
+      const title = cleanText(item.title).toLowerCase();
+      const type = String(item.postType || "").toLowerCase().replace(/[^a-z]/g, "");
+
+      const find = (list) => {
+        const matches = (list || []).filter((entry) => entry.titleLower === title);
+        return (
+          matches.find((entry) => type && entry.type.toLowerCase().replace(/[^a-z]/g, "").includes(type)) ||
+          matches[0]
+        );
+      };
+
+      let match = title && find(getCachedIndex());
+
+      if (title && !match) {
+        try {
+          match = find((await loadSearchIndex(true)).items);
+        } catch {
+          // index load fail, blogUrl par jao.
+        }
+      }
+
+      dismiss(item);
+      navigate(match?.url || blogUrl(item));
+    } finally {
+      opening.current = false;
+    }
+  };
+
   if (!items.length) return null;
 
   return (
@@ -221,13 +300,26 @@ export default function SubmissionStatus() {
         const Icon = message.Icon;
         const image = pickImage(item);
         const title = item.title?.trim() || "Your blog submission";
+        const clickable = item.status === "approved";
 
         return (
           <div
             key={item.id}
             role="status"
             style={{ animation: "blogToastIn .3s ease-out" }}
-            className="pointer-events-auto relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10"
+            onClick={clickable ? () => openBlog(item) : undefined}
+            onKeyDown={
+              clickable
+                ? (event) => {
+                    if (event.target === event.currentTarget && event.key === "Enter") openBlog(item);
+                  }
+                : undefined
+            }
+            tabIndex={clickable ? 0 : undefined}
+            title={clickable ? "Open blog" : undefined}
+            className={`pointer-events-auto relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10 ${
+              clickable ? "cursor-pointer transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-emerald-300" : ""
+            }`}
           >
             <span className={`absolute inset-y-0 left-0 w-1 ${message.accent}`} />
 
@@ -275,7 +367,10 @@ export default function SubmissionStatus() {
 
               <button
                 type="button"
-                onClick={() => dismiss(item)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  dismiss(item);
+                }}
                 aria-label="Close notification"
                 title="Close notification"
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-300"

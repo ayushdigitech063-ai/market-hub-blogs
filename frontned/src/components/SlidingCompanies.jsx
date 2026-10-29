@@ -152,37 +152,6 @@ export default function SlidingCompanies() {
               and stay informed about the latest business and technology trends.
             </p>
           </div>
-
- 
-          <div className="flex items-center justify-between gap-4 md:justify-end">
-            <p className="text-sm font-medium text-slate-500">
-              <span className="font-bold text-amber-600">
-                {String(active + 1).padStart(2, "0")}
-              </span>
-              {" / "}
-              {String(companies.length).padStart(2, "0")}
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => move(-1)}
-                aria-label="Previous companies"
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-200 bg-white text-xl text-slate-700 shadow-sm transition duration-300 hover:border-amber-600 hover:bg-amber-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-              >
-                &#8592;
-              </button>
-
-              <button
-                type="button"
-                onClick={() => move(1)}
-                aria-label="Next companies"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-amber-500 to-rose-600 text-xl text-white shadow-md shadow-rose-600/20 transition duration-300 hover:from-amber-600 hover:to-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-400"
-              >
-                &#8594;
-              </button>
-            </div>
-          </div>
         </div>
 
 
@@ -248,6 +217,36 @@ export default function SlidingCompanies() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+
+        {/* Slider Controls */}
+        <div className="mt-2 flex items-center justify-center gap-4">          <p className="text-sm font-medium text-slate-500">
+            <span className="font-bold text-amber-600">
+              {String(active + 1).padStart(2, "0")}
+            </span>
+            {" / "}
+            {String(companies.length).padStart(2, "0")}
+          </p>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => move(-1)}
+              aria-label="Previous companies"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-200 bg-white text-xl text-slate-700 shadow-sm transition duration-300 hover:border-amber-600 hover:bg-amber-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              &#8592;
+            </button>
+
+            <button
+              type="button"
+              onClick={() => move(1)}
+              aria-label="Next companies"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-amber-500 to-rose-600 text-xl text-white shadow-md shadow-rose-600/20 transition duration-300 hover:from-amber-600 hover:to-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-400"
+            >
+              &#8594;
+            </button>
           </div>
         </div>
 
