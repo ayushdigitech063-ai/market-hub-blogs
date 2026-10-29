@@ -20,7 +20,7 @@ const MESSAGES = {
     label: "Under review",
   },
   approved: {
-    sub: "Your blog has been posted.",
+
     Icon: CheckCircle2,
     accent: "bg-emerald-500",
     chip: "bg-emerald-50 text-emerald-600",
