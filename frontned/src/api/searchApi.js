@@ -11,8 +11,8 @@ import {
 import { apiUrl } from "./apiConfig";
 
 const STORE_KEY = "search_index_v1";
-const CACHE_MS = 5 * 60 * 1000; // fresh index reuse time
-const RETRY_MS = 30 * 1000; // partial failure ho to jaldi dobara try
+const CACHE_MS = 5 * 60 * 1000; 
+const RETRY_MS = 30 * 1000; 
 const FETCH_TIMEOUT_MS = 20000;
 
 const decode = (value) => {
@@ -76,7 +76,7 @@ const bioType = (item) => {
   return "ceo";
 };
 
-// All search sources use the common API configuration.
+
 export const SOURCES = [
   {
     type: "Article",
@@ -318,7 +318,7 @@ let indexPromise = null;
 let expiresAt = 0;
 let memory = null;
 
-// Last built index (memory ya sessionStorage) - page reload par bhi turant search chalta hai.
+
 export const getCachedIndex = () => {
   if (memory) return memory;
 
@@ -326,7 +326,7 @@ export const getCachedIndex = () => {
     const stored = JSON.parse(sessionStorage.getItem(STORE_KEY) || "null");
     if (Array.isArray(stored) && stored.length) memory = stored;
   } catch {
-    // Storage may be unavailable.
+
   }
 
   return memory;
@@ -338,14 +338,14 @@ const saveIndex = (items) => {
   try {
     sessionStorage.setItem(STORE_KEY, JSON.stringify(items));
   } catch {
-    // Quota full ya storage unavailable.
+
   }
 };
 
-// force: naya approve hua blog index me laane ke liye (build chal raha ho to nahi).
+
 export const loadSearchIndex = (force = false) => {
   if (!indexPromise || Date.now() > expiresAt || (force && expiresAt !== Infinity)) {
-    expiresAt = Infinity; // build chal raha hai, dusra build shuru na ho
+    expiresAt = Infinity; 
 
     indexPromise = buildIndex().then((result) => {
       expiresAt = Date.now() + (result.failed.length ? RETRY_MS : CACHE_MS);

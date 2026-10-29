@@ -24,7 +24,7 @@ const writeCache = (data) => {
   } catch {}
 };
 
-// Cloudinary image ho to chhota + optimized version use karo (baaki URLs same rahenge)
+
 const optimizeImage = (url, width = 400) => {
   if (!url || typeof url !== "string") return url;
   if (!url.includes("res.cloudinary.com") || !url.includes("/upload/")) return url;
@@ -41,7 +41,7 @@ export default function SlidingCompanies() {
     fetchSlidingCompanies()
       .then((data) => {
         const list = Array.isArray(data) ? data : [];
-        // Data same hai to dobara render mat karo
+      
         setCompanies((prev) =>
           JSON.stringify(prev) === JSON.stringify(list) ? prev : list
         );
@@ -189,7 +189,7 @@ export default function SlidingCompanies() {
                   )}
                 </div>
 
-                {/* Company Details */}
+            
                 <div className="flex flex-1 flex-col">
                   <span className="mb-2 inline-flex w-fit items-center rounded-md bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800">
                     Company Profile
@@ -220,7 +220,7 @@ export default function SlidingCompanies() {
           </div>
         </div>
 
-        {/* Slider Controls */}
+       
         <div className="mt-2 flex items-center justify-center gap-4">          <p className="text-sm font-medium text-slate-500">
             <span className="font-bold text-amber-600">
               {String(active + 1).padStart(2, "0")}
@@ -250,7 +250,7 @@ export default function SlidingCompanies() {
           </div>
         </div>
 
-        {/* Bottom Note */}
+    
         <div className="mt-10 flex flex-col items-center justify-center gap-2 border-t border-slate-200/80 pt-6 text-center sm:flex-row sm:gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-800">
             &#10003;

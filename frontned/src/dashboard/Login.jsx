@@ -154,14 +154,12 @@ export default function Login({ onAuth }) {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-orange-200 via-amber-100 to-stone-300 px-4 py-10">
       <GlobalStyle />
 
-      {/* Background image */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 scale-105 bg-cover bg-center blur-[3px]"
         style={{ backgroundImage: "url('/bg.png')" }}
       />
 
-      {/* Background overlay */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-gradient-to-br from-orange-900/10 via-transparent to-amber-200/20"

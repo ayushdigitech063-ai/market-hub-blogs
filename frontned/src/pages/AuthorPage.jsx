@@ -264,14 +264,13 @@ export default function AuthorPage() {
         title="Unable to Load Profile"
         message={error}
         onRetry={() => {
-          // Re-trigger the effect without changing the URL.
+
           setLoading(true);
           setError("");
           setAuthor(null);
           setAuthorArticles([]);
 
-          // The browser reload is a reliable fallback for retrying
-          // the current route and its API requests.
+      
           window.location.reload();
         }}
         showBackButton
@@ -299,7 +298,7 @@ export default function AuthorPage() {
   return (
     <main className="min-h-screen bg-[#F7F9FC] text-slate-700 selection:bg-orange-100 selection:text-orange-900">
       <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[330px_1fr] lg:gap-10 lg:px-10 xl:px-12">
-        {/* Author Sidebar */}
+
         <aside className="h-fit overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,39,71,0.06)] lg:sticky lg:top-8">
           <div className="relative h-24 bg-gradient-to-r from-[#0F2747] via-[#16385F] to-[#2563A6]">
             <div className="absolute right-5 top-5 h-3 w-3 rounded-full bg-orange-400" />
@@ -421,9 +420,9 @@ export default function AuthorPage() {
           </div>
         </aside>
 
-        {/* Main Content */}
+
         <section className="min-w-0">
-          {/* About Author */}
+
           <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_8px_30px_rgba(15,39,71,0.05)] sm:p-9">
             <div className="absolute right-0 top-0 h-1.5 w-32 bg-gradient-to-r from-orange-500 to-orange-400" />
 
@@ -450,7 +449,6 @@ export default function AuthorPage() {
             </p>
           </div>
 
-          {/* Author Articles */}
           <div className="mt-12">
             <div className="mb-7 flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>

@@ -6,9 +6,7 @@ import SeoHead from "../../components/SeoHead";
 import ArticleBody from "../../components/ArticleBody";
 
 
-// -------------------------------
-// Helpers
-// -------------------------------
+
 
 const renderInline = (text = "") =>
   String(text)
@@ -71,9 +69,7 @@ const getArray = (data) => {
   return [];
 };
 
-// -------------------------------
-// Article content renderer
-// -------------------------------
+
 
 function ArticleContent({ content }) {
   if (!content) return null;
@@ -145,9 +141,7 @@ function ListOrPara({ lines }) {
   );
 }
 
-// -------------------------------
-// Main Article Detail
-// -------------------------------
+
 
 export default function ArticleDetail() {
   const { id } = useParams();

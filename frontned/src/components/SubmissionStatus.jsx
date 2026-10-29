@@ -52,11 +52,11 @@ const writeStorage = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Storage may be unavailable.
+  
   }
 };
 
-// Submission, uske form ya published post me se pehli valid image URL.
+
 export const pickImage = (item) => {
   for (const source of [item, item?.form, item?.post]) {
     if (!source || typeof source !== "object") continue;
@@ -69,18 +69,18 @@ export const pickImage = (item) => {
   return "";
 };
 
-// Submit ke time save kiya title + image, taaki API na bheje tab bhi notification me dikhe.
+
 export const saveSubmissionMeta = (id, form) => {
   try {
     const meta = JSON.parse(localStorage.getItem(META_KEY) || "{}");
     meta[id] = { title: form.title || "", image: pickImage(form), slug: form.slug || "" };
     localStorage.setItem(META_KEY, JSON.stringify(meta));
   } catch {
-    // Storage may be unavailable.
+   
   }
 };
 
-// Status ke saath dismiss: "Under review" band karne se baad ka "posted" notification na chhupe.
+
 const dismissKey = (item) => `${item.id}:${item.status}`;
 
 const readMeta = (id) => {
@@ -94,7 +94,7 @@ const readMeta = (id) => {
 const pick = (...values) =>
   values.find((value) => typeof value === "string" && value.trim())?.trim() || "";
 
-// Approved blog ka page. Direct URL > postType + slug (searchApi wale routes) > search page.
+
 const blogUrl = (item) => {
   const post = item.post || {};
   const form = item.form || {};
@@ -246,7 +246,7 @@ export default function SubmissionStatus() {
     apply(itemsRef.current.filter((item) => item.id !== target.id));
   };
 
-  // Title se site ke search index me asli detail page dhundho; na mile to blogUrl.
+ 
   const openBlog = async (item) => {
     if (opening.current) return;
     opening.current = true;
@@ -269,7 +269,7 @@ export default function SubmissionStatus() {
         try {
           match = find((await loadSearchIndex(true)).items);
         } catch {
-          // index load fail, blogUrl par jao.
+          
         }
       }
 

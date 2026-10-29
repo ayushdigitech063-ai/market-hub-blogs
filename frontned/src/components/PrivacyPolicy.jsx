@@ -119,7 +119,6 @@ export default function PrivacyPolicy() {
           className="absolute inset-0 h-full w-full object-cover"
         />
 
-        {/* Dark + orange overlay for readable text */}
         <div
           aria-hidden="true"
           className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-900/70 to-orange-900/60"
@@ -143,10 +142,10 @@ export default function PrivacyPolicy() {
         </div>
       </section>
 
-      {/* Body */}
+
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:py-14">
         <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-10">
-          {/* Sticky index */}
+
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <nav
               aria-label="Privacy policy sections"
@@ -174,7 +173,7 @@ export default function PrivacyPolicy() {
             </nav>
           </aside>
 
-          {/* Sections */}
+  
           <div className="min-w-0 space-y-5">
             {sections.map((s, i) => (
               <article

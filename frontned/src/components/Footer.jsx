@@ -74,7 +74,7 @@ export default function Footer() {
   return (
     <footer className="relative overflow-hidden border-t border-orange-100 bg-[#FFFCF8] text-slate-700">
 
-      {/* Soft decorative background — no image */}
+
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-28 -top-28 h-72 w-72 rounded-full bg-orange-100/50 blur-3xl"
@@ -86,10 +86,10 @@ export default function Footer() {
 
       <div className="relative mx-auto max-w-[1400px] px-5 sm:px-8 lg:px-10">
 
-        {/* Main footer */}
+
         <div className="grid grid-cols-1 gap-9 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10 lg:py-12">
 
-          {/* Brand / introduction */}
+
           <div>
             <Link
               to="/"
@@ -123,7 +123,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick links */}
+
           <div>
             <h3 className={headingClass}>Quick Links</h3>
             <div className={underlineClass} />
@@ -143,7 +143,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Explore topics */}
+
           <div>
             <h3 className={headingClass}>Explore Topics</h3>
             <div className={underlineClass} />
@@ -160,7 +160,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* About */}
           <div>
             <h3 className={headingClass}>About Us</h3>
             <div className={underlineClass} />
@@ -194,7 +193,6 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom bar */}
         <div className="flex flex-col gap-4 border-t border-orange-100 py-5 text-[11px] leading-5 text-slate-500 sm:flex-row sm:items-center sm:justify-between">
 
           <p className="text-center sm:text-left">

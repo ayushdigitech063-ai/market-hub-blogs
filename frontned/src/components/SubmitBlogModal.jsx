@@ -20,7 +20,7 @@ const strip = (cfg) => ({
   extraFields: cfg.extraFields.filter((f) => f.name !== "id" && f.name !== "authorId"),
 });
 
-// UnifiedBlogs wala hi logic: type badalne par title, content, SEO carry ho jate hain
+
 const newForm = (cfg, prev) => {
   const base = {
     ...emptyPost,
@@ -45,7 +45,7 @@ const saveSubmissionId = (id) => {
       JSON.stringify([...(Array.isArray(ids) ? ids : []), id])
     );
   } catch {
-    // Storage may be unavailable.
+
   }
 };
 
@@ -70,7 +70,7 @@ export default function SubmitBlogModal({ onClose }) {
   const overlayRef = useRef(null);
   const editorRef = useRef(null);
 
-  // PostEditor ke upar wala Submit button chhupao, niche wala button use hoga
+
   useEffect(() => {
     const hideTopSubmit = () => {
       editorRef.current?.querySelectorAll("button").forEach((b) => {
@@ -100,7 +100,7 @@ export default function SubmitBlogModal({ onClose }) {
     };
   }, []);
 
-  // Category dropdown ke options us type ke existing posts se
+
   useEffect(() => {
     fetch(baseConfigs[activeType].listUrl)
       .then((r) => r.json())
@@ -175,7 +175,7 @@ export default function SubmitBlogModal({ onClose }) {
     }
   };
 
-  // Step 1: blog form check karke details popup kholo
+
   const openDetails = (e) => {
     e?.preventDefault?.();
     setError("");

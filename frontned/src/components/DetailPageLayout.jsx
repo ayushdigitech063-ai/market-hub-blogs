@@ -42,7 +42,7 @@ const fmtDate = (v, month = "short") => {
   return d.toLocaleDateString("en-IN", { day: "numeric", month, year: "numeric" });
 };
 
-// API kabhi array aur kabhi { items: [...] } / { articles: [...] } return karti hai
+
 const getList = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (!payload || typeof payload !== "object") return [];
@@ -109,7 +109,7 @@ async function loadBrand(slug, { alive, onItem, onSections }) {
   let items = (data.related || []).filter(isLive);
   let fallback = false;
 
-  // Related na mile to brand/category se milte-julte items
+
   if (!items.length) {
     try {
       const all = await (await fetch(`${DASH_API}/brands`)).json();
@@ -367,7 +367,7 @@ const buildLatestView = (raw) => {
   };
 };
 
-// **bold** ko <strong> mein badalta hai
+
 const renderInline = (text = "") =>
   String(text)
     .split(/(\*\*[^*]+\*\*)/g)
@@ -379,7 +379,7 @@ const renderInline = (text = "") =>
       )
     );
 
-// Plain text content (### heading, - list, paragraph)
+
 const renderContent = (content = "") =>
   String(content)
     .split(/\n\s*\n/)
@@ -561,7 +561,7 @@ async function loadArticle(id, { alive, signal, onItem, onSections }) {
   if (!alive()) return;
   onItem(cur);
 
-  // Related optional hai: fail ho to main article nahi chhupta
+
   try {
     const rRes = await fetch(`${APP_API}/articles`, {
       headers: { Accept: "application/json" },
@@ -595,7 +595,7 @@ async function loadArticle(id, { alive, signal, onItem, onSections }) {
     if (e.name !== "AbortError") console.error("Related articles error:", e);
   }
 }
-/* ====================== TYPE CONFIG (teeno ek jagah) ====================== */
+
 const CONFIG = {
   brand: {
     load: loadBrand,
@@ -831,7 +831,7 @@ function RelatedSection({ section }) {
 
 export default function DetailPage({ type = "latest" }) {
   const params = useParams();
-  const slug = params.slug ?? params.id; // /article/:id mein "id" aata hai
+  const slug = params.slug ?? params.id; 
   const cfg = CONFIG[type] || CONFIG.latest;
 
   const [item, setItem] = useState(null);
@@ -875,11 +875,11 @@ export default function DetailPage({ type = "latest" }) {
       active = false;
       controller.abort();
     };
-  }, [slug, type, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [slug, type, reloadKey]); 
 
   const view = useMemo(() => (item ? cfg.build(item) : null), [item, cfg]);
 
-  /* ---------- Network / server error (retry) ---------- */
+
   if (!loading && error) {
     return (
       <main className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16 text-center">
@@ -909,7 +909,7 @@ export default function DetailPage({ type = "latest" }) {
     );
   }
 
-  /* ---------- Loading ---------- */
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-white">
@@ -921,7 +921,7 @@ export default function DetailPage({ type = "latest" }) {
     );
   }
 
-  /* ---------- Not found ---------- */
+
   if (notFound || !view || !isLive(view)) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-white px-5">
@@ -962,7 +962,7 @@ export default function DetailPage({ type = "latest" }) {
           {cfg.backLabel}
         </Link>
 
-        {/* HEADER */}
+
         <header className="mb-8">
           {(p.badge || p.category) && (
             <div className="mb-3 flex flex-wrap items-center gap-2.5">
@@ -993,7 +993,7 @@ export default function DetailPage({ type = "latest" }) {
           <div className="mt-6 h-px bg-stone-200/80" />
         </header>
 
-        {/* IMAGE */}
+ 
         {p.image && (
           <div className="relative mb-10 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-50 shadow-md">
             <div className="absolute left-0 top-0 z-10 h-1.5 w-32 bg-amber-500" />
@@ -1018,7 +1018,7 @@ export default function DetailPage({ type = "latest" }) {
           </section>
         )}
 
-        {/* BODY */}
+  
         {(hasHtml || p.fallbackBody) && (
           <article className="mb-12">
             {p.bodyTitle && (
@@ -1041,7 +1041,7 @@ export default function DetailPage({ type = "latest" }) {
           </article>
         )}
 
-        {/* FEATURES (sirf brand) */}
+
         {p.features?.length > 0 && (
           <section className="mb-12">
             <div className="mb-6">
@@ -1066,7 +1066,7 @@ export default function DetailPage({ type = "latest" }) {
           </section>
         )}
 
-        {/* RELATED */}
+  
         {sections.map((s, i) => (
           <RelatedSection key={s.title || i} section={s} />
         ))}

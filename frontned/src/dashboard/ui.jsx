@@ -246,9 +246,7 @@ export function Card({
   );
 }
 
-/* =========================================
-   SMALL REUSABLE BUTTON
-========================================= */
+
 
 export function MiniBtn({
   children,

@@ -16,9 +16,7 @@ import {
   buildBlogArticleConfig,
 } from "./postConfigs";
 
-/* ------------------------------------------------------------------
-   Content types (these two exports are used by other files)
------------------------------------------------------------------- */
+
 
 export const BLOG_TYPES = [
   { key: "biographies", label: "Biography", badge: "bg-orange-50 text-orange-700" },
@@ -34,7 +32,7 @@ export const BLOG_KEYS = BLOG_TYPES.map((item) => item.key);
 
 const META_OF = Object.fromEntries(BLOG_TYPES.map((item) => [item.key, item]));
 
-// Static configs. Used for list URLs, which never change.
+
 const BASE_CONFIGS = {
   biographies: biographyConfig,
   brands: brandConfig,
@@ -45,9 +43,7 @@ const BASE_CONFIGS = {
   blogArticles: buildBlogArticleConfig([]),
 };
 
-/* ------------------------------------------------------------------
-   Styles
------------------------------------------------------------------- */
+
 
 const FALLBACK_IMAGE =
   "data:image/svg+xml;charset=UTF-8," +
@@ -65,9 +61,6 @@ const selectClass =
 const buttonBase =
   "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-/* ------------------------------------------------------------------
-   Helpers
------------------------------------------------------------------- */
 
 const text = (value) => (value == null ? "" : String(value));
 
@@ -78,11 +71,11 @@ async function errorMessage(response, fallback) {
     const body = await response.json();
     return body?.error || body?.message || fallback;
   } catch {
-    return fallback; // empty or non-JSON response
+    return fallback; 
   }
 }
 
-// Fetches a JSON array from any list URL. Throws a readable error on failure.
+
 async function requestArray(url, label) {
   const response = await authFetch(url);
 
@@ -102,8 +95,6 @@ async function requestArray(url, label) {
 const requestList = (key) =>
   requestArray(BASE_CONFIGS[key].listUrl, META_OF[key].label);
 
-// New form for the "Add" screen. When the category type is switched, shared
-// fields (title, content, SEO...) are carried over from the previous form.
 function newForm(config, previous) {
   const base = {
     ...emptyPost,
@@ -122,9 +113,7 @@ function newForm(config, previous) {
   return { ...base, ...carried, seo: { ...base.seo, ...(previous.seo || {}) } };
 }
 
-/* ------------------------------------------------------------------
-   Small UI pieces
------------------------------------------------------------------- */
+
 
 function LoadingState() {
   return (
@@ -240,9 +229,7 @@ function PostRow({ meta, item, row, isDeleting, busy, onEdit, onDelete }) {
   );
 }
 
-/* ------------------------------------------------------------------
-   Main component
------------------------------------------------------------------- */
+
 
 export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCount }) {
   const [data, setData] = useState(emptyData);
@@ -251,7 +238,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
 
-  const [view, setView] = useState("list"); // "list" | "edit"
+  const [view, setView] = useState("list"); 
   const [activeType, setActiveType] = useState("biographies");
   const [editingKey, setEditingKey] = useState(null);
   const [form, setForm] = useState(null);
@@ -268,7 +255,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     [notify]
   );
 
-  /* ---------- Configs (only the ones that depend on live data) ---------- */
+
 
   const configs = useMemo(() => {
     const companyOptions = (data.companies || [])
@@ -303,7 +290,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
 
   const cfg = configs[activeType];
 
-  /* ---------- Loading data ---------- */
+
 
   const loadAuthors = useCallback(() => {
     requestArray(`${API}/blog-authors`, "authors")
@@ -311,7 +298,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
       .catch((error) => console.error("Unable to load authors:", error));
   }, []);
 
-  // Load every content type once, when the component opens.
+
   useEffect(() => {
     let cancelled = false;
 
@@ -327,7 +314,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
         const key = BLOG_KEYS[index];
 
         if (result.status === "fulfilled") {
-          nextData[key] = result.value; // already an array
+          nextData[key] = result.value; 
         } else {
           nextData[key] = [];
           failed.push(META_OF[key].label);
@@ -351,13 +338,13 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     };
   }, [loadAuthors]);
 
-  // Reload one content type (after save).
+
   const reloadType = async (key) => {
     const result = await requestList(key);
     setData((previous) => ({ ...previous, [key]: result }));
   };
 
-  // Tell the dashboard how many posts each type has.
+
   useEffect(() => {
     if (typeof setCount !== "function") return;
 
@@ -365,11 +352,10 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
       const update = setCount(key);
       if (typeof update === "function") update(data[key].length);
     });
-    // setCount is intentionally not a dependency: the parent creates it on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+ 
   }, [data]);
 
-  /* ---------- Open / close the editor ---------- */
+
 
   const openEditor = (targetType, key, nextForm) => {
     setActiveType(targetType);
@@ -377,7 +363,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     setForm(nextForm);
     setView("edit");
     window.scrollTo({ top: 0, behavior: "smooth" });
-    loadAuthors(); // keep the author dropdown fresh
+    loadAuthors(); 
   };
 
   const openCreate = () => {
@@ -409,7 +395,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     setForm((previous) => newForm(configs[targetType], previous));
   };
 
-  /* ---------- Save ---------- */
+
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -459,7 +445,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     }
   };
 
-  /* ---------- Delete ---------- */
+
 
   const handleDelete = async (targetType, item) => {
     const config = configs[targetType];

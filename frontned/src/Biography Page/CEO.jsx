@@ -78,7 +78,7 @@ const matchSection = (value) => {
   return RULES.find(([, re]) => re.test(text))?.[0] || "";
 };
 
-// Pehle category dekho, na mile to type + role dekho
+
 const getSection = (item = {}) =>
   matchSection(item.category) ||
   matchSection(`${item.type || ""} ${item.role || ""}`);

@@ -146,7 +146,7 @@ export default function NotificationsSection() {
         )
       );
       refreshCounts();
-      // Email notification is background work and should not delay the UI.
+
       void notifyDecision(s._id);
     } catch (err) {
       setItemError(s._id, err.message);

@@ -86,7 +86,7 @@ const removeDuplicates = (articles) => {
 const isPublished = (article) => {
   const status = normalize(article?.status);
 
-  // Existing records without a status are retained for compatibility.
+
   return !["draft", "unpublished", "deleted"].includes(status);
 };
 
@@ -304,7 +304,7 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* AI Insights */}
+   
       <section className="bg-[#F8F7F3] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
         <div className="mx-auto w-full max-w-[1600px] overflow-hidden rounded-2xl border border-[#E8E3D8] bg-white shadow-[0_12px_35px_rgba(23,36,61,0.07)] sm:rounded-3xl">
           <div className="grid items-stretch lg:grid-cols-2">
@@ -358,7 +358,6 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* Authors */}
       <section className="bg-[#F8F7F3] px-4 pb-8 sm:px-6 sm:pb-10 lg:px-8 lg:pb-12">
         <div className="mx-auto w-full max-w-[1600px] overflow-hidden rounded-2xl border border-[#E8E3D8] bg-white shadow-[0_12px_35px_rgba(23,36,61,0.07)] sm:rounded-3xl">
           <div className="grid items-stretch lg:grid-cols-2">
@@ -436,7 +435,6 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* Articles */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="mb-8 flex items-center gap-3 border-b border-stone-200 pb-4">
           <span className="h-8 w-1.5 rounded-full bg-amber-500" />

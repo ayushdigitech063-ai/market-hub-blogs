@@ -112,28 +112,28 @@ const isAdminPage =
           <Route path="/about" element={<About />} />
           <Route path="/companies" element={<Companies />} />
 
-          {/* Admin: only /admin/login works. /admin, /admin/register etc. -> 404 */}
+
           <Route path="/admin/login" element={<AdminDashboard />} />
 
-          {/* Biography homepage */}
+         
           <Route path="/biography" element={<Biography />} />
           <Route path="/biography/ceo" element={<Biography />} />
 
-          {/* Biography category listings */}
+
           <Route path="/biography/view-all/:type" element={<ViewAll />} />
 
-          {/* Biography details with category/type */}
+ 
           <Route
             path="/biography/:type/:slug"
             element={<Biographydetails />}
           />
 
-          {/* Biography details without category/type */}
+
           <Route path="/biography/:slug" element={<Biographydetails />} />
 
           <Route path="/search" element={<SearchResults />} />
 
-          {/* Must stay last: catches every unknown URL */}
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

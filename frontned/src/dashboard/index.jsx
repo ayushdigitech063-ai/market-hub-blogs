@@ -15,11 +15,6 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  /* -------------------------------------------------
-     Keep the URL in sync with the login state
-     - logged in  + on login page      -> /admin/dashboard
-     - logged out + not on login page  -> /admin/login
-  ------------------------------------------------- */
   useEffect(() => {
     if (checking) return;
 
@@ -32,14 +27,12 @@ export default function AdminDashboard() {
     }
   }, [admin, checking, pathname, navigate]);
 
-  /* -------------------------------------------------
-     Verify the saved token when the page opens
-  ------------------------------------------------- */
+
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
 
-    // Triggered by authFetch when the token is rejected (401)
+
     const onForcedLogout = () => {
       localStorage.removeItem(TOKEN_KEY);
 
@@ -103,9 +96,7 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  /* -------------------------------------------------
-     Close the logout popup with the Escape key
-  ------------------------------------------------- */
+
   useEffect(() => {
     if (!confirmLogout) return;
 
@@ -117,20 +108,16 @@ export default function AdminDashboard() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [confirmLogout]);
 
-  /* -------------------------------------------------
-     Logout: first ask, then log out
-  ------------------------------------------------- */
+
   const requestLogout = () => setConfirmLogout(true);
 
   const confirmAndLogout = () => {
     localStorage.removeItem(TOKEN_KEY);
     setConfirmLogout(false);
-    setAdmin(null); // the effect above then moves the URL to /admin/login
+    setAdmin(null); 
   };
 
-  /* -------------------------------------------------
-     Render
-  ------------------------------------------------- */
+
   if (checking) {
     return (
       <div

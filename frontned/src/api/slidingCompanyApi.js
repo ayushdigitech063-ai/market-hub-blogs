@@ -23,7 +23,7 @@ const saveCache = (data) => {
       })
     );
   } catch {
-    // Ignore storage errors
+
   }
 };
 
@@ -46,7 +46,7 @@ const refreshSlidingCompanies = async () => {
 };
 
 export const fetchSlidingCompanies = async () => {
-  // Return in-memory data immediately
+
   if (memoryCache !== null) {
     if (!pendingRequest && Date.now() - cacheTime >= CACHE_TIME) {
       pendingRequest = refreshSlidingCompanies()
@@ -61,7 +61,7 @@ export const fetchSlidingCompanies = async () => {
     return memoryCache;
   }
 
-  // Read saved data, even if it is older than one minute
+
   try {
     const cached = localStorage.getItem(CACHE_KEY);
 
@@ -72,7 +72,7 @@ export const fetchSlidingCompanies = async () => {
         memoryCache = parsed.data;
         cacheTime = Number(parsed.time) || 0;
 
-        // Refresh in the background
+
         pendingRequest = refreshSlidingCompanies()
           .catch((error) => {
             console.warn("Unable to refresh sliding companies:", error);
@@ -85,10 +85,10 @@ export const fetchSlidingCompanies = async () => {
       }
     }
   } catch {
-    // Ignore invalid cache
+
   }
 
-  // First visit: no saved data exists
+
   if (!pendingRequest) {
     pendingRequest = refreshSlidingCompanies().finally(() => {
       pendingRequest = null;

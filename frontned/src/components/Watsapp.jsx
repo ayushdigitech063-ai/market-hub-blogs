@@ -1,13 +1,11 @@
-
 import React, { useEffect, useState } from "react";
 import { API } from "../dashboard/config";
 
-const DEFAULT_PHONE = "917733012890";
 const DEFAULT_MESSAGE = "Hello! I need some assistance.";
 
 const Watsapp = () => {
   const [settings, setSettings] = useState({
-    phoneNumber: DEFAULT_PHONE,
+    phoneNumber: "",
     message: DEFAULT_MESSAGE,
   });
 
@@ -16,9 +14,7 @@ const Watsapp = () => {
 
     const loadSettings = async () => {
       try {
-        const response = await fetch(
-          `${API}/site-settings/whatsapp`
-        );
+        const response = await fetch(`${API}/site-settings/whatsapp`);
 
         if (!response.ok) {
           throw new Error("Unable to fetch WhatsApp settings.");
@@ -26,23 +22,23 @@ const Watsapp = () => {
 
         const data = await response.json();
 
-        if (!cancelled && /^\d{10,15}$/.test(data.phoneNumber || "")) {
-          setSettings({
-            phoneNumber: data.phoneNumber,
-            message:
-              typeof data.message === "string" && data.message.trim()
-                ? data.message
-                : DEFAULT_MESSAGE,
-          });
-        }
-      } catch (error) {
+        if (cancelled) return;
 
-        console.error("WhatsApp settings error:", error);
+        setSettings({
+          phoneNumber: String(data.phoneNumber || "").replace(/\D/g, ""),
+          message:
+            typeof data.message === "string" && data.message.trim()
+              ? data.message
+              : DEFAULT_MESSAGE,
+        });
+      } catch (error) {
+        if (!cancelled) {
+          console.error("WhatsApp settings error:", error);
+        }
       }
     };
 
     loadSettings();
-
 
     const intervalId = window.setInterval(loadSettings, 30000);
 
@@ -55,6 +51,11 @@ const Watsapp = () => {
   const phoneNumber = settings.phoneNumber;
   const message = settings.message;
 
+
+  if (!/^\d{10,15}$/.test(phoneNumber)) {
+    return null;
+  }
+
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
     message
   )}`;
@@ -65,7 +66,7 @@ const Watsapp = () => {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"
-      className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 shadow-lg transition-all duration-300 hover:scale-110 hover:bg-green-600 group"
+      className="group fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 shadow-lg transition-all duration-300 hover:scale-110 hover:bg-green-600"
     >
       <svg
         className="h-8 w-8 fill-current text-white"

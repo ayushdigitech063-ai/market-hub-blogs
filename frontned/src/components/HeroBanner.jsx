@@ -19,7 +19,7 @@ const RESPONSE_KEYS = {
   brand: ["brands", "data", "results"],
 };
 
-/* -------------------- Cache -------------------- */
+
 
 const readHeroCache = () => {
   try {
@@ -44,11 +44,11 @@ const saveHeroCache = (slides) => {
       })
     );
   } catch {
-    // Cache unavailable hone par bhi banner kaam karega.
+   
   }
 };
 
-/* -------------------- API Response -------------------- */
+
 
 const getItems = (response, type) => {
   if (Array.isArray(response)) return response;
@@ -61,7 +61,7 @@ const getItems = (response, type) => {
   return [];
 };
 
-/* -------------------- Data Helpers -------------------- */
+
 
 const getSlug = (item) =>
   item?.slug ||
@@ -202,7 +202,7 @@ const getDescription = (item) => {
     : `${description.slice(0, 177).trimEnd()}...`;
 };
 
-/* -------------------- Links -------------------- */
+
 
 const getLink = (item, type) => {
   const slug = getSlug(item);
@@ -218,8 +218,6 @@ const getLink = (item, type) => {
       return `/latest-article/${slug}`;
   }
 };
-
-/* -------------------- Latest Record -------------------- */
 
 const getLatestOne = (items, type) => {
   const validItems = items.filter((item) => {
@@ -256,7 +254,7 @@ const getLatestOne = (items, type) => {
   ];
 };
 
-/* -------------------- Display Helpers -------------------- */
+
 
 const getCategoryLabel = (type) => {
   switch (type) {
@@ -284,7 +282,7 @@ const formatDate = (value) => {
   });
 };
 
-/* -------------------- Hero Banner -------------------- */
+
 
 export default function HeroBanner() {
   const [slides, setSlides] = useState(readHeroCache);
@@ -295,7 +293,7 @@ export default function HeroBanner() {
   const requestController = useRef(null);
 
   const fetchBannerData = useCallback(async () => {
-    // Previous request ko cancel karo, agar koi request chal rahi hai.
+
     requestController.current?.abort();
 
     const controller = new AbortController();
@@ -337,10 +335,10 @@ export default function HeroBanner() {
 
             if (signal.aborted) return;
 
-            // Successful response mein empty category bhi valid hai.
+   
             fresh[type] = getLatestOne(getItems(json, type), type);
 
-            // Har category ka data aate hi banner update karo.
+
             rebuild();
           } catch (error) {
             if (error.name === "AbortError") return;
@@ -353,7 +351,6 @@ export default function HeroBanner() {
 
       if (signal.aborted) return;
 
-      // Sab APIs successfully respond karen aur koi slide na mile.
       if (Object.keys(fresh).length === 0 && !hadFailure) {
         setSlides([]);
         saveHeroCache([]);
@@ -373,7 +370,7 @@ export default function HeroBanner() {
     };
   }, [fetchBannerData]);
 
-  /* Auto-slide: existing 1-second interval preserved. */
+
   useEffect(() => {
     if (slides.length <= 1) return undefined;
 
@@ -404,7 +401,6 @@ export default function HeroBanner() {
     setCurrentIndex((index) => (index + 1) % slides.length);
   };
 
-  /* -------------------- Loading State -------------------- */
 
   if (loading && slides.length === 0) {
     return (
@@ -421,7 +417,7 @@ export default function HeroBanner() {
     );
   }
 
-  /* -------------------- Empty State -------------------- */
+
 
   if (slides.length === 0) {
     return (
@@ -449,7 +445,7 @@ export default function HeroBanner() {
     );
   }
 
-  /* -------------------- Active Slide -------------------- */
+
 
   const slide = slides[currentIndex] || slides[0];
   const bannerTitle = slide._bannerTitle || "";

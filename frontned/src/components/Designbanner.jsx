@@ -23,7 +23,7 @@ export default function MarketingCards() {
   return (
     <section className="relative isolate my-6 overflow-hidden bg-[#100C24] text-white">
 
-      {/* Background */}
+    
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -left-24 -top-20 h-80 w-80 rounded-full bg-violet-600/20 blur-[110px]" />
         <div className="absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-fuchsia-500/15 blur-[120px]" />
@@ -37,7 +37,7 @@ export default function MarketingCards() {
       <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16 lg:px-10 lg:py-20">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-14">
 
-          {/* LEFT CONTENT */}
+
           <div className="relative z-10">
 
             <div className="inline-flex items-center gap-3 rounded-full border border-violet-300/20 bg-violet-400/[0.08] px-4 py-2.5">
@@ -87,7 +87,7 @@ export default function MarketingCards() {
               {currentTopic.description}
             </p>
 
-            {/* Slider Dots */}
+
             <div className="mt-9 flex flex-wrap items-center gap-2.5">
               {topics.map((topic, index) => (
                 <button
@@ -114,7 +114,7 @@ export default function MarketingCards() {
               </span>
             </div>
 
-            {/* Auto-playing indicator */}
+
             <div className="mt-7 flex items-center gap-3">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400">
@@ -123,15 +123,15 @@ export default function MarketingCards() {
             </div>
           </div>
 
-          {/* RIGHT IMAGE SLIDER */}
+
           <div className="relative mx-auto h-[370px] w-full max-w-[470px] sm:h-[450px] lg:h-[480px]">
 
-            {/* Decorative circles */}
+ 
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-400/15 sm:h-80 sm:w-80" />
 
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-fuchsia-400/10 sm:h-64 sm:w-64" />
 
-            {/* Previous Image Preview */}
+     
             {topics.length > 1 && (
               <div
                 key={`previous-${active}`}
@@ -152,13 +152,12 @@ export default function MarketingCards() {
               </div>
             )}
 
-            {/* Main Image Card */}
+  
             <div
               key={`main-${active}`}
               className="absolute right-0 top-0 z-20 h-[340px] w-[min(88%,350px)] animate-[fadeIn_650ms_ease_both] overflow-hidden rounded-[28px] border border-white/15 bg-gradient-to-br from-[#24173D] via-[#17152F] to-[#11182E] p-3 shadow-[0_30px_100px_rgba(0,0,0,0.5)] sm:h-[410px] sm:w-[360px]"
             >
 
-              {/* Image Area */}
               <div className="relative h-[225px] overflow-hidden rounded-[20px] bg-[#17132B] sm:h-[285px]">
 
                 <div
@@ -181,7 +180,7 @@ export default function MarketingCards() {
                   {currentTopic.tag}
                 </div>
 
-                {/* Number Badge */}
+
                 <div className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-[#100C24]/80 text-[10px] font-bold text-white backdrop-blur-xl">
                   {String(active + 1).padStart(2, "0")}
                 </div>
@@ -189,7 +188,6 @@ export default function MarketingCards() {
                 <div className="absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-[#17152F] to-transparent" />
               </div>
 
-              {/* Card Information */}
               <div className="px-2 pb-2 pt-4">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="h-1 w-8 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-400" />
@@ -209,7 +207,7 @@ export default function MarketingCards() {
               </div>
             </div>
 
-            {/* Decorative Accents */}
+  
             <div className="pointer-events-none absolute bottom-0 right-7 h-16 w-16 rounded-full border border-fuchsia-400/20 sm:bottom-2 sm:right-3" />
 
             <div className="pointer-events-none absolute bottom-7 right-12 h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_16px_rgba(192,132,252,0.7)]" />

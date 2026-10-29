@@ -41,7 +41,7 @@ const loadAndCacheArticles = async () => {
       JSON.stringify({ data: articles, time: cacheTime })
     );
   } catch {
-    // Continue if browser storage is unavailable.
+
   }
 
   return articles;
@@ -89,7 +89,7 @@ const getArticles = async () => {
       }
     }
   } catch {
-    // Ignore invalid browser cache.
+
   }
 
   if (!pendingRequest) {

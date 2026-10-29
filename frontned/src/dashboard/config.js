@@ -1,5 +1,4 @@
 
-// src/config.js
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -23,7 +22,7 @@ export const authFetch = async (url, options = {}) => {
       headers.set("Authorization", `Bearer ${token}`);
     }
   } catch {
-    // Continue if localStorage is unavailable.
+
   }
 
   const response = await fetch(url, {
@@ -35,7 +34,7 @@ export const authFetch = async (url, options = {}) => {
     try {
       localStorage.removeItem(TOKEN_KEY);
     } catch {
-      // Ignore storage errors.
+
     }
 
     window.dispatchEvent(new Event("admin-logout"));

@@ -24,7 +24,7 @@ export default function ArticleReadPage() {
       setAuthor(null);
 
       try {
-        // Fetch article using its slug
+      
         const response = await fetch(
           apiUrl(`/blog-articles/slug/${encodeURIComponent(slug)}`),
           { signal: controller.signal }
@@ -42,7 +42,7 @@ export default function ArticleReadPage() {
         const articleData = await response.json();
         setArticle(articleData);
 
-        // Fetch author details if an author ID exists
+
         if (articleData?.authorId) {
           try {
             const authorResponse = await fetch(
@@ -61,7 +61,7 @@ export default function ArticleReadPage() {
               return;
             }
 
-            // Keep the article visible if author details fail to load
+
             console.error("Error fetching author:", authorError);
           }
         }
@@ -89,7 +89,7 @@ export default function ArticleReadPage() {
     return () => controller.abort();
   }, [slug]);
 
-  // Loading state
+
   if (loading) {
     return (
       <main
@@ -104,7 +104,7 @@ export default function ArticleReadPage() {
     );
   }
 
-  // API error state
+
   if (error) {
     return (
       <main className="flex min-h-[60vh] items-center justify-center bg-slate-50 px-5">
@@ -126,7 +126,6 @@ export default function ArticleReadPage() {
     );
   }
 
-  // Article not found or unpublished
   if (!article || article.status === "draft") {
     return (
       <main className="flex min-h-[60vh] items-center justify-center bg-slate-50 px-5">
@@ -150,7 +149,7 @@ export default function ArticleReadPage() {
     );
   }
 
-  // SEO data
+
   const seoPost = {
     ...article,
     author: author?.name || "",
@@ -177,12 +176,12 @@ export default function ArticleReadPage() {
           </span>
         </div>
 
-        {/* Article title */}
+
         <h1 className="mt-4 text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">
           {article.title}
         </h1>
 
-        {/* Author and article metadata */}
+
         <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
           {author && (
             <Link
@@ -207,7 +206,7 @@ export default function ArticleReadPage() {
           {article.date && <span>{article.date}</span>}
         </div>
 
-        {/* Featured image */}
+
         {article.image && (
           <img
             src={article.image}
@@ -217,7 +216,6 @@ export default function ArticleReadPage() {
           />
         )}
 
-        {/* Article content */}
         <div className="mt-8 text-base text-slate-700 sm:text-lg">
           {article.contentHtml ? (
             <ArticleBody post={article} />

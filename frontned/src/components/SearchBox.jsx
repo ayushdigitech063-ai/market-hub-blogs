@@ -47,10 +47,10 @@ export default function SearchBox() {
     return { items: cached || [], ready: Boolean(cached) };
   });
 
-  // Typing smooth rehti hai, search deferred value par chalta hai (debounce ki zaroorat nahi).
+  
   const deferredQuery = useDeferredValue(query);
 
-  // Index load (cached ho to dobara network nahi); fail hone par purana index nahi mitata.
+  
   const load = useCallback(() => {
     loadSearchIndex()
       .then(({ items, failed }) =>

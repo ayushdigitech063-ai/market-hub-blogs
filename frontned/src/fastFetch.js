@@ -206,7 +206,6 @@ const revalidate = (key) => {
 window.fetch = async (input, init = {}) => {
   const url = typeof input === "string" ? input : input.url;
 
-  // Only intercept API URLs.
   if (!url || !url.includes("/api/")) {
     return originalFetch(input, init);
   }

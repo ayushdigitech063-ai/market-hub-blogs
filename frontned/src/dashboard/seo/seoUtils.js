@@ -79,8 +79,7 @@ const parseHtml = (html) => {
     );
   }
 
-  // Fallback for environments without DOMParser.
-  // This is for text extraction, not HTML sanitization.
+
   const escaped = source
     .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, " ")

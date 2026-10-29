@@ -38,14 +38,14 @@ const loadFeaturedBrands = async () => {
       })
     );
   } catch {
-    // Continue if localStorage is unavailable
+   
   }
 
   return sortedBrands;
 };
 
 export const fetchFeatured = async () => {
-  // Return memory cache immediately
+ 
   if (memoryCache !== null) {
     if (
       Date.now() - cacheTime >= CACHE_TIME &&
@@ -63,7 +63,7 @@ export const fetchFeatured = async () => {
     return memoryCache;
   }
 
-  // Read browser cache
+
   try {
     const cached = localStorage.getItem(CACHE_KEY);
 
@@ -74,7 +74,6 @@ export const fetchFeatured = async () => {
         memoryCache = parsed.data;
         cacheTime = Number(parsed.time) || 0;
 
-        // Refresh in background
         pendingRequest = loadFeaturedBrands()
           .catch((error) => {
             console.warn("Unable to refresh featured brands:", error);
@@ -87,10 +86,10 @@ export const fetchFeatured = async () => {
       }
     }
   } catch {
-    // Ignore invalid cache
+
   }
 
-  // First visit: fetch from backend
+
   if (!pendingRequest) {
     pendingRequest = loadFeaturedBrands().finally(() => {
       pendingRequest = null;
