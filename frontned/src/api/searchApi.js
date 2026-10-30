@@ -10,10 +10,12 @@ import {
 
 import { apiUrl } from "./apiConfig";
 
-const STORE_KEY = "search_index_v1";
-const CACHE_MS = 5 * 60 * 1000; 
-const RETRY_MS = 30 * 1000; 
-const FETCH_TIMEOUT_MS = 20000;
+const STORE_PREFIX = "search_index_v2:";
+const FRESH_MS = 10 * 60 * 1000; // reuse cached data for 10 minutes
+const RETRY_MS = 30 * 1000; // wait before retrying a failed source
+const TIMEOUT_MS = 60 * 1000; // slow APIs get enough time to answer
+
+/* ---------- Text helpers ---------- */
 
 const decode = (value) => {
   try {
@@ -48,22 +50,15 @@ export const cleanText = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const asArray = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  if (Array.isArray(data?.items)) return data.items;
-  if (Array.isArray(data?.results)) return data.results;
-  if (Array.isArray(data?.articles)) return data.articles;
+const asArray = (data) =>
+  [data, data?.data, data?.items, data?.results, data?.articles].find(
+    Array.isArray
+  ) || [];
 
-  return [];
-};
-
-const listText = (value) =>
-  Array.isArray(value) ? value.join(" ") : "";
+const listText = (value) => (Array.isArray(value) ? value.join(" ") : "");
 
 const bioType = (item) => {
   const type = item.type || hiddenMeta(item.description).type;
-
   if (type) return String(type);
 
   const category = String(item.category || "ceo")
@@ -72,10 +67,10 @@ const bioType = (item) => {
 
   if (category.includes("sport")) return "sports";
   if (category.includes("entrepreneur")) return "entrepreneur";
-
   return "ceo";
 };
 
+/* ---------- Sources ---------- */
 
 export const SOURCES = [
   {
@@ -87,9 +82,7 @@ export const SOURCES = [
     description: (item) => item.excerpt || item.description,
     image: (item) => item.image,
     url: (item) =>
-      item.id !== undefined && item.id !== null
-        ? `/article/${item.id}`
-        : "",
+      item.id !== undefined && item.id !== null ? `/article/${item.id}` : "",
     extra: (item) => [
       item.category,
       item.author,
@@ -107,11 +100,7 @@ export const SOURCES = [
     description: (item) => item.excerpt || item.description,
     image: (item) => item.image,
     url: (item) => (item.slug ? `/articles/${item.slug}` : ""),
-    extra: (item) => [
-      item.category,
-      listText(item.tags),
-      item.focusKeyword,
-    ],
+    extra: (item) => [item.category, listText(item.tags), item.focusKeyword],
   },
   {
     type: "Latest Article",
@@ -121,13 +110,8 @@ export const SOURCES = [
     subtitle: (item) => item.category,
     description: (item) => item.excerpt,
     image: (item) => item.image,
-    url: (item) =>
-      item.slug ? `/latest-article/${item.slug}` : "",
-    extra: (item) => [
-      item.category,
-      item.author,
-      listText(item.tags),
-    ],
+    url: (item) => (item.slug ? `/latest-article/${item.slug}` : ""),
+    extra: (item) => [item.category, item.author, listText(item.tags)],
   },
   {
     type: "Company",
@@ -148,25 +132,17 @@ export const SOURCES = [
     subtitle: (item) => item.tagline,
     description: (item) => item.description,
     image: (item) => item.imageURL,
-    url: (item) =>
-      item.slug ? `/sliding-company/${item.slug}` : "",
-    extra: (item) => [
-      item.tagline,
-      listText(item.features),
-    ],
+    url: (item) => (item.slug ? `/sliding-company/${item.slug}` : ""),
+    extra: (item) => [item.tagline, listText(item.features)],
   },
   {
     type: "Brand / Product",
     endpoint: apiUrl("/brands"),
     hidden: (item) => item.blog || item.articleContent,
-    title: (item) =>
-      item.name || item.articleTitle || item.title,
+    title: (item) => item.name || item.articleTitle || item.title,
     subtitle: (item) =>
-      [item.brand, item.subCategory]
-        .filter(Boolean)
-        .join(" • "),
-    description: (item) =>
-      item.description || item.shortDescription,
+      [item.brand, item.subCategory].filter(Boolean).join(" • "),
+    description: (item) => item.description || item.shortDescription,
     image: (item) => item.imageUrl,
     url: (item) => (item.slug ? `/brand/${item.slug}` : ""),
     extra: (item) => [
@@ -181,21 +157,12 @@ export const SOURCES = [
     endpoint: apiUrl("/biographies"),
     hidden: (item) => item.description,
     title: (item) => item.name,
-    subtitle: (item) =>
-      [item.role, item.company].filter(Boolean).join(" • "),
-    description: (item) =>
-      item.shortBio || item.description,
+    subtitle: (item) => [item.role, item.company].filter(Boolean).join(" • "),
+    description: (item) => item.shortBio || item.description,
     image: (item) => item.image,
     url: (item) =>
-      item.slug
-        ? `/biography/${bioType(item)}/${item.slug}`
-        : "",
-    extra: (item) => [
-      item.role,
-      item.company,
-      item.birthplace,
-      item.category,
-    ],
+      item.slug ? `/biography/${bioType(item)}/${item.slug}` : "",
+    extra: (item) => [item.role, item.company, item.birthplace, item.category],
   },
   {
     type: "Author",
@@ -203,10 +170,8 @@ export const SOURCES = [
     hidden: () => "",
     title: (item) => item.name || item.authorName,
     subtitle: () => "Author",
-    description: (item) =>
-      item.bio || item.biography || item.about,
-    image: (item) =>
-      item.imageURL || item.imageUrl || item.image,
+    description: (item) => item.bio || item.biography || item.about,
+    image: (item) => item.imageURL || item.imageUrl || item.image,
     url: (item) => {
       const key = item.id || item._id;
       return key ? `/author/${key}` : "";
@@ -215,9 +180,7 @@ export const SOURCES = [
   },
 ];
 
-export const SEARCH_TYPES = SOURCES.map(
-  (source) => source.type
-);
+export const SEARCH_TYPES = SOURCES.map((source) => source.type);
 
 export const TYPE_ICONS = {
   Article: BookOpen,
@@ -230,24 +193,19 @@ export const TYPE_ICONS = {
   Author: UserRound,
 };
 
+/* ---------- Normalize one record ---------- */
+
 const toItem = (source, item, index) => {
   const title = cleanText(source.title(item));
   const url = source.url(item);
-
   if (!title || !url) return null;
 
-  const status =
-    item.status ?? hiddenMeta(source.hidden(item)).status;
-
+  const status = item.status ?? hiddenMeta(source.hidden(item)).status;
   if (status === "draft") return null;
 
   const description = cleanText(source.description(item));
 
-  const text = [
-    title,
-    description.slice(0, 400),
-    ...source.extra(item),
-  ]
+  const text = [title, description.slice(0, 400), ...source.extra(item)]
     .map(cleanText)
     .filter(Boolean)
     .join(" ")
@@ -266,113 +224,139 @@ const toItem = (source, item, index) => {
   };
 };
 
-async function buildIndex() {
-  const responses = await Promise.all(
-    SOURCES.map(async (source) => {
-      try {
-        const response = await fetch(source.endpoint, {
-          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        });
+/* ---------- Per-source cache (memory + localStorage) ---------- */
 
-        if (!response.ok) {
-          throw new Error(`Request failed: ${response.status}`);
-        }
+const entries = new Map(); // type -> { items, savedAt, failed, failedAt, pending }
 
-        return {
-          source,
-          items: asArray(await response.json()),
-          failed: false,
-        };
-      } catch (error) {
-        console.error(
-          `Search source failed: ${source.type}`,
-          error
-        );
+const readStored = (type) => {
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(STORE_PREFIX + type) || "null"
+    );
+    if (stored && Array.isArray(stored.items)) return stored;
+  } catch {
+    // storage blocked or corrupted: start empty
+  }
+  return null;
+};
 
-        return {
-          source,
-          items: [],
-          failed: true,
-        };
-      }
-    })
-  );
+const writeStored = (type, items, savedAt) => {
+  try {
+    localStorage.setItem(
+      STORE_PREFIX + type,
+      JSON.stringify({ items, savedAt })
+    );
+  } catch {
+    // storage full or blocked: memory cache is enough
+  }
+};
 
-  const items = [];
-  const failed = [];
+const getEntry = (type) => {
+  if (!entries.has(type)) {
+    const stored = readStored(type);
 
-  responses.forEach(({ source, items: list, failed: hasFailed }) => {
-    if (hasFailed) failed.push(source.type);
-
-    list.forEach((item, index) => {
-      const searchItem = toItem(source, item, index);
-
-      if (searchItem) items.push(searchItem);
+    entries.set(type, {
+      items: stored?.items || [],
+      savedAt: stored?.savedAt || 0,
+      failed: false,
+      failedAt: 0,
+      pending: null,
     });
-  });
+  }
 
-  return { items, failed };
-}
+  return entries.get(type);
+};
 
-let indexPromise = null;
-let expiresAt = 0;
-let memory = null;
-
+const collectItems = () =>
+  SOURCES.flatMap((source) => getEntry(source.type).items);
 
 export const getCachedIndex = () => {
-  if (memory) return memory;
-
-  try {
-    const stored = JSON.parse(sessionStorage.getItem(STORE_KEY) || "null");
-    if (Array.isArray(stored) && stored.length) memory = stored;
-  } catch {
-
-  }
-
-  return memory;
+  const items = collectItems();
+  return items.length ? items : null;
 };
 
-const saveIndex = (items) => {
-  memory = items;
+/* ---------- Loading ---------- */
 
-  try {
-    sessionStorage.setItem(STORE_KEY, JSON.stringify(items));
-  } catch {
+async function fetchItems(source) {
+  const response = await fetch(source.endpoint, {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
 
-  }
-};
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
+  return asArray(await response.json())
+    .map((item, index) => toItem(source, item, index))
+    .filter(Boolean);
+}
 
-export const loadSearchIndex = (force = false) => {
-  if (!indexPromise || Date.now() > expiresAt || (force && expiresAt !== Infinity)) {
-    expiresAt = Infinity; 
+const refreshSource = (source, force) => {
+  const entry = getEntry(source.type);
+  const now = Date.now();
 
-    indexPromise = buildIndex().then((result) => {
-      expiresAt = Date.now() + (result.failed.length ? RETRY_MS : CACHE_MS);
+  if (entry.pending) return entry.pending;
 
-      if (!result.failed.length) saveIndex(result.items);
+  const isFresh = now - entry.savedAt < FRESH_MS;
+  const isCoolingDown = entry.failed && now - entry.failedAt < RETRY_MS;
 
-      return result;
+  if (!force && (isFresh || isCoolingDown)) return Promise.resolve(entry);
+
+  entry.pending = fetchItems(source)
+    .then((items) => {
+      entry.items = items;
+      entry.savedAt = Date.now();
+      entry.failed = false;
+      writeStored(source.type, items, entry.savedAt);
+    })
+    .catch((error) => {
+      // Keep the last known items so search still works for this source.
+      console.error(`Search source failed: ${source.type}`, error);
+      entry.failed = true;
+      entry.failedAt = Date.now();
+    })
+    .then(() => {
+      entry.pending = null;
+      return entry;
     });
-  }
 
-  return indexPromise;
+  return entry.pending;
 };
+
+/**
+ * Loads all sources in parallel.
+ * onProgress(items) runs each time a source finishes, so results can be
+ * shown without waiting for the slowest API.
+ */
+export const loadSearchIndex = async (force = false, onProgress) => {
+  await Promise.all(
+    SOURCES.map((source) =>
+      refreshSource(source, force).then(() => onProgress?.(collectItems()))
+    )
+  );
+
+  return {
+    items: collectItems(),
+    failed: SOURCES.filter((source) => getEntry(source.type).failed).map(
+      (source) => source.type
+    ),
+  };
+};
+
+/* ---------- Search ---------- */
 
 export const searchWords = (query) =>
-  String(query || "")
-    .toLowerCase()
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  String(query || "").toLowerCase().trim().split(/\s+/).filter(Boolean);
 
-export const searchItems = (
-  items,
-  query,
-  { type = "All", limit } = {}
-) => {
+const scoreWord = (item, word) => {
+  if (item.titleLower === word) return 12;
+  if (item.titleLower.startsWith(word)) return 8;
+  if (` ${item.titleLower}`.includes(` ${word}`)) return 6;
+  if (item.titleLower.includes(word)) return 4;
+  if (item.text.includes(word)) return 1;
+  return 0;
+};
+
+export const searchItems = (items, query, { type = "All", limit } = {}) => {
   const words = searchWords(query);
-
   if (!words.length) return [];
 
   const found = [];
@@ -384,17 +368,7 @@ export const searchItems = (
     let matchedAll = true;
 
     for (const word of words) {
-      let wordScore = 0;
-
-      if (item.titleLower === word) wordScore = 12;
-      else if (item.titleLower.startsWith(word)) wordScore = 8;
-      else if (` ${item.titleLower}`.includes(` ${word}`)) {
-        wordScore = 6;
-      } else if (item.titleLower.includes(word)) {
-        wordScore = 4;
-      } else if (item.text.includes(word)) {
-        wordScore = 1;
-      }
+      const wordScore = scoreWord(item, word);
 
       if (!wordScore) {
         matchedAll = false;
@@ -404,16 +378,10 @@ export const searchItems = (
       score += wordScore;
     }
 
-    if (matchedAll) {
-      found.push({ ...item, score });
-    }
+    if (matchedAll) found.push({ ...item, score });
   }
 
-  found.sort(
-    (a, b) =>
-      b.score - a.score ||
-      a.title.localeCompare(b.title)
-  );
+  found.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
 
   return limit ? found.slice(0, limit) : found;
 };

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { API, TOKEN_KEY, authFetch } from "./config";
+import { confirmAction } from "../utils/alerts";
+import { showSuccess } from "../utils/toast";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
 
@@ -108,81 +110,42 @@ export default function AdminDashboard() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [confirmLogout]);
 
+const requestLogout = async () => {
+  const confirmed = await confirmAction({
+    title: "Logout?",
+    text: `Are you sure you want to logout, ${admin?.name || "Admin"}?`,
+    confirmButtonText: "Yes, Logout",
+    cancelButtonText: "Cancel",
+    icon: "warning",
+  });
 
-  const requestLogout = () => setConfirmLogout(true);
+  if (!confirmed) return;
 
-  const confirmAndLogout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    setConfirmLogout(false);
-    setAdmin(null); 
-  };
+  localStorage.removeItem(TOKEN_KEY);
+  setAdmin(null);
 
+  showSuccess("Logged out successfully.");
+};
 
-  if (checking) {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center bg-orange-50 text-sm font-semibold text-orange-600"
-        role="status"
-        aria-live="polite"
-      >
-        Loading...
-      </div>
-    );
-  }
-
+if (checking) {
   return (
-    <>
-      {admin ? (
-        <Dashboard admin={admin} onLogout={requestLogout} />
-      ) : (
-        <Login onAuth={setAdmin} />
-      )}
-
-      {confirmLogout && admin && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="logout-title"
-          onClick={() => setConfirmLogout(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-orange-100 bg-white p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 id="logout-title" className="text-base font-bold text-slate-900">
-              Logout?
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-600">
-              Are you sure you want to logout,{" "}
-              <span className="font-semibold text-slate-900">
-                {admin.name || "Admin"}
-              </span>
-              ?
-            </p>
-
-            <div className="mt-5 flex justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setConfirmLogout(false)}
-                className="rounded-lg border border-orange-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-orange-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={confirmAndLogout}
-                autoFocus
-                className="rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700"
-              >
-                Yes, Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    <div
+      className="flex min-h-screen items-center justify-center bg-orange-50 text-sm font-semibold text-orange-600"
+      role="status"
+      aria-live="polite"
+    >
+      Loading...
+    </div>
   );
+}
+
+return (
+  <>
+    {admin ? (
+      <Dashboard admin={admin} onLogout={requestLogout} />
+    ) : (
+      <Login onAuth={setAdmin} />
+    )}
+  </>
+);
 }

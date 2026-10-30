@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Pencil, Trash2, Plus, X } from "lucide-react";
 import { authFetch } from "./config";
 import { inputClass } from "./ui";
 import { Field, uniqueOptions } from "./fields";
+import Swal from "sweetalert2";
+import { showSuccess, showError } from "../utils/toast";
 
 
 export default function CrudSection({
   singular, fields, emptyForm, listUrl, createUrl, updateUrl, deleteUrl,
-  getKey, toForm, toPayload, getRow, onCount, notify, filters,
+  getKey, toForm, toPayload, getRow, onCount, filters,
 }) {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -80,20 +82,20 @@ export default function CrudSection({
         body: JSON.stringify(toPayload(form, items)),
       });
       if (res.ok) {
-        notify(editing ? `${singular} updated successfully!` : `${singular} posted successfully!`);
+        showSuccess(editing ? `${singular} updated successfully!` : `${singular} posted successfully!`);
         closeForm();
-        fetchItems();
+        await fetchItems();
       } else {
         let msg = "Operation failed! Please check backend.";
         try {
           const data = await res.json();
           if (data.error) msg = data.error;
         } catch (_) {}
-        notify(msg, "error");
+        showError(msg);
       }
     } catch (err) {
       console.error("Error saving data:", err);
-      notify("Unable to connect to the server.", "error");
+      showError("Unable to connect to the server.");
     } finally {
       setLoading(false);
     }
@@ -106,19 +108,38 @@ export default function CrudSection({
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Are you sure you want to delete this ${singular}?`)) return;
+    const confirmation = await Swal.fire({
+      title: `Delete this ${singular}?`,
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      confirmButtonColor: "#e11d48",
+      cancelButtonColor: "#64748b",
+    });
+
+    if (!confirmation.isConfirmed) return;
+
     try {
       const res = await authFetch(deleteUrl(getKey(item)), { method: "DELETE" });
+
       if (res.ok) {
         setItems((prev) => prev.filter((i) => getKey(i) !== getKey(item)));
         if (editingKey === getKey(item)) closeForm();
-        notify(`${singular} deleted successfully!`);
+        showSuccess(`${singular} deleted successfully!`);
       } else {
-        notify("Delete failed!", "error");
+        let message = "Delete failed!";
+        try {
+          const data = await res.json();
+          if (data.error) message = data.error;
+        } catch (_) {}
+        showError(message);
       }
     } catch (err) {
       console.error("Error deleting:", err);
-      notify("Unable to connect to the server..", "error");
+      showError("Unable to connect to the server.");
     }
   };
 
