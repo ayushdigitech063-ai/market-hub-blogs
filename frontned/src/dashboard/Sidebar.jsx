@@ -1,6 +1,5 @@
-
 import React from "react";
-import { X, LayoutDashboard } from "lucide-react";
+import { X } from "lucide-react";
 import { NAV } from "./constants";
 import { usePendingCount } from "./NotificationsSection";
 
@@ -22,9 +21,11 @@ export default function Sidebar({
     >
       <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-orange-200 bg-orange-50/60 px-5">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white">
-            <LayoutDashboard className="h-5 w-5" />
-          </span>
+          <img
+            src="/logo.png"
+            alt="Market Digital Insights"
+            className="h-9 w-[104px] shrink-0 object-contain object-left"
+          />
 
           <div>
             <p className="text-sm font-bold leading-tight text-slate-900">

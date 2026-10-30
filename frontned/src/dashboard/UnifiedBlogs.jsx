@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from "react";
 import { Search, Pencil, Trash2, Plus } from "lucide-react";
 
 import { API, authFetch } from "./config";
 import { uniqueOptions } from "./fields";
 import PostEditor from "./editor/PostEditor";
 import { toLocalInput } from "./seo/seoUtils";
+
+import { confirmAction } from "../utils/alerts";
 import {
   emptyPost,
   biographyConfig,
@@ -15,8 +17,6 @@ import {
   companyConfig,
   buildBlogArticleConfig,
 } from "./postConfigs";
-
-
 
 export const BLOG_TYPES = [
   { key: "biographies", label: "Biography", badge: "bg-orange-50 text-orange-700" },
@@ -32,7 +32,6 @@ export const BLOG_KEYS = BLOG_TYPES.map((item) => item.key);
 
 const META_OF = Object.fromEntries(BLOG_TYPES.map((item) => [item.key, item]));
 
-
 const BASE_CONFIGS = {
   biographies: biographyConfig,
   brands: brandConfig,
@@ -43,7 +42,7 @@ const BASE_CONFIGS = {
   blogArticles: buildBlogArticleConfig([]),
 };
 
-
+const PAGE_SIZE = 30;
 
 const FALLBACK_IMAGE =
   "data:image/svg+xml;charset=UTF-8," +
@@ -61,7 +60,6 @@ const selectClass =
 const buttonBase =
   "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-
 const text = (value) => (value == null ? "" : String(value));
 
 const emptyData = () => Object.fromEntries(BLOG_KEYS.map((key) => [key, []]));
@@ -71,10 +69,9 @@ async function errorMessage(response, fallback) {
     const body = await response.json();
     return body?.error || body?.message || fallback;
   } catch {
-    return fallback; 
+    return fallback;
   }
 }
-
 
 async function requestArray(url, label) {
   const response = await authFetch(url);
@@ -92,8 +89,7 @@ async function requestArray(url, label) {
   return result;
 }
 
-const requestList = (key) =>
-  requestArray(BASE_CONFIGS[key].listUrl, META_OF[key].label);
+const requestList = (key) => requestArray(BASE_CONFIGS[key].listUrl, META_OF[key].label);
 
 function newForm(config, previous) {
   const base = {
@@ -112,8 +108,6 @@ function newForm(config, previous) {
 
   return { ...base, ...carried, seo: { ...base.seo, ...(previous.seo || {}) } };
 }
-
-
 
 function LoadingState() {
   return (
@@ -172,9 +166,7 @@ function PostRow({ meta, item, row, isDeleting, busy, onEdit, onDelete }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="max-w-full break-words text-sm font-semibold text-slate-900">
-              {title}
-            </h3>
+            <h3 className="max-w-full break-words text-sm font-semibold text-slate-900">{title}</h3>
 
             <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.badge}`}>
               {meta.label}
@@ -189,9 +181,7 @@ function PostRow({ meta, item, row, isDeleting, busy, onEdit, onDelete }) {
             </span>
           </div>
 
-          {subtitle && (
-            <p className="mt-1 break-words text-xs leading-5 text-slate-500">{subtitle}</p>
-          )}
+          {subtitle && <p className="mt-1 break-words text-xs leading-5 text-slate-500">{subtitle}</p>}
         </div>
       </div>
 
@@ -229,16 +219,15 @@ function PostRow({ meta, item, row, isDeleting, busy, onEdit, onDelete }) {
   );
 }
 
-
-
 export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCount }) {
   const [data, setData] = useState(emptyData);
   const [authors, setAuthors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  const [pending, setPending] = useState(BLOG_KEYS.length); // lists still loading
+  const [failed, setFailed] = useState([]);
   const [search, setSearch] = useState("");
+  const [limit, setLimit] = useState(PAGE_SIZE);
 
-  const [view, setView] = useState("list"); 
+  const [view, setView] = useState("list");
   const [activeType, setActiveType] = useState("biographies");
   const [editingKey, setEditingKey] = useState(null);
   const [form, setForm] = useState(null);
@@ -247,6 +236,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
 
   const editing = editingKey !== null;
   const filterType = BLOG_KEYS.includes(type) ? type : null;
+  const query = useDeferredValue(search.trim().toLowerCase());
 
   const showToast = useCallback(
     (message, variant = "success") => {
@@ -255,16 +245,13 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     [notify]
   );
 
-
-
   const configs = useMemo(() => {
-    const companyOptions = (data.companies || [])
+    const companyOptions = data.companies
       .filter((company) => company?.slug && company?.name)
       .map((company) => ({ value: company.slug, label: company.name }));
 
     return {
       ...BASE_CONFIGS,
-
       articles: {
         ...articleConfig,
         singular: "Company Article",
@@ -281,69 +268,45 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
             : field
         ),
       },
-
       companies: { ...companyConfig, extraFields: [] },
-
       blogArticles: buildBlogArticleConfig(authors),
     };
   }, [data.companies, authors]);
 
   const cfg = configs[activeType];
 
-
-
+  // Authors are only needed inside the editor, so they load on demand.
   const loadAuthors = useCallback(() => {
     requestArray(`${API}/blog-authors`, "authors")
       .then(setAuthors)
       .catch((error) => console.error("Unable to load authors:", error));
   }, []);
 
-
+  // Each list loads independently and shows up as soon as it arrives,
+  // so the slowest request no longer blocks the whole screen.
   useEffect(() => {
     let cancelled = false;
+    const order = filterType ? [filterType, ...BLOG_KEYS.filter((k) => k !== filterType)] : BLOG_KEYS;
 
-    (async () => {
-      const results = await Promise.allSettled(BLOG_KEYS.map(requestList));
-
-      if (cancelled) return;
-
-      const nextData = {};
-      const failed = [];
-
-      results.forEach((result, index) => {
-        const key = BLOG_KEYS[index];
-
-        if (result.status === "fulfilled") {
-          nextData[key] = result.value; 
-        } else {
-          nextData[key] = [];
-          failed.push(META_OF[key].label);
-          console.error(`Failed to load ${key}:`, result.reason);
-        }
-      });
-
-      setData(nextData);
-
-      if (failed.length > 0) {
-        setLoadError(`Unable to load: ${failed.join(", ")}. Please refresh and try again.`);
-      }
-
-      setLoading(false);
-    })();
-
-    loadAuthors();
+    order.forEach((key) => {
+      requestList(key)
+        .then((result) => {
+          if (!cancelled) setData((previous) => ({ ...previous, [key]: result }));
+        })
+        .catch((error) => {
+          console.error(`Failed to load ${key}:`, error);
+          if (!cancelled) setFailed((previous) => [...previous, META_OF[key].label]);
+        })
+        .finally(() => {
+          if (!cancelled) setPending((count) => count - 1);
+        });
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [loadAuthors]);
-
-
-  const reloadType = async (key) => {
-    const result = await requestList(key);
-    setData((previous) => ({ ...previous, [key]: result }));
-  };
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (typeof setCount !== "function") return;
@@ -352,10 +315,15 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
       const update = setCount(key);
       if (typeof update === "function") update(data[key].length);
     });
- 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
+  useEffect(() => setLimit(PAGE_SIZE), [query, filterType]);
 
+  const reloadType = async (key) => {
+    const result = await requestList(key);
+    setData((previous) => ({ ...previous, [key]: result }));
+  };
 
   const openEditor = (targetType, key, nextForm) => {
     setActiveType(targetType);
@@ -363,7 +331,7 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     setForm(nextForm);
     setView("edit");
     window.scrollTo({ top: 0, behavior: "smooth" });
-    loadAuthors(); 
+    loadAuthors();
   };
 
   const openCreate = () => {
@@ -395,8 +363,6 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     setForm((previous) => newForm(configs[targetType], previous));
   };
 
-
-
   const handleSave = async (event) => {
     event.preventDefault();
 
@@ -410,19 +376,14 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     setSaving(true);
 
     try {
-      const url = editing ? cfg.updateUrl(editingKey) : cfg.createUrl;
-
-      const response = await authFetch(url, {
+      const response = await authFetch(editing ? cfg.updateUrl(editingKey) : cfg.createUrl, {
         method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cfg.toPayload(form, data[activeType])),
       });
 
       if (!response.ok) {
-        showToast(
-          await errorMessage(response, "Operation failed. Please check the backend."),
-          "error"
-        );
+        showToast(await errorMessage(response, "Operation failed. Please check the backend."), "error");
         return;
       }
 
@@ -445,11 +406,8 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     }
   };
 
-
-
-  const handleDelete = async (targetType, item) => {
+  const handleDelete = async (targetType, item, itemKey) => {
     const config = configs[targetType];
-    const itemKey = config.getKey(item);
 
     if (deletingKey !== null) return;
 
@@ -458,7 +416,15 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete this ${config.singular}?`)) return;
+  const confirmed = await confirmAction({
+  title: `Delete ${config.singular}?`,
+  text: `Are you sure you want to delete this ${config.singular}?`,
+  confirmButtonText: "Yes, Delete",
+  cancelButtonText: "Cancel",
+  icon: "warning",
+});
+
+if (!confirmed) return;
 
     setDeletingKey(`${targetType}:${itemKey}`);
 
@@ -484,38 +450,47 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     }
   };
 
-  /* ---------- Filtered list ---------- */
-
-  const total = BLOG_KEYS.reduce((sum, key) => sum + data[key].length, 0);
-
-  const entries = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    const keys = filterType ? [filterType] : BLOG_KEYS;
-
-    return keys
-      .flatMap((key) => data[key].map((item) => ({ key, item })))
-      .map((entry) => ({ ...entry, row: configs[entry.key].getRow(entry.item) }))
-      .filter(({ row }) =>
-        query ? `${text(row?.title)} ${text(row?.subtitle)}`.toLowerCase().includes(query) : true
-      );
-  }, [data, filterType, search, configs]);
-
-  const categories = useMemo(
-    () => uniqueOptions((data[activeType] || []).map((item) => item?.category)),
-    [data, activeType]
+  // Rows are built once per data change, not on every keystroke.
+  const allEntries = useMemo(
+    () =>
+      BLOG_KEYS.flatMap((key) =>
+        data[key].map((item) => {
+          const row = configs[key].getRow(item);
+          return {
+            key,
+            item,
+            row,
+            itemKey: configs[key].getKey(item),
+            searchText: `${text(row?.title)} ${text(row?.subtitle)}`.toLowerCase(),
+          };
+        })
+      ),
+    [data, configs]
   );
 
-  /* ---------- Editor screen ---------- */
+  const entries = useMemo(
+    () =>
+      allEntries.filter(
+        (entry) => (!filterType || entry.key === filterType) && (!query || entry.searchText.includes(query))
+      ),
+    [allEntries, filterType, query]
+  );
+
+  const total = allEntries.length;
+  const visibleEntries = entries.slice(0, limit);
+  const isLoading = pending > 0 && total === 0;
+
+  const categories = useMemo(
+    () => uniqueOptions(data[activeType].map((item) => item?.category)),
+    [data, activeType]
+  );
 
   if (view === "edit" && form) {
     return (
       <div>
         <div className="mb-4 flex flex-col gap-3 rounded-xl border border-orange-100 bg-white px-5 py-4 sm:flex-row sm:items-center">
           <div className="sm:w-64">
-            <label
-              htmlFor="post-category-type"
-              className="mb-1 block text-xs font-semibold text-slate-600"
-            >
+            <label htmlFor="post-category-type" className="mb-1 block text-xs font-semibold text-slate-600">
               Post Category <span className="text-orange-500">*</span>
             </label>
 
@@ -556,8 +531,6 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
     );
   }
 
-  /* ---------- List screen ---------- */
-
   return (
     <div className="space-y-5">
       <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-orange-100 bg-white px-5 py-4 sm:flex-row sm:items-center">
@@ -578,6 +551,9 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
           <h2 className="text-sm font-bold text-slate-900">
             Manage Existing ({entries.length}
             {filterType ? ` of ${total}` : ""})
+            {pending > 0 && !isLoading && (
+              <span className="ml-2 text-xs font-medium text-slate-400">Loading more...</span>
+            )}
           </h2>
 
           <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
@@ -622,12 +598,12 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
           </div>
         </div>
 
-        {loadError && (
+        {failed.length > 0 && (
           <div
             role="alert"
             className="mb-4 flex flex-col gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 sm:flex-row sm:items-center sm:justify-between"
           >
-            <p>{loadError}</p>
+            <p>Unable to load: {failed.join(", ")}. Please refresh and try again.</p>
 
             <button
               type="button"
@@ -639,34 +615,43 @@ export default function UnifiedBlogs({ type, setType, counts = {}, notify, setCo
           </div>
         )}
 
-        {loading ? (
+        {isLoading ? (
           <LoadingState />
-        ) : entries.length === 0 ? (
-          <EmptyState
-            hasPosts={total > 0}
-            hasSearch={Boolean(search)}
-            onClearSearch={() => setSearch("")}
-          />
+        ) : entries.length === 0 && pending === 0 ? (
+          <EmptyState hasPosts={total > 0} hasSearch={Boolean(search)} onClearSearch={() => setSearch("")} />
         ) : (
-          <div className="divide-y divide-orange-100">
-            {entries.map(({ key, item, row }) => {
-              const itemKey = configs[key].getKey(item);
-              const requestKey = `${key}:${itemKey}`;
+          <>
+            <div className="divide-y divide-orange-100">
+              {visibleEntries.map(({ key, item, row, itemKey }) => {
+                const requestKey = `${key}:${itemKey}`;
 
-              return (
-                <PostRow
-                  key={requestKey}
-                  meta={META_OF[key]}
-                  item={item}
-                  row={row}
-                  isDeleting={deletingKey === requestKey}
-                  busy={deletingKey !== null}
-                  onEdit={() => openEdit(key, item)}
-                  onDelete={() => handleDelete(key, item)}
-                />
-              );
-            })}
-          </div>
+                return (
+                  <PostRow
+                    key={requestKey}
+                    meta={META_OF[key]}
+                    item={item}
+                    row={row}
+                    isDeleting={deletingKey === requestKey}
+                    busy={deletingKey !== null}
+                    onEdit={() => openEdit(key, item)}
+                    onDelete={() => handleDelete(key, item, itemKey)}
+                  />
+                );
+              })}
+            </div>
+
+            {entries.length > limit && (
+              <div className="pt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => setLimit((current) => current + PAGE_SIZE)}
+                  className={`${buttonBase} bg-orange-50 text-orange-700 hover:bg-orange-100`}
+                >
+                  Show more ({entries.length - limit} remaining)
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>

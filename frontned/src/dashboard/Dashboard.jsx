@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { API } from "./config";
 import WhatsAppSettings from "./WhatsAppSettings";
 import { GlobalStyle, Toast, PageHeader } from "./ui";
@@ -61,9 +61,11 @@ export default function Dashboard({ admin, onLogout }) {
 
       <div className="sticky top-0 z-40 flex items-center justify-between border-b border-orange-200 bg-white px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-amber-400 text-white">
-            <LayoutDashboard className="h-4 w-4" />
-          </span>
+          <img
+            src="/logo.png"
+            alt="Market Digital Insights"
+            className="h-8 w-24 shrink-0 object-contain object-left"
+          />
           <span className="text-sm font-bold text-slate-900">Admin Panel</span>
         </div>
         <div className="flex items-center gap-2">
