@@ -58,7 +58,7 @@ export default function NotificationsSection() {
   const setItemError = (id, msg) => setItemErrors((x) => ({ ...x, [id]: msg }));
 
   const load = useCallback(async () => {
-    // Prevent overlapping requests from initial load + interval refresh.
+
     if (loadingRef.current) return;
     loadingRef.current = true;
 
@@ -146,7 +146,7 @@ export default function NotificationsSection() {
         )
       );
       refreshCounts();
-      // Email notification is background work and should not delay the UI.
+
       void notifyDecision(s._id);
     } catch (err) {
       setItemError(s._id, err.message);

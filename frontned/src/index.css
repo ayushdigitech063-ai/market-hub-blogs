@@ -1,10 +1,7 @@
 
 @import "tailwindcss";
 
-/* =========================================
-   GLOBAL TYPOGRAPHY SETTINGS
-   Change font family and sizes from here
-========================================= */
+
 
 :root {
   --font-family-main: Arial, Helvetica, sans-serif;
@@ -34,9 +31,7 @@
   --color-body: #596579;
 }
 
-/* =========================================
-   GLOBAL BASE STYLES
-========================================= */
+
 
 @layer base {
   html {
@@ -64,7 +59,7 @@
     overflow-x: clip;
   }
 
-  /* Prevent text overflow */
+
   h1,
   h2,
   h3,
@@ -82,7 +77,7 @@
     word-break: break-word;
   }
 
-  /* Global heading styles */
+
   h1,
   h2,
   h3,
@@ -121,7 +116,7 @@
     font-weight: var(--font-weight-semibold);
   }
 
-  /* Global paragraph styles */
+
   p {
     font-family: var(--font-family-main);
     font-size: var(--font-size-base);
@@ -175,10 +170,6 @@
   }
 }
 
-/* =========================================
-   REUSABLE TYPOGRAPHY CLASSES
-   Use these in React components
-========================================= */
 
 @layer components {
   .global-title {
@@ -222,9 +213,7 @@
   }
 }
 
-/* =========================================
-   EXISTING GRADIENTS
-========================================= */
+
 
 .hero-gradient {
   background: linear-gradient(
@@ -244,9 +233,7 @@
   );
 }
 
-/* =========================================
-   EXISTING DARK THEME
-========================================= */
+
 
 html[data-theme="dark"] {
   filter: invert(0.92) hue-rotate(180deg);
@@ -273,9 +260,7 @@ html[data-theme="dark"] .keep-original [style*="background-image"] {
   }
 }
 
-/* =========================================
-   GLOBAL MARKET HUB PRELOADER
-========================================= */
+
 
 .global-preloader {
   position: fixed;
@@ -392,4 +377,33 @@ html[data-theme="dark"] .keep-original [style*="background-image"] {
     animation: none;
   }
 }
+h1 {
+  font-size: clamp(26px, 24px + 0.7vw, var(--font-size-3xl));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
 
+h2 {
+  font-size: clamp(22px, 20px + 0.5vw, var(--font-size-2xl));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+h3 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+h4 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+h5,
+h6 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}

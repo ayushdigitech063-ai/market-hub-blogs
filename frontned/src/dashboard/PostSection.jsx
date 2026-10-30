@@ -160,7 +160,9 @@ if (!window.confirm(`Are you sure you want to delete this ${config.singular}?`))
           <p className="py-8 text-center text-sm font-semibold text-slate-500">Loading...</p>
         ) : filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-500">
-            {items.length === 0 ? "Abhi kuch nahi hai. Upar se pehla add karo!" : "No results match this search."}
+        {items.length === 0
+  ? "Nothing here yet. Add your first item above!"
+  : "No results match this search."}
           </p>
         ) : (
           <div className="divide-y divide-orange-100">

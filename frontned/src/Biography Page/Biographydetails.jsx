@@ -5,7 +5,7 @@ import { getTypeInfo, viewAllPath } from "../data/biographyTypes";
 import RelatedProfiles from "./RelatedProfiles";
 import SeoHead from "../components/SeoHead";
 import ArticleBody from "../components/ArticleBody";
-
+import { apiUrl } from "../api/apiConfig";
 const serif = "font-serif";
 
 const isLive = (x) => x && x.status !== "draft";
@@ -108,23 +108,51 @@ const { slug, type: routeType } = useParams();
 const biographySlug = slug || routeType;
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+useEffect(() => {
+  const controller = new AbortController();
 
-  useEffect(() => {
-    fetch("https://market-hub-blogs-backend.onrender.com/api/biographies")
-      .then((res) => res.json())
-      .then((data) => {
-        const found = data.find(
-          (item) =>
-       item.slug === biographySlug ||
-item.name?.toLowerCase().replace(/\s+/g, "-") === biographySlug
-        );
-        setProfile(isLive(found) ? found : null);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching biography details:", err);
-        setLoading(false);
+  const fetchBiography = async () => {
+    setLoading(true);
+
+    try {
+      const response = await fetch(apiUrl("/biographies"), {
+        signal: controller.signal,
       });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch biographies: HTTP ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid biographies API response");
+      }
+
+      const found = data.find(
+        (item) =>
+          item.slug === biographySlug ||
+          item.name?.toLowerCase().replace(/\s+/g, "-") === biographySlug
+      );
+
+      setProfile(isLive(found) ? found : null);
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Error fetching biography details:", error);
+        setProfile(null);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  fetchBiography();
+
+  return () => controller.abort();
 }, [biographySlug]);
 
   const rich = useMemo(() => (profile ? getRich(profile) : null), [profile]);

@@ -13,7 +13,7 @@ const pendingRevalidations = new Map();
 
 let dbPromise = null;
 
-// Reuse the IndexedDB connection.
+
 const openDb = () => {
   if (dbPromise) return dbPromise;
 
@@ -56,7 +56,7 @@ const openDb = () => {
   return dbPromise;
 };
 
-// Read from IndexedDB.
+
 const dbGet = async (key) => {
   try {
     const db = await openDb();
@@ -78,7 +78,7 @@ const dbGet = async (key) => {
   }
 };
 
-// Save to IndexedDB.
+
 const dbSet = async (key, value) => {
   try {
     const db = await openDb();
@@ -93,11 +93,11 @@ const dbSet = async (key, value) => {
       transaction.onabort = () => reject(transaction.error);
     });
   } catch {
-    // Cache errors must not break normal API requests.
+
   }
 };
 
-// Clear IndexedDB cache.
+
 const dbClear = async () => {
   try {
     const db = await openDb();
@@ -112,11 +112,11 @@ const dbClear = async () => {
       transaction.onabort = () => reject(transaction.error);
     });
   } catch {
-    // The website must continue working if cache clearing fails.
+
   }
 };
 
-// Convert a cached entry into a Response.
+
 const toResponse = (entry) => {
   return new Response(entry.body, {
     status: entry.status || 200,
@@ -127,7 +127,7 @@ const toResponse = (entry) => {
   });
 };
 
-// Save successful, cacheable JSON responses.
+
 const saveResponse = async (key, response) => {
   try {
     if (response.status !== 200 || !response.ok) return;
@@ -139,7 +139,7 @@ const saveResponse = async (key, response) => {
 
     if (!contentType.toLowerCase().includes("json")) return;
 
-    // Respect server instructions that prohibit caching.
+
     if (/\b(no-store|private)\b/i.test(cacheControl)) return;
     if (vary.trim() === "*") return;
 
@@ -154,17 +154,17 @@ const saveResponse = async (key, response) => {
       time: Date.now(),
     };
 
-    // Memory cache updates immediately.
+  
     memory.set(key, entry);
 
-    // IndexedDB writes run in the background.
+
     void dbSet(key, entry);
   } catch {
-    // Caching must never break the original response.
+
   }
 };
 
-// Load from memory first, then IndexedDB.
+
 const getEntry = async (key) => {
   const cached = memory.get(key);
 
@@ -179,7 +179,7 @@ const getEntry = async (key) => {
   return entry;
 };
 
-// Refresh stale cache entries in the background.
+
 const revalidate = (key) => {
   if (pendingRevalidations.has(key)) {
     return pendingRevalidations.get(key);
@@ -192,7 +192,7 @@ const revalidate = (key) => {
       }
     })
     .catch(() => {
-      // Keep existing cache if the network is unavailable.
+
     })
     .finally(() => {
       pendingRevalidations.delete(key);
@@ -203,11 +203,9 @@ const revalidate = (key) => {
   return request;
 };
 
-// Preserve the existing fetch API.
 window.fetch = async (input, init = {}) => {
   const url = typeof input === "string" ? input : input.url;
 
-  // Only intercept API URLs.
   if (!url || !url.includes("/api/")) {
     return originalFetch(input, init);
   }
@@ -218,7 +216,7 @@ window.fetch = async (input, init = {}) => {
     "GET"
   ).toUpperCase();
 
-  // Mutations bypass cache and invalidate it after success.
+
   if (method !== "GET") {
     const response = await originalFetch(input, init);
 
@@ -235,12 +233,12 @@ window.fetch = async (input, init = {}) => {
       (typeof input !== "string" ? input.headers : undefined)
   );
 
-  // Never cache authenticated requests.
+
   if (requestHeaders.has("Authorization")) {
     return originalFetch(input, init);
   }
 
-  // Preserve cancellation behavior for individual requests.
+
   const signal =
     init.signal ||
     (typeof input !== "string" ? input.signal : undefined);
@@ -249,7 +247,7 @@ window.fetch = async (input, init = {}) => {
     return originalFetch(input, init);
   }
 
-  // Check the existing cache.
+
   const entry = await getEntry(url);
   const age = entry ? Date.now() - entry.time : Infinity;
 
@@ -261,7 +259,7 @@ window.fetch = async (input, init = {}) => {
     return toResponse(entry);
   }
 
-  // Reuse an in-flight GET request for the same URL.
+
   if (pendingRequests.has(url)) {
     const existingResponse = await pendingRequests.get(url);
 
@@ -271,7 +269,7 @@ window.fetch = async (input, init = {}) => {
   const request = originalFetch(input, init)
     .then((response) => {
       if (response.ok) {
-        // Do not delay the API response while writing the cache.
+
         void saveResponse(url, response);
       }
 

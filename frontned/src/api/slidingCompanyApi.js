@@ -1,25 +1,64 @@
-
 import { sortLatestFirst } from "../utils/sortLatest";
+import { apiUrl } from "./apiConfig";
 
-const BASE =
-  "https://market-hub-blogs-backend.onrender.com/api/sliding-companies";
+const BASE = apiUrl("/sliding-companies");
 
 const CACHE_KEY = "sliding-companies-cache";
-const CACHE_TIME = 60 * 1000; 
+const CACHE_TIME = 60 * 1000;
 
 let memoryCache = null;
 let cacheTime = 0;
 let pendingRequest = null;
 
-export const fetchSlidingCompanies = async () => {
+const saveCache = (data) => {
+  memoryCache = data;
+  cacheTime = Date.now();
 
-  if (memoryCache && Date.now() - cacheTime < CACHE_TIME) {
-    return memoryCache;
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        data,
+        time: cacheTime,
+      })
+    );
+  } catch {
+
+  }
+};
+
+const refreshSlidingCompanies = async () => {
+  const res = await fetch(BASE);
+
+  if (!res.ok) {
+    throw new Error("Failed to load sliding companies");
   }
 
+  const data = await res.json();
 
-  if (pendingRequest) {
-    return pendingRequest;
+  const sortedData = sortLatestFirst(
+    Array.isArray(data) ? data : []
+  );
+
+  saveCache(sortedData);
+
+  return sortedData;
+};
+
+export const fetchSlidingCompanies = async () => {
+
+  if (memoryCache !== null) {
+    if (!pendingRequest && Date.now() - cacheTime >= CACHE_TIME) {
+      pendingRequest = refreshSlidingCompanies()
+        .catch((error) => {
+          console.warn("Unable to refresh sliding companies:", error);
+        })
+        .finally(() => {
+          pendingRequest = null;
+        });
+    }
+
+    return memoryCache;
   }
 
 
@@ -29,63 +68,47 @@ export const fetchSlidingCompanies = async () => {
     if (cached) {
       const parsed = JSON.parse(cached);
 
-      if (
-        Array.isArray(parsed.data) &&
-        Date.now() - parsed.time < CACHE_TIME
-      ) {
+      if (Array.isArray(parsed.data)) {
         memoryCache = parsed.data;
-        cacheTime = parsed.time;
+        cacheTime = Number(parsed.time) || 0;
+
+
+        pendingRequest = refreshSlidingCompanies()
+          .catch((error) => {
+            console.warn("Unable to refresh sliding companies:", error);
+          })
+          .finally(() => {
+            pendingRequest = null;
+          });
+
         return memoryCache;
       }
     }
-  } catch (error) {
-    console.warn("Unable to read sliding companies cache:", error);
+  } catch {
+
   }
 
 
-  pendingRequest = (async () => {
-    const res = await fetch(BASE);
-
-    if (!res.ok) {
-      throw new Error("Failed to load sliding companies");
-    }
-
-    const data = await res.json();
-
-    const sortedData = sortLatestFirst(
-      Array.isArray(data) ? data : []
-    );
-
-    memoryCache = sortedData;
-    cacheTime = Date.now();
-
-    try {
-      localStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify({
-          data: sortedData,
-          time: cacheTime,
-        })
-      );
-    } catch (error) {
-
-    }
-
-    return sortedData;
-  })();
-
-  try {
-    return await pendingRequest;
-  } finally {
-    pendingRequest = null;
+  if (!pendingRequest) {
+    pendingRequest = refreshSlidingCompanies().finally(() => {
+      pendingRequest = null;
+    });
   }
+
+  return pendingRequest;
 };
 
 export const fetchSlidingCompany = async (slug) => {
-  const res = await fetch(`${BASE}/${slug}`);
+  if (!slug) {
+    throw new Error("Company slug is required");
+  }
+
+  const res = await fetch(
+    `${BASE}/${encodeURIComponent(slug)}`
+  );
 
   if (!res.ok) {
-    throw new Error("Not found");
+    throw new Error("Sliding company not found");
   }
 
   return res.json();

@@ -65,20 +65,20 @@ export default function About() {
 
      
    
-{/* ===== ABOUT HERO BANNER ===== */}
+
 <section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
-  {/* Background Image */}
+
   <img
     src={aboutImages.heroBg}
     alt="Market Hub digital insights"
     className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
   />
 
-  {/* Gradient Overlays */}
+  
   <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
   <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/60 via-transparent to-[#111D32]/20" />
 
-  {/* Hero Content */}
+
   <div className="mx-auto flex min-h-[360px] w-full max-w-[1600px] items-center px-5 py-10 sm:min-h-[400px] sm:px-8 sm:py-12 lg:min-h-[440px] lg:px-14 lg:py-14 xl:min-h-[460px] xl:px-16">
     <div className="mx-auto w-full max-w-3xl text-center">
 

@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, MapPin, Globe2 } from "lucide-react";
 
 const quickLinks = [
   { label: "Home", to: "/" },
-  { label: "Latest Articles", to: "/articles" },
+ { label: "Privacy Policy", to: "/privacy-policy" },
   { label: "Companies", to: "/companies" },
   { label: "Authors", to: "/articles" },
   { label: "Biography", to: "/Biography" },
@@ -75,7 +74,7 @@ export default function Footer() {
   return (
     <footer className="relative overflow-hidden border-t border-orange-100 bg-[#FFFCF8] text-slate-700">
 
-      {/* Soft decorative background — no image */}
+
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-28 -top-28 h-72 w-72 rounded-full bg-orange-100/50 blur-3xl"
@@ -87,24 +86,21 @@ export default function Footer() {
 
       <div className="relative mx-auto max-w-[1400px] px-5 sm:px-8 lg:px-10">
 
-        {/* Main footer */}
+
         <div className="grid grid-cols-1 gap-9 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10 lg:py-12">
 
-          {/* Brand / introduction */}
+
           <div>
             <Link
               to="/"
               aria-label="Market Digital Insights home"
-              className="inline-flex items-center gap-2"
+              className="group inline-flex items-center"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-md shadow-orange-200/60">
-                <Globe2 className="h-5 w-5" />
-              </span>
-
-              <span className="text-base font-extrabold tracking-tight text-slate-900">
-                Market
-                <span className="text-orange-600"> Digital Insights</span>
-              </span>
+              <img
+                src="/logo.png"
+                alt="Market Digital Insights"
+                className="block max-h-[50px] max-w-full object-contain object-left transition-transform duration-300 group-hover:scale-[1.03]"
+              />
             </Link>
 
             <p className="mt-4 max-w-xs text-[13px] leading-6 text-slate-600">
@@ -127,7 +123,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick links */}
+
           <div>
             <h3 className={headingClass}>Quick Links</h3>
             <div className={underlineClass} />
@@ -147,7 +143,7 @@ export default function Footer() {
             </ul>
           </div>
 
-      
+
           <div>
             <h3 className={headingClass}>Explore Topics</h3>
             <div className={underlineClass} />
@@ -164,7 +160,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* About */}
           <div>
             <h3 className={headingClass}>About Us</h3>
             <div className={underlineClass} />
@@ -198,7 +193,6 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom bar */}
         <div className="flex flex-col gap-4 border-t border-orange-100 py-5 text-[11px] leading-5 text-slate-500 sm:flex-row sm:items-center sm:justify-between">
 
           <p className="text-center sm:text-left">

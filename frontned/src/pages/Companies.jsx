@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, ArrowRight, Sparkles, TrendingUp, Globe2 } from 'lucide-react';
-
+import { apiUrl } from "../api/apiConfig";
 const HERO_IMAGE =
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUBi4f2-W_fsawEy1mqYQCZN7A0On8Pg0_RO3Sn-q0uQ&s=10";
 
-// Dashboard description ke peeche hidden data save karta hai, card par wo nahi dikhana
+
 const cleanDesc = (s) => String(s || '').replace(/<!--COMPANY_PACK:[\s\S]*?-->/, '').trim();
 
 const FEATURE_SLIDES = [
@@ -70,27 +70,47 @@ const SLIDE_THEMES = {
     ring: "ring-[#78B58E]",
   },
 };
-
 export default function Companies() {
   const [companiesData, setCompaniesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
-    fetch('https://market-hub-blogs-backend.onrender.com/api/companies')
+    let isMounted = true;
+
+    fetch(apiUrl("/companies"))
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch companies');
+        if (!res.ok) throw new Error("Failed to fetch companies");
         return res.json();
       })
-      .then((data) => setCompaniesData(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Error fetching companies:", err))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (isMounted) {
+          setCompaniesData(Array.isArray(data) ? data : []);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error("Error fetching companies:", err);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % FEATURE_SLIDES.length);
+      setActiveSlide(
+        (current) => (current + 1) % FEATURE_SLIDES.length
+      );
     }, 5000);
+
     return () => window.clearInterval(timer);
   }, []);
 
@@ -98,38 +118,44 @@ export default function Companies() {
   const theme = SLIDE_THEMES[slide.theme];
 
   const goToSlide = (index) => setActiveSlide(index);
+
   const previousSlide = () =>
-    setActiveSlide((current) => (current - 1 + FEATURE_SLIDES.length) % FEATURE_SLIDES.length);
+    setActiveSlide(
+      (current) =>
+        (current - 1 + FEATURE_SLIDES.length) % FEATURE_SLIDES.length
+    );
+
   const nextSlide = () =>
-    setActiveSlide((current) => (current + 1) % FEATURE_SLIDES.length);
+    setActiveSlide(
+      (current) => (current + 1) % FEATURE_SLIDES.length
+    );
 
   return (
     <main className="min-h-screen bg-[#F8FAFD] text-slate-900">
 
-{/* HERO BANNER */}
 <section className="relative isolate w-full overflow-hidden bg-[#17243D] text-white">
-  {/* Background Image */}
+
   <img
     src={HERO_IMAGE}
     alt="Global companies and business innovation"
     className="absolute inset-0 -z-20 h-full w-full object-cover object-center brightness-[0.65] contrast-110 saturate-[0.85]"
   />
 
-  {/* Gradient Overlays */}
+
   <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#17243D]/95 via-[#17243D]/80 to-[#17243D]/35" />
   <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-[#111D32]/60 via-transparent to-[#111D32]/20" />
 
-  {/* Content */}
+
   <div className="mx-auto flex min-h-[390px] w-full max-w-[1600px] items-center px-5 py-12 sm:min-h-[430px] sm:px-8 sm:py-14 lg:min-h-[460px] lg:px-14 lg:py-16 xl:min-h-[480px] xl:px-16">
     <div className="w-full max-w-3xl">
 
-      {/* Badge */}
+ 
       <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#17243D]/75 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/95 backdrop-blur-md sm:text-xs">
         <Sparkles className="h-4 w-4 shrink-0 text-[#E47742]" />
         Global Brands · Company Insights
       </div>
 
-      {/* Heading */}
+
       <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl lg:text-5xl xl:text-[3.4rem]">
         Explore the world’s
         <span className="mt-2 block bg-gradient-to-r from-[#F5D98F] via-[#E8BD70] to-[#FFF0C2] bg-clip-text text-transparent">
@@ -137,13 +163,12 @@ export default function Companies() {
         </span>
       </h1>
 
-      {/* Description */}
+
       <p className="mt-5 max-w-2xl text-base leading-7 text-white/85 sm:mt-6 sm:text-lg sm:leading-8">
         Discover leading companies, their inspiring stories, latest technology
         updates, business developments, and industry insights—all in one place.
       </p>
 
-      {/* Buttons */}
       <div className="mt-7 flex flex-wrap items-center gap-3 sm:gap-4">
         <a
           href="#companies-list"
@@ -167,7 +192,7 @@ export default function Companies() {
 </section>
 
 
-      {/* FEATURED AUTO-SLIDING STORY CARD */}
+
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
@@ -204,7 +229,7 @@ export default function Companies() {
                 {slide.label} <ArrowRight className="h-4 w-4" />
               </a>
 
-              {/* Slider controls */}
+   
               <div className="mt-8 flex items-center gap-3">
                 <button
                   type="button"
@@ -241,7 +266,7 @@ export default function Companies() {
               </div>
             </div>
 
-            {/* RIGHT IMAGE */}
+      
             <div className="relative min-h-[280px] overflow-hidden lg:min-h-full">
               {FEATURE_SLIDES.map((item, index) => (
                 <img
@@ -265,7 +290,7 @@ export default function Companies() {
       </section>
 
     
-{/* Featured Companies Section */}
+
 <section
   id="companies-list"
   className="relative mx-auto max-w-7xl scroll-mt-20 overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-slate-50 to-cyan-50/70 px-4 py-8 pb-14 sm:px-6 sm:py-10 lg:px-8 lg:pb-20"
@@ -298,7 +323,7 @@ export default function Companies() {
       </div>
     </div>
 
-    {/* Loading State */}
+
     {loading ? (
       <div className="py-16 text-center">
         <div className="inline-flex items-center gap-2 text-sm font-medium text-teal-700">
@@ -307,7 +332,7 @@ export default function Companies() {
         </div>
       </div>
     ) : companiesData.length === 0 ? (
-      /* Empty State */
+   
       <div className="rounded-2xl border border-dashed border-sky-200 bg-white/80 px-6 py-14 text-center shadow-sm">
         <Building2 className="mx-auto h-9 w-9 text-sky-500" />
 
@@ -321,7 +346,7 @@ export default function Companies() {
         </p>
       </div>
     ) : (
-      /* Company Cards */
+
       <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {companiesData.map((company) => (
           <Link
@@ -329,7 +354,7 @@ export default function Companies() {
             to={`/company/${company.slug}`}
             className="group relative flex h-[350px] flex-col justify-end overflow-hidden rounded-2xl border border-sky-200/70 bg-slate-900 shadow-md shadow-slate-900/5 transition-all duration-500 hover:-translate-y-1.5 hover:border-teal-400 hover:shadow-xl hover:shadow-sky-900/15"
           >
-            {/* Company Image */}
+
             <img
               src={company.imageURL}
               alt={company.name}
@@ -337,10 +362,10 @@ export default function Companies() {
               className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
             />
 
-            {/* Navy + Blue Image Overlay */}
+  
             <div className="absolute inset-0 bg-gradient-to-t from-[#091827]/95 via-[#102D46]/65 to-[#0F4560]/10 transition-colors duration-500 group-hover:via-[#102D46]/75" />
 
-            {/* Company Profile Badge */}
+    
             <div className="absolute left-4 top-4 z-10">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/50 bg-white/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-800 shadow-sm backdrop-blur-md">
                 <Building2 className="h-3.5 w-3.5 text-teal-600" />
@@ -348,7 +373,7 @@ export default function Companies() {
               </span>
             </div>
 
-            {/* Card Content */}
+          
             <div className="relative z-10 flex h-full flex-col justify-end p-5 sm:p-6">
               <h3 className="font-serif text-xl font-bold leading-snug tracking-tight text-white transition-colors duration-300 group-hover:text-cyan-200">
                 {company.name}
@@ -358,7 +383,7 @@ export default function Companies() {
                 {cleanDesc(company.description)}
               </p>
 
-              {/* Card Footer */}
+          
               <div className="mt-5 flex items-center justify-between border-t border-white/20 pt-4">
                 <span className="text-xs font-bold uppercase tracking-[0.12em] text-white">
                   View Articles
